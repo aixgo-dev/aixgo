@@ -1,0 +1,36 @@
+package agents
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"github.com/aixgo-dev/aixgo/internal/agent"
+)
+
+type Logger struct{ def agent.AgentDef }
+func init() {
+	agent.Register("logger", func(d agent.AgentDef, rt agent.Runtime) (agent.Agent, error) {
+		return &Logger{def: d}, nil
+	})
+}
+
+func (l *Logger) Start(ctx context.Context) error {
+	rt, ok := agent.RuntimeFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("runtime not found in context")
+	}
+
+	for _, i := range l.def.Inputs {
+		ch, err := rt.Recv(i.Source)
+		if err != nil {
+			return err
+		}
+		go func(s string, c <-chan *agent.Message) {
+			for m := range c {
+				log.Printf("[ALERT] %s | %s", m.Type, m.Payload)
+			}
+		}(i.Source, ch)
+	}
+	<-ctx.Done()
+	return nil
+}

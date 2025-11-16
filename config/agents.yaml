@@ -1,0 +1,45 @@
+supervisor:
+  name: cosmic-director
+  model: grok-beta
+  max_rounds: 10
+
+agents:
+  - name: ray-detector
+    role: producer
+    interval: 800ms
+    outputs:
+      - target: spectrum-analyzer
+
+  - name: spectrum-analyzer
+    role: react
+    model: grok-beta
+    prompt: |
+      You are a cosmic ray physicist. Analyze energy and recommend actions.
+      Use tools only when necessary.
+    tools:
+      - name: query_telescope_db
+        description: "Check telescope pointing"
+        input_schema:
+          type: object
+          properties:
+            ra: { type: number, minimum: -180, maximum: 180 }
+            dec: { type: number, minimum: -90, maximum: 90 }
+          required: [ra, dec]
+      - name: trigger_repoint
+        description: "Repoint telescope"
+        input_schema:
+          type: object
+          properties:
+            ra: { type: number }
+            dec: { type: number }
+          required: [ra, dec]
+    inputs:
+      - source: ray-detector
+    outputs:
+      - target: alert-logger
+
+  - name: alert-logger
+    role: logger
+    listen: ":50053"
+    inputs:
+      - source: spectrum-analyzer
