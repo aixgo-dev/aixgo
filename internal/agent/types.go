@@ -2,9 +2,9 @@ package agent
 
 import (
 	"context"
+	pb "github.com/aixgo-dev/aixgo/proto"
 	"sync"
 	"time"
-	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
 type Agent interface {
@@ -12,25 +12,28 @@ type Agent interface {
 }
 
 type AgentDef struct {
-	Name     string   `yaml:"name"`
-	Role     string   `yaml:"role"`
-	Interval Duration `yaml:"interval,omitempty"`
-	Listen   string   `yaml:"listen,omitempty"`
-	Inputs   []Input  `yaml:"inputs,omitempty"`
-	Outputs  []Output `yaml:"outputs,omitempty"`
-	Model    string   `yaml:"model,omitempty"`
-	Prompt   string   `yaml:"prompt,omitempty"`
-	Tools    []Tool   `yaml:"tools,omitempty"`
+	Name     string         `yaml:"name"`
+	Role     string         `yaml:"role"`
+	Interval Duration       `yaml:"interval,omitempty"`
+	Listen   string         `yaml:"listen,omitempty"`
+	Inputs   []Input        `yaml:"inputs,omitempty"`
+	Outputs  []Output       `yaml:"outputs,omitempty"`
+	Model    string         `yaml:"model,omitempty"`
+	Prompt   string         `yaml:"prompt,omitempty"`
+	Tools    []Tool         `yaml:"tools,omitempty"`
 	Extra    map[string]any `yaml:",inline"`
 }
 
-type Input struct{ Source string `yaml:"source"` }
-type Output struct{
+type Input struct {
+	Source string `yaml:"source"`
+}
+type Output struct {
 	Target string `yaml:"target"`
 	Addr   string `yaml:"addr,omitempty"`
 }
 
 type Duration struct{ time.Duration }
+
 func (d *Duration) UnmarshalText(text []byte) error {
 	var err error
 	d.Duration, err = time.ParseDuration(string(text))
@@ -38,7 +41,9 @@ func (d *Duration) UnmarshalText(text []byte) error {
 }
 
 func (d *AgentDef) GetString(key, def string) string {
-	if v, ok := d.Extra[key].(string); ok { return v }
+	if v, ok := d.Extra[key].(string); ok {
+		return v
+	}
 	return def
 }
 

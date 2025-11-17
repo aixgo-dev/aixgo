@@ -145,7 +145,7 @@ func TestTypeCoercion(t *testing.T) {
 	data := map[string]any{
 		"name":     "John Doe",
 		"email":    "john@example.com",
-		"age":      "25", // String instead of int
+		"age":      "25",   // String instead of int
 		"score":    "95.5", // String instead of float
 		"username": "johndoe",
 	}
@@ -181,8 +181,8 @@ func TestStrictMode(t *testing.T) {
 
 // Test constrained types
 type Product struct {
-	ID    schema.UUID         `json:"id" validate:"required"`
-	Name  string              `json:"name" validate:"required"`
+	ID    schema.UUID          `json:"id" validate:"required"`
+	Name  string               `json:"name" validate:"required"`
 	Price schema.PositiveFloat `json:"price" validate:"required"`
 }
 
@@ -267,9 +267,9 @@ func TestNestedStructs(t *testing.T) {
 
 func TestValidationErrors(t *testing.T) {
 	data := map[string]any{
-		"name":  "AB",              // Too short
-		"email": "not-an-email",    // Invalid email
-		"age":   150,               // Too old
+		"name":  "AB",           // Too short
+		"email": "not-an-email", // Invalid email
+		"age":   150,            // Too old
 		// Missing username (required)
 	}
 

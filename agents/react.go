@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"time"
+
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/llm"
 	"github.com/aixgo-dev/aixgo/internal/observability"
@@ -76,7 +77,7 @@ func (r *ReActAgent) Start(ctx context.Context) error {
 			log.Printf("ReAct error: %v", err)
 			continue
 		}
-		out := &agent.Message{&pb.Message{
+		out := &agent.Message{Message: &pb.Message{
 			Id:        m.Id,
 			Type:      "analysis",
 			Payload:   res,
@@ -114,7 +115,9 @@ func (r *ReActAgent) think(ctx context.Context, input string) (string, error) {
 	}
 
 	resp, err := r.client.CreateChatCompletion(ctx, req)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 
 	if len(resp.Choices) == 0 {
 		return "", fmt.Errorf("no choices in response")

@@ -8,12 +8,12 @@ import (
 
 // MockRuntime is a mock implementation of the Runtime interface for testing
 type MockRuntime struct {
-	channels    map[string]chan *Message
-	sendCalls   []SendCall
-	recvCalls   []string
-	sendError   error
-	recvError   error
-	mu          sync.RWMutex
+	channels  map[string]chan *Message
+	sendCalls []SendCall
+	recvCalls []string
+	sendError error
+	recvError error
+	mu        sync.RWMutex
 }
 
 // SendCall records a call to Send

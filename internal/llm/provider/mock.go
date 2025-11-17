@@ -12,15 +12,15 @@ type MockProvider struct {
 	name string
 
 	// Responses to return for each request
-	CompletionResponses  []*CompletionResponse
-	StructuredResponses  []*StructuredResponse
-	StreamChunks         [][]*StreamChunk
-	Errors               []error
+	CompletionResponses []*CompletionResponse
+	StructuredResponses []*StructuredResponse
+	StreamChunks        [][]*StreamChunk
+	Errors              []error
 
 	// Track calls
-	CompletionCalls  []CompletionRequest
-	StructuredCalls  []StructuredRequest
-	StreamCalls      []CompletionRequest
+	CompletionCalls []CompletionRequest
+	StructuredCalls []StructuredRequest
+	StreamCalls     []CompletionRequest
 
 	currentIndex int
 }

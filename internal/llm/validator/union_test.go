@@ -250,8 +250,8 @@ func TestDiscriminatedUnionWithValidation(t *testing.T) {
 	}
 
 	type Triangle struct {
-		Type string  `json:"type" validate:"eq=triangle"`
-		Base float64 `json:"base" validate:"gt=0"`
+		Type   string  `json:"type" validate:"eq=triangle"`
+		Base   float64 `json:"base" validate:"gt=0"`
 		Height float64 `json:"height" validate:"gt=0"`
 	}
 

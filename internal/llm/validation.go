@@ -11,7 +11,9 @@ func NewValidator(schema map[string]any) *Validator { return &Validator{Schema: 
 
 func (v *Validator) Validate(input map[string]any) error {
 	props, ok := v.Schema["properties"].(map[string]any)
-	if !ok { return fmt.Errorf("missing 'properties' in schema") }
+	if !ok {
+		return fmt.Errorf("missing 'properties' in schema")
+	}
 
 	required, _ := v.Schema["required"].([]any)
 	reqMap := make(map[string]bool)
@@ -23,10 +25,14 @@ func (v *Validator) Validate(input map[string]any) error {
 
 	for k, val := range input {
 		sch, ok := props[k].(map[string]any)
-		if !ok { return fmt.Errorf("unknown field: %s", k) }
+		if !ok {
+			return fmt.Errorf("unknown field: %s", k)
+		}
 
 		typ, _ := sch["type"].(string)
-		if err := checkType(val, typ); err != nil { return fmt.Errorf("field %s: %v", k, err) }
+		if err := checkType(val, typ); err != nil {
+			return fmt.Errorf("field %s: %v", k, err)
+		}
 
 		// Validate numeric constraints
 		if err := validateNumericConstraints(k, val, sch); err != nil {

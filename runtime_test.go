@@ -30,7 +30,7 @@ func TestSimpleRuntime_Send_CreateChannel(t *testing.T) {
 	target := "test-channel"
 
 	msg := &agent.Message{
-		&pb.Message{
+		Message: &pb.Message{
 			Id:      "msg-1",
 			Type:    "test",
 			Payload: "test payload",
@@ -71,14 +71,14 @@ func TestSimpleRuntime_Send_ExistingChannel(t *testing.T) {
 	target := "existing-channel"
 
 	// Send first message to create channel
-	msg1 := &agent.Message{&pb.Message{Id: "msg-1"}}
+	msg1 := &agent.Message{Message: &pb.Message{Id: "msg-1"}}
 	err := rt.Send(target, msg1)
 	if err != nil {
 		t.Fatalf("First Send returned error: %v", err)
 	}
 
 	// Send second message to existing channel
-	msg2 := &agent.Message{&pb.Message{Id: "msg-2"}}
+	msg2 := &agent.Message{Message: &pb.Message{Id: "msg-2"}}
 	err = rt.Send(target, msg2)
 	if err != nil {
 		t.Fatalf("Second Send returned error: %v", err)
@@ -112,7 +112,7 @@ func TestSimpleRuntime_Send_FullChannel(t *testing.T) {
 
 	// Fill the channel (capacity is 100)
 	for i := 0; i < 100; i++ {
-		msg := &agent.Message{&pb.Message{Id: string(rune(i))}}
+		msg := &agent.Message{Message: &pb.Message{Id: string(rune(i))}}
 		err := rt.Send(target, msg)
 		if err != nil {
 			t.Fatalf("Send %d returned error: %v", i, err)
@@ -120,7 +120,7 @@ func TestSimpleRuntime_Send_FullChannel(t *testing.T) {
 	}
 
 	// Try to send one more message (should fail)
-	msg := &agent.Message{&pb.Message{Id: "overflow"}}
+	msg := &agent.Message{Message: &pb.Message{Id: "overflow"}}
 	err := rt.Send(target, msg)
 
 	if err == nil {
@@ -161,7 +161,7 @@ func TestSimpleRuntime_Recv_ExistingChannel(t *testing.T) {
 	source := "existing-source"
 
 	// Create channel via Send
-	msg := &agent.Message{&pb.Message{Id: "test-msg"}}
+	msg := &agent.Message{Message: &pb.Message{Id: "test-msg"}}
 	err := rt.Send(source, msg)
 	if err != nil {
 		t.Fatalf("Send returned error: %v", err)
@@ -199,7 +199,7 @@ func TestSimpleRuntime_Recv_SameChannelTwice(t *testing.T) {
 	}
 
 	// Both should return the same channel
-	msg := &agent.Message{&pb.Message{Id: "test"}}
+	msg := &agent.Message{Message: &pb.Message{Id: "test"}}
 	rt.Send(source, msg)
 
 	// Both ch1 and ch2 should receive the message
@@ -213,7 +213,7 @@ func TestSimpleRuntime_Recv_SameChannelTwice(t *testing.T) {
 	}
 
 	// Send another message
-	msg2 := &agent.Message{&pb.Message{Id: "test2"}}
+	msg2 := &agent.Message{Message: &pb.Message{Id: "test2"}}
 	rt.Send(source, msg2)
 
 	select {
@@ -240,7 +240,7 @@ func TestSimpleRuntime_ConcurrentSend(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			for j := 0; j < messagesPerSender; j++ {
-				msg := &agent.Message{&pb.Message{
+				msg := &agent.Message{Message: &pb.Message{
 					Id: string(rune('A'+id)) + string(rune('0'+j)),
 				}}
 				_ = rt.Send(target, msg)
@@ -319,7 +319,7 @@ func TestSimpleRuntime_ConcurrentSendRecv(t *testing.T) {
 		if i%2 == 0 {
 			go func(id int) {
 				defer wg.Done()
-				msg := &agent.Message{&pb.Message{Id: string(rune('A' + id))}}
+				msg := &agent.Message{Message: &pb.Message{Id: string(rune('A' + id))}}
 				_ = rt.Send(channel, msg)
 			}(i)
 		} else {
@@ -340,7 +340,7 @@ func TestSimpleRuntime_MultipleChannels(t *testing.T) {
 
 	// Send to each channel
 	for i, ch := range channels {
-		msg := &agent.Message{&pb.Message{
+		msg := &agent.Message{Message: &pb.Message{
 			Id:      string(rune('A' + i)),
 			Payload: ch,
 		}}
@@ -384,7 +384,7 @@ func TestSimpleRuntime_MessageOrdering(t *testing.T) {
 	// Send messages in order
 	numMessages := 10
 	for i := 0; i < numMessages; i++ {
-		msg := &agent.Message{&pb.Message{
+		msg := &agent.Message{Message: &pb.Message{
 			Id:      string(rune('0' + i)),
 			Payload: string(rune('A' + i)),
 		}}
@@ -414,7 +414,7 @@ func TestSimpleRuntime_EmptyMessages(t *testing.T) {
 	target := "empty-msg-channel"
 
 	// Send empty message
-	msg := &agent.Message{&pb.Message{}}
+	msg := &agent.Message{Message: &pb.Message{}}
 	err := rt.Send(target, msg)
 	if err != nil {
 		t.Fatalf("Send empty message returned error: %v", err)
@@ -459,7 +459,7 @@ func TestSimpleRuntime_ChannelCapacity(t *testing.T) {
 	// Verify channel capacity is 100
 	// Send 100 messages (should all succeed)
 	for i := 0; i < 100; i++ {
-		msg := &agent.Message{&pb.Message{Id: string(rune(i))}}
+		msg := &agent.Message{Message: &pb.Message{Id: string(rune(i))}}
 		err := rt.Send(target, msg)
 		if err != nil {
 			t.Fatalf("Send message %d returned unexpected error: %v", i, err)
@@ -467,7 +467,7 @@ func TestSimpleRuntime_ChannelCapacity(t *testing.T) {
 	}
 
 	// 101st message should fail
-	msg := &agent.Message{&pb.Message{Id: "overflow"}}
+	msg := &agent.Message{Message: &pb.Message{Id: "overflow"}}
 	err := rt.Send(target, msg)
 	if err == nil {
 		t.Error("expected error on 101st message, got nil")
@@ -492,7 +492,7 @@ func TestSimpleRuntime_StressTest(t *testing.T) {
 			defer wg.Done()
 			target := "stress-channel-" + string(rune('A'+channelId))
 			for i := 0; i < messagesPerChannel; i++ {
-				msg := &agent.Message{&pb.Message{
+				msg := &agent.Message{Message: &pb.Message{
 					Id: string(rune('0'+i%10)) + string(rune(channelId)),
 				}}
 				_ = rt.Send(target, msg)
