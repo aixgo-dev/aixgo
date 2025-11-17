@@ -3,15 +3,16 @@ package agents
 import (
 	"context"
 	"fmt"
+	"github.com/aixgo-dev/aixgo/internal/agent"
+	pb "github.com/aixgo-dev/aixgo/proto"
+	"github.com/google/uuid"
 	"log"
 	"math/rand"
 	"time"
-	"github.com/aixgo-dev/aixgo/internal/agent"
-	"github.com/google/uuid"
-	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
 type Producer struct{ def agent.AgentDef }
+
 func init() {
 	agent.Register("producer", func(d agent.AgentDef, rt agent.Runtime) (agent.Agent, error) {
 		return &Producer{def: d}, nil
@@ -33,7 +34,7 @@ func (p *Producer) Start(ctx context.Context) error {
 			return nil
 		case <-t.C:
 			e := 100 + rand.Float64()*900
-			m := &agent.Message{&pb.Message{
+			m := &agent.Message{Message: &pb.Message{
 				Id:        uuid.NewString(),
 				Type:      "ray_burst",
 				Payload:   fmt.Sprintf("Cosmic ray: %.1f TeV", e),

@@ -143,10 +143,10 @@ func TestValidator_Validate_RequiredFields(t *testing.T) {
 
 func TestValidator_Validate_TypeChecking(t *testing.T) {
 	tests := []struct {
-		name    string
-		schema  map[string]any
-		input   map[string]any
-		wantErr bool
+		name        string
+		schema      map[string]any
+		input       map[string]any
+		wantErr     bool
 		errContains string
 	}{
 		{
@@ -171,7 +171,7 @@ func TestValidator_Validate_TypeChecking(t *testing.T) {
 			input: map[string]any{
 				"name": 123,
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "must be string",
 		},
 		{
@@ -208,7 +208,7 @@ func TestValidator_Validate_TypeChecking(t *testing.T) {
 			input: map[string]any{
 				"age": "thirty",
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "must be number",
 		},
 		{
@@ -233,7 +233,7 @@ func TestValidator_Validate_TypeChecking(t *testing.T) {
 			input: map[string]any{
 				"active": "true",
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "must be boolean",
 		},
 		{
@@ -258,7 +258,7 @@ func TestValidator_Validate_TypeChecking(t *testing.T) {
 			input: map[string]any{
 				"metadata": "not an object",
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "must be object",
 		},
 		{
@@ -283,7 +283,7 @@ func TestValidator_Validate_TypeChecking(t *testing.T) {
 			input: map[string]any{
 				"tags": "not an array",
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "must be array",
 		},
 	}

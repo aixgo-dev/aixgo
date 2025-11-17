@@ -8,10 +8,10 @@ import (
 
 func TestDuration_UnmarshalText(t *testing.T) {
 	tests := []struct {
-		name     string
-		text     string
-		wantDur  time.Duration
-		wantErr  bool
+		name    string
+		text    string
+		wantDur time.Duration
+		wantErr bool
 	}{
 		{
 			name:    "valid duration seconds",
@@ -102,11 +102,11 @@ func TestDuration_UnmarshalText(t *testing.T) {
 
 func TestAgentDef_GetString(t *testing.T) {
 	tests := []struct {
-		name    string
-		def     AgentDef
-		key     string
-		defVal  string
-		want    string
+		name   string
+		def    AgentDef
+		key    string
+		defVal string
+		want   string
 	}{
 		{
 			name: "key exists with string value",

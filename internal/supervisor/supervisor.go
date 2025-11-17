@@ -2,9 +2,9 @@ package supervisor
 
 import (
 	"context"
-	"log"
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/sashabaranov/go-openai"
+	"log"
 )
 
 type Supervisor struct {

@@ -231,7 +231,7 @@ func TestCreateStructured_TypeCoercion(t *testing.T) {
 	// Setup mock provider - return string "42" for count (will be coerced to int)
 	mock := provider.NewMockProvider("test")
 	responseData := map[string]any{
-		"count": "42",  // String instead of int
+		"count": "42", // String instead of int
 		"value": "test",
 	}
 	mock.AddStructuredResponse(provider.MockStructuredResponse(responseData))

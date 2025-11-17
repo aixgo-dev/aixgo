@@ -156,6 +156,11 @@ func Shutdown(ctx context.Context) error {
 
 // StartSpan creates a new span with the given name and attributes
 func StartSpan(name string, data map[string]any) *Span {
+	// If tracer is not initialized, use a noop tracer
+	if tracer == nil {
+		tracer = trace.NewNoopTracerProvider().Tracer(DefaultServiceName)
+	}
+
 	ctx := context.Background()
 	spanCtx, span := tracer.Start(ctx, name)
 
@@ -179,6 +184,11 @@ func StartSpan(name string, data map[string]any) *Span {
 
 // StartSpanWithContext creates a new span from a parent context
 func StartSpanWithContext(ctx context.Context, name string, data map[string]any) (context.Context, *Span) {
+	// If tracer is not initialized, use a noop tracer
+	if tracer == nil {
+		tracer = trace.NewNoopTracerProvider().Tracer(DefaultServiceName)
+	}
+
 	spanCtx, span := tracer.Start(ctx, name)
 
 	// Convert data to attributes

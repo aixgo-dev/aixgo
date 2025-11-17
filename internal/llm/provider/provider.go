@@ -148,12 +148,12 @@ type ToolCallDelta struct {
 
 // ProviderError represents a provider-specific error
 type ProviderError struct {
-	Provider     string `json:"provider"`
-	Code         string `json:"code"`
-	Message      string `json:"message"`
-	Type         string `json:"type,omitempty"`
-	StatusCode   int    `json:"status_code,omitempty"`
-	IsRetryable  bool   `json:"is_retryable"`
+	Provider      string `json:"provider"`
+	Code          string `json:"code"`
+	Message       string `json:"message"`
+	Type          string `json:"type,omitempty"`
+	StatusCode    int    `json:"status_code,omitempty"`
+	IsRetryable   bool   `json:"is_retryable"`
 	OriginalError error  `json:"-"`
 }
 
@@ -169,15 +169,15 @@ func (e *ProviderError) Unwrap() error {
 
 // Common error codes
 const (
-	ErrorCodeInvalidRequest   = "invalid_request"
-	ErrorCodeAuthentication   = "authentication_error"
-	ErrorCodeRateLimit        = "rate_limit_exceeded"
-	ErrorCodeQuotaExceeded    = "quota_exceeded"
-	ErrorCodeServerError      = "server_error"
-	ErrorCodeTimeout          = "timeout"
-	ErrorCodeModelNotFound    = "model_not_found"
-	ErrorCodeContentFiltered  = "content_filtered"
-	ErrorCodeUnknown          = "unknown_error"
+	ErrorCodeInvalidRequest  = "invalid_request"
+	ErrorCodeAuthentication  = "authentication_error"
+	ErrorCodeRateLimit       = "rate_limit_exceeded"
+	ErrorCodeQuotaExceeded   = "quota_exceeded"
+	ErrorCodeServerError     = "server_error"
+	ErrorCodeTimeout         = "timeout"
+	ErrorCodeModelNotFound   = "model_not_found"
+	ErrorCodeContentFiltered = "content_filtered"
+	ErrorCodeUnknown         = "unknown_error"
 )
 
 // NewProviderError creates a new provider error

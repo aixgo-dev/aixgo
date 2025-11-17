@@ -6,19 +6,19 @@ import (
 
 func TestMessage_Fields(t *testing.T) {
 	tests := []struct {
-		name      string
-		msg       Message
-		wantId    string
-		wantType  string
-		wantPayload string
+		name          string
+		msg           Message
+		wantId        string
+		wantType      string
+		wantPayload   string
 		wantTimestamp string
 	}{
 		{
-			name: "empty message",
-			msg:  Message{},
-			wantId: "",
-			wantType: "",
-			wantPayload: "",
+			name:          "empty message",
+			msg:           Message{},
+			wantId:        "",
+			wantType:      "",
+			wantPayload:   "",
 			wantTimestamp: "",
 		},
 		{
@@ -29,35 +29,35 @@ func TestMessage_Fields(t *testing.T) {
 				Payload:   "test payload",
 				Timestamp: "2024-01-01T00:00:00Z",
 			},
-			wantId:    "msg-123",
-			wantType:  "test-type",
-			wantPayload: "test payload",
+			wantId:        "msg-123",
+			wantType:      "test-type",
+			wantPayload:   "test payload",
 			wantTimestamp: "2024-01-01T00:00:00Z",
 		},
 		{
 			name: "message with unicode payload",
 			msg: Message{
-				Id:      "msg-456",
-				Type:    "unicode",
-				Payload: "🎉 Unicode test 日本語",
+				Id:        "msg-456",
+				Type:      "unicode",
+				Payload:   "🎉 Unicode test 日本語",
 				Timestamp: "2024-01-02T12:00:00Z",
 			},
-			wantId:    "msg-456",
-			wantType:  "unicode",
-			wantPayload: "🎉 Unicode test 日本語",
+			wantId:        "msg-456",
+			wantType:      "unicode",
+			wantPayload:   "🎉 Unicode test 日本語",
 			wantTimestamp: "2024-01-02T12:00:00Z",
 		},
 		{
 			name: "message with long payload",
 			msg: Message{
-				Id:      "msg-789",
-				Type:    "large",
-				Payload: string(make([]byte, 10000)),
+				Id:        "msg-789",
+				Type:      "large",
+				Payload:   string(make([]byte, 10000)),
 				Timestamp: "2024-01-03T18:30:00Z",
 			},
-			wantId:    "msg-789",
-			wantType:  "large",
-			wantPayload: string(make([]byte, 10000)),
+			wantId:        "msg-789",
+			wantType:      "large",
+			wantPayload:   string(make([]byte, 10000)),
 			wantTimestamp: "2024-01-03T18:30:00Z",
 		},
 	}

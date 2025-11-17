@@ -3,11 +3,12 @@ package agents
 import (
 	"context"
 	"fmt"
-	"log"
 	"github.com/aixgo-dev/aixgo/internal/agent"
+	"log"
 )
 
 type Logger struct{ def agent.AgentDef }
+
 func init() {
 	agent.Register("logger", func(d agent.AgentDef, rt agent.Runtime) (agent.Agent, error) {
 		return &Logger{def: d}, nil

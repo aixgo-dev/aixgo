@@ -152,9 +152,9 @@ Let's break down the configuration file:
 
 ```yaml
 supervisor:
-  name: data-pipeline-supervisor  # Unique identifier
-  model: grok-beta                # LLM model for orchestration
-  max_rounds: 10                  # Maximum execution rounds
+  name: data-pipeline-supervisor # Unique identifier
+  model: grok-beta # LLM model for orchestration
+  max_rounds: 10 # Maximum execution rounds
 ```
 
 The supervisor orchestrates agent execution and enforces execution limits.
@@ -166,9 +166,9 @@ The supervisor orchestrates agent execution and enforces execution limits.
 ```yaml
 - name: data-producer
   role: producer
-  interval: 1s                    # Generate message every second
+  interval: 1s # Generate message every second
   outputs:
-    - target: data-analyzer       # Send to analyzer
+    - target: data-analyzer # Send to analyzer
 ```
 
 Generates periodic messages for downstream processing.
@@ -178,13 +178,13 @@ Generates periodic messages for downstream processing.
 ```yaml
 - name: data-analyzer
   role: react
-  model: grok-beta                # LLM to use
-  prompt: |                       # System prompt
+  model: grok-beta # LLM to use
+  prompt: | # System prompt
     You are a data analyst...
   inputs:
-    - source: data-producer       # Receive from producer
+    - source: data-producer # Receive from producer
   outputs:
-    - target: result-logger       # Send to logger
+    - target: result-logger # Send to logger
 ```
 
 Uses LLM reasoning and tool calling to process messages.
@@ -195,7 +195,7 @@ Uses LLM reasoning and tool calling to process messages.
 - name: result-logger
   role: logger
   inputs:
-    - source: data-analyzer       # Receive from analyzer
+    - source: data-analyzer # Receive from analyzer
 ```
 
 Consumes and logs messages from other agents.
@@ -210,16 +210,16 @@ Enhance your ReAct agent with tools:
 - name: data-analyzer
   role: react
   model: grok-beta
-  prompt: "You are a data analyst with access to a database."
+  prompt: 'You are a data analyst with access to a database.'
   tools:
     - name: query_database
-      description: "Query the database for historical data"
+      description: 'Query the database for historical data'
       input_schema:
         type: object
         properties:
           query:
             type: string
-            description: "SQL query to execute"
+            description: 'SQL query to execute'
         required: [query]
   inputs:
     - source: data-producer
@@ -237,7 +237,7 @@ Agents can have multiple inputs and outputs:
 - name: aggregator
   role: react
   model: grok-beta
-  prompt: "Aggregate data from multiple sources."
+  prompt: 'Aggregate data from multiple sources.'
   inputs:
     - source: producer-1
     - source: producer-2
@@ -254,11 +254,11 @@ Adjust producer timing based on your needs:
 ```yaml
 - name: fast-producer
   role: producer
-  interval: 100ms    # Every 100 milliseconds
+  interval: 100ms # Every 100 milliseconds
 
 - name: slow-producer
   role: producer
-  interval: 5m       # Every 5 minutes
+  interval: 5m # Every 5 minutes
 ```
 
 Supported units: `ms` (milliseconds), `s` (seconds), `m` (minutes), `h` (hours).
@@ -277,7 +277,7 @@ agents:
 
   - name: validator
     role: react
-    prompt: "Validate incoming data"
+    prompt: 'Validate incoming data'
     inputs:
       - source: ingester
     outputs:
@@ -285,7 +285,7 @@ agents:
 
   - name: enricher
     role: react
-    prompt: "Enrich validated data"
+    prompt: 'Enrich validated data'
     inputs:
       - source: validator
     outputs:
@@ -311,7 +311,7 @@ agents:
 
   - name: analyzer-1
     role: react
-    prompt: "Sentiment analysis"
+    prompt: 'Sentiment analysis'
     inputs:
       - source: data-source
     outputs:
@@ -319,7 +319,7 @@ agents:
 
   - name: analyzer-2
     role: react
-    prompt: "Entity extraction"
+    prompt: 'Entity extraction'
     inputs:
       - source: data-source
     outputs:
@@ -327,7 +327,7 @@ agents:
 
   - name: analyzer-3
     role: react
-    prompt: "Topic classification"
+    prompt: 'Topic classification'
     inputs:
       - source: data-source
     outputs:
@@ -335,7 +335,7 @@ agents:
 
   - name: aggregator
     role: react
-    prompt: "Combine all analysis results"
+    prompt: 'Combine all analysis results'
     inputs:
       - source: analyzer-1
       - source: analyzer-2
@@ -364,7 +364,7 @@ agents:
   # Parallel processors
   - name: processor-1
     role: react
-    prompt: "Process type A events"
+    prompt: 'Process type A events'
     inputs:
       - source: event-stream
     outputs:
@@ -372,7 +372,7 @@ agents:
 
   - name: processor-2
     role: react
-    prompt: "Process type B events"
+    prompt: 'Process type B events'
     inputs:
       - source: event-stream
     outputs:
@@ -381,7 +381,7 @@ agents:
   # Combine results
   - name: combiner
     role: react
-    prompt: "Combine processed events"
+    prompt: 'Combine processed events'
     inputs:
       - source: processor-1
       - source: processor-2

@@ -32,12 +32,12 @@ func TestStartSpan(t *testing.T) {
 			name:     "span with mixed data types",
 			spanName: "mixed-span",
 			data: map[string]any{
-				"string":  "text",
-				"int":     42,
-				"float":   3.14,
-				"bool":    true,
-				"slice":   []string{"a", "b", "c"},
-				"map":     map[string]string{"nested": "value"},
+				"string": "text",
+				"int":    42,
+				"float":  3.14,
+				"bool":   true,
+				"slice":  []string{"a", "b", "c"},
+				"map":    map[string]string{"nested": "value"},
 			},
 		},
 		{
@@ -188,8 +188,8 @@ func TestSpan_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func(id int) {
 			data := map[string]any{
-				"id":    id,
-				"test":  "concurrent",
+				"id":   id,
+				"test": "concurrent",
 			}
 			span := StartSpan("concurrent-span", data)
 			span.End()

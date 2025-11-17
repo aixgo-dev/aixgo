@@ -1,6 +1,7 @@
 # Observability Guide
 
-AIxGO provides built-in OpenTelemetry support for tracing agent execution and workflows. By default, traces are sent to **Langfuse**, but you can easily switch to any OpenTelemetry-compatible backend.
+Aixgo provides built-in OpenTelemetry support for tracing agent execution and workflows. By default, traces are sent to **Langfuse**, but you can easily switch to any
+OpenTelemetry-compatible backend.
 
 **For comprehensive documentation, visit [https://aixgo.dev](https://aixgo.dev)**
 
@@ -60,7 +61,7 @@ That's it! Your traces are now being sent to Langfuse.
 
 ## Configuration Options
 
-AIxGO uses standard OpenTelemetry environment variables for configuration:
+Aixgo uses standard OpenTelemetry environment variables for configuration:
 
 ### Service Name
 
@@ -100,7 +101,7 @@ OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer token,Custom-Header=value
 
 ## Alternative Backends
 
-AIxGO works with any OpenTelemetry-compatible backend. Here are popular options:
+Aixgo works with any OpenTelemetry-compatible backend. Here are popular options:
 
 ### Jaeger (Open Source)
 
@@ -111,7 +112,7 @@ docker run -d --name jaeger \
   -p 4318:4318 \
   jaegertracing/all-in-one:latest
 
-# Configure AIxGO
+# Configure Aixgo
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces
 ```
 
@@ -151,7 +152,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 # Run Langfuse locally
 docker-compose -f docker-compose.langfuse.yml up -d
 
-# Configure AIxGO
+# Configure Aixgo
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:3000/api/public/otel
 LANGFUSE_PUBLIC_KEY=your-local-public-key
 LANGFUSE_SECRET_KEY=your-local-secret-key
@@ -375,7 +376,7 @@ OTEL_TRACES_SAMPLER_ARG=0.1  # Sample 10% of traces
 
 If observability is causing latency:
 
-1. **Use batching** (enabled by default in AIxGO)
+1. **Use batching** (enabled by default in Aixgo)
 2. **Reduce attribute size** - avoid large payloads in span attributes
 3. **Sample traces** for high-volume scenarios
 4. **Use local OTLP collector** to batch and forward traces
@@ -455,7 +456,7 @@ service:
       exporters: [otlp/langfuse, otlp/jaeger]
 ```
 
-Then configure AIxGO to send to the collector:
+Then configure Aixgo to send to the collector:
 
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
@@ -465,7 +466,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 - **Langfuse Documentation:** <https://langfuse.com/docs>
 - **OpenTelemetry Go:** <https://opentelemetry.io/docs/languages/go/>
-- **AIxGO Issues:** <https://github.com/aixgo-dev/aixgo/issues>
+- **Aixgo Issues:** <https://github.com/aixgo-dev/aixgo/issues>
 
 ---
 

@@ -250,7 +250,7 @@ func TestLogger_Start(t *testing.T) {
 
 	// Send messages
 	for i := 0; i < 3; i++ {
-		msg := &agent.Message{&pb.Message{
+		msg := &agent.Message{Message: &pb.Message{
 			Id:      string(rune('A' + i)),
 			Type:    "test-type",
 			Payload: "test payload",
@@ -306,7 +306,7 @@ func TestLogger_MultipleInputs(t *testing.T) {
 	// Send to each input
 	for i := 1; i <= 3; i++ {
 		source := "input" + string(rune('0'+i))
-		msg := &agent.Message{&pb.Message{
+		msg := &agent.Message{Message: &pb.Message{
 			Id:      source,
 			Type:    "test",
 			Payload: "payload from " + source,
@@ -370,11 +370,11 @@ func TestReActAgent_Registration(t *testing.T) {
 	}
 
 	def := agent.AgentDef{
-		Name:  "test-react",
-		Role:  "react",
-		Model: "test-model",
-		Prompt: "test prompt",
-		Inputs: []agent.Input{{Source: "input"}},
+		Name:    "test-react",
+		Role:    "react",
+		Model:   "test-model",
+		Prompt:  "test prompt",
+		Inputs:  []agent.Input{{Source: "input"}},
 		Outputs: []agent.Output{{Target: "output"}},
 		Tools: []agent.Tool{
 			{
@@ -490,13 +490,13 @@ func TestReActAgent_ToolValidation(t *testing.T) {
 
 func TestReActAgent_Start(t *testing.T) {
 	def := agent.AgentDef{
-		Name:   "start-react",
-		Role:   "react",
-		Model:  "test-model",
-		Prompt: "test prompt",
-		Inputs: []agent.Input{{Source: "react-input"}},
+		Name:    "start-react",
+		Role:    "react",
+		Model:   "test-model",
+		Prompt:  "test prompt",
+		Inputs:  []agent.Input{{Source: "react-input"}},
 		Outputs: []agent.Output{{Target: "react-output"}},
-		Tools:  []agent.Tool{},
+		Tools:   []agent.Tool{},
 	}
 
 	rt := &mockRuntime{channels: make(map[string]chan *agent.Message)}
