@@ -1,0 +1,59 @@
+# Dependabot configuration for aixgo-dev/aixgo
+# See documentation: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Monitor Go module dependencies
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "go"
+    # Group minor and patch updates together to reduce PR noise
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Keep pull requests up to date with the base branch
+    rebase-strategy: "auto"
+    # Ignore major version updates for stable dependencies (can be customized)
+    # ignore:
+    #   - dependency-name: "*"
+    #     update-types: ["version-update:semver-major"]
+
+  # Monitor GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    rebase-strategy: "auto"
