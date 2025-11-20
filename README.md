@@ -265,29 +265,7 @@ aixgo/
 
 ## Roadmap
 
-### v0.1 (Current)
-
-- Multi-agent orchestration with supervisor pattern
-- Producer, ReAct, and Logger agents
-- YAML-based configuration
-- Local execution with Go channels
-- OpenTelemetry observability foundation
-
-### v0.2 (Planned)
-
-- Distributed mode with gRPC transport
-- Additional LLM provider support (OpenAI, Anthropic, Vertex AI)
-- Vector database integrations (Firestore, Qdrant)
-- Enhanced observability with Langfuse integration
-- Additional agent types (Classifier, Aggregator)
-
-### v0.3 (Future)
-
-- Kubernetes operator for agent deployments
-- Cloud Run / Lambda deployment templates
-- Workflow persistence and recovery
-- Advanced supervisor patterns (parallel, sequential, reflection)
-- Performance benchmarking suite
+See our [GitHub Project Board](https://github.com/orgs/aixgo-dev/projects/1) for the latest roadmap, feature development, and priorities.
 
 ## Documentation
 
