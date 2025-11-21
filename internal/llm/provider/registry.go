@@ -134,6 +134,11 @@ func DetectProvider(model string) string {
 		return "anthropic"
 	}
 
+	// Check for Gemini models
+	if len(model) >= 6 && model[:6] == "gemini" {
+		return "gemini"
+	}
+
 	// Default to OpenAI-compatible
 	return "openai"
 }

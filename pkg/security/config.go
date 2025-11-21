@@ -86,9 +86,10 @@ type AuthorizationConfig struct {
 
 // AuditConfig for audit logging
 type AuditConfig struct {
-	Enabled          bool   `yaml:"enabled"`
-	Backend          string `yaml:"backend"` // memory, json, syslog
-	LogAuthDecisions bool   `yaml:"log_auth_decisions"`
+	Enabled          bool        `yaml:"enabled"`
+	Backend          string      `yaml:"backend"` // memory, json, syslog
+	LogAuthDecisions bool        `yaml:"log_auth_decisions"`
+	SIEM             *SIEMConfig `yaml:"siem,omitempty"`
 }
 
 // DefaultSecurityConfig returns environment-appropriate defaults

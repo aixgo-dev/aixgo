@@ -1,6 +1,5 @@
 name: Deploy to Kubernetes
 
-# Disabled - deployment workflows not in use
 on:
   workflow_dispatch:
     inputs:
@@ -12,27 +11,96 @@ on:
         options:
           - staging
           - production
-  # push:
-  #   branches:
-  #     - main
-  #   paths:
-  #     - '**.go'
-  #     - 'go.mod'
-  #     - 'go.sum'
-  #     - 'docker/**'
-  #     - 'deploy/k8s/**'
-  #     - '.github/workflows/deploy-k8s.yml'
+      image_tag:
+        description: 'Image tag to deploy (default: latest commit SHA)'
+        required: false
+        type: string
+  push:
+    branches:
+      - main
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'docker/**'
+      - 'deploy/k8s/**'
+      - '.github/workflows/deploy-k8s.yml'
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GKE_CLUSTER: aixgo-cluster
-  GKE_ZONE: us-central1
-  REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER || 'aixgo-cluster' }}
+  GKE_ZONE: ${{ secrets.GCP_REGION || 'us-central1' }}
+  REGISTRY: ${{ secrets.GCP_REGION || 'us-central1' }}-docker.pkg.dev
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy to GKE
+  build:
+    name: Build and Push Images
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Determine image tag
+      id: tag
+      run: |
+        if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+          echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+        service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker for Artifact Registry
+      run: |
+        gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push orchestrator image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/aixgo.Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/orchestrator:${{ steps.tag.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/orchestrator:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push MCP server image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/aixgo.Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/mcp-server:${{ steps.tag.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/mcp-server:latest
+        build-args: |
+          SERVICE=mcp-server
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: build
     environment: ${{ github.event.inputs.environment || 'staging' }}
     permissions:
       contents: read
@@ -53,74 +121,120 @@ jobs:
       with:
         install_components: 'gke-gcloud-auth-plugin'
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.23'
-
-    - name: Deploy to Kubernetes
+    - name: Get GKE credentials
       run: |
-        go run cmd/deploy/k8s/main.go \
-          -project ${{ env.PROJECT_ID }} \
-          -cluster ${{ env.GKE_CLUSTER }} \
-          -zone ${{ env.GKE_ZONE }} \
-          -env ${{ github.event.inputs.environment || 'staging' }} \
-          -tag ${{ github.sha }}
-      env:
-        XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          --zone ${{ env.GKE_ZONE }} \
+          --project ${{ env.PROJECT_ID }}
+
+    - name: Set environment variables
+      id: env
+      run: |
+        ENV="${{ github.event.inputs.environment || 'staging' }}"
+        if [ "$ENV" = "production" ]; then
+          echo "namespace=aixgo" >> $GITHUB_OUTPUT
+          echo "overlay=production" >> $GITHUB_OUTPUT
+          echo "replicas=3" >> $GITHUB_OUTPUT
+        else
+          echo "namespace=aixgo-staging" >> $GITHUB_OUTPUT
+          echo "overlay=staging" >> $GITHUB_OUTPUT
+          echo "replicas=1" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create namespace if not exists
+      run: |
+        kubectl create namespace ${{ steps.env.outputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Create/Update secrets
+      run: |
+        kubectl create secret generic aixgo-secrets \
+          --namespace=${{ steps.env.outputs.namespace }} \
+          --from-literal=XAI_API_KEY="${{ secrets.XAI_API_KEY }}" \
+          --from-literal=OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+          --from-literal=HUGGINGFACE_API_KEY="${{ secrets.HUGGINGFACE_API_KEY }}" \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Deploy with Kustomize
+      run: |
+        cd deploy/k8s/overlays/${{ steps.env.outputs.overlay }}
+
+        # Update image tags
+        kustomize edit set image \
+          orchestrator=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/orchestrator:${{ needs.build.outputs.image_tag }} \
+          mcp-server=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/mcp-server:${{ needs.build.outputs.image_tag }}
+
+        # Apply manifests
+        kustomize build . | kubectl apply -f -
+
+    - name: Wait for rollout
+      run: |
+        kubectl rollout status deployment/aixgo-orchestrator -n ${{ steps.env.outputs.namespace }} --timeout=300s
+        kubectl rollout status deployment/aixgo-mcp-server -n ${{ steps.env.outputs.namespace }} --timeout=300s
 
     - name: Verify deployment
       run: |
-        NAMESPACE="${{ github.event.inputs.environment == 'production' && 'aixgo' || 'aixgo-staging' }}"
-        kubectl get pods -n $NAMESPACE
-        kubectl get services -n $NAMESPACE
+        echo "Pods:"
+        kubectl get pods -n ${{ steps.env.outputs.namespace }}
+        echo ""
+        echo "Services:"
+        kubectl get services -n ${{ steps.env.outputs.namespace }}
 
     - name: Create deployment summary
       run: |
-        NAMESPACE="${{ github.event.inputs.environment == 'production' && 'aixgo' || 'aixgo-staging' }}"
-
         cat >> $GITHUB_STEP_SUMMARY <<EOF
         ## Kubernetes Deployment
 
         - **Environment**: ${{ github.event.inputs.environment || 'staging' }}
         - **Cluster**: ${{ env.GKE_CLUSTER }}
-        - **Namespace**: $NAMESPACE
-        - **Orchestrator Image**: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/orchestrator:${{ github.sha }}
-        - **MCP Server Image**: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/mcp-server:${{ github.sha }}
-        - **Status**: :white_check_mark: Success
+        - **Namespace**: ${{ steps.env.outputs.namespace }}
+        - **Image Tag**: ${{ needs.build.outputs.image_tag }}
+        - **Replicas**: ${{ steps.env.outputs.replicas }}
+        - **Status**: Success
 
         ### Pods Status
         \`\`\`
-        $(kubectl get pods -n $NAMESPACE)
+        $(kubectl get pods -n ${{ steps.env.outputs.namespace }} -o wide)
         \`\`\`
 
         ### Services
         \`\`\`
-        $(kubectl get services -n $NAMESPACE)
+        $(kubectl get services -n ${{ steps.env.outputs.namespace }})
+        \`\`\`
+
+        ### Rollback Instructions
+        To rollback to a previous deployment:
+        \`\`\`bash
+        # View rollout history
+        kubectl rollout history deployment/aixgo-orchestrator -n ${{ steps.env.outputs.namespace }}
+
+        # Rollback to previous revision
+        kubectl rollout undo deployment/aixgo-orchestrator -n ${{ steps.env.outputs.namespace }}
+        kubectl rollout undo deployment/aixgo-mcp-server -n ${{ steps.env.outputs.namespace }}
+
+        # Rollback to specific revision
+        kubectl rollout undo deployment/aixgo-orchestrator -n ${{ steps.env.outputs.namespace }} --to-revision=N
         \`\`\`
         EOF
 
   notify:
     name: Notify deployment
     runs-on: ubuntu-latest
-    needs: build-and-deploy
+    needs: deploy
     if: always()
     steps:
     - name: Send Slack notification
-      if: env.SLACK_WEBHOOK_URL != ''
+      if: secrets.SLACK_WEBHOOK_URL != ''
       uses: slackapi/slack-github-action@v1
       with:
         payload: |
           {
-            "text": "Kubernetes Deployment ${{ needs.build-and-deploy.result }}",
+            "text": "Kubernetes Deployment ${{ needs.deploy.result }}",
             "blocks": [
               {
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "*Kubernetes Deployment*\n*Status:* ${{ needs.build-and-deploy.result }}\n*Environment:* ${{ github.event.inputs.environment || 'staging' }}\n*Commit:* <${{ github.event.repository.html_url }}/commit/${{ github.sha }}|${{ github.sha }}>"
+                  "text": "*Kubernetes Deployment*\n*Status:* ${{ needs.deploy.result }}\n*Environment:* ${{ github.event.inputs.environment || 'staging' }}\n*Commit:* <${{ github.event.repository.html_url }}/commit/${{ github.sha }}|${{ github.sha }}>"
                 }
               }
             ]

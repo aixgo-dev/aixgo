@@ -1,0 +1,39 @@
+# Example configuration for Cloud Run with IAP
+# Copy and modify for your deployment
+
+# Server configuration
+server:
+  port: 8080
+  grpc_port: 9090
+
+# Security configuration
+security:
+  # IAP configuration
+  iap:
+    enabled: true
+    # IAP audience - format: /projects/PROJECT_NUMBER/global/backendServices/SERVICE_ID
+    # Get this from: gcloud compute backend-services describe aixgo-backend --global --format='value(id)'
+    audience: "/projects/YOUR_PROJECT_NUMBER/global/backendServices/YOUR_BACKEND_SERVICE_ID"
+    # Verify JWT signatures (recommended for production)
+    verify_jwt: true
+    # Allowed domains (optional - restrict to specific Google Workspace domains)
+    allowed_domains:
+      - "example.com"
+    # Required roles (optional - checked against IAP claims)
+    required_roles: []
+
+  # Authentication mode
+  auth:
+    mode: "iap"  # Options: none, api_key, iap, oauth
+    # Fallback to API key if IAP headers not present (useful for service-to-service)
+    allow_api_key_fallback: false
+
+# Logging configuration
+logging:
+  level: "info"
+  format: "json"
+  # Include IAP identity in logs
+  include_identity: true
+
+# Environment
+environment: "production"

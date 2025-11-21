@@ -1,11 +1,15 @@
 name: Release
 
-# Disabled - release workflows not in use
 on:
   workflow_dispatch:
-  # push:
-  #   tags:
-  #     - 'v*.*.*'
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*.*.*'
 
 env:
   GO_VERSION: '1.23'
@@ -44,7 +48,12 @@ jobs:
 
     - name: Get version
       id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
 
     - name: Build binary
       run: |
