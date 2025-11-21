@@ -134,9 +134,19 @@ func DetectProvider(model string) string {
 		return "anthropic"
 	}
 
+	// Check for Vertex AI models
+	if len(model) >= 7 && model[:7] == "vertex/" {
+		return "vertexai"
+	}
+
 	// Check for Gemini models
 	if len(model) >= 6 && model[:6] == "gemini" {
 		return "gemini"
+	}
+
+	// Check for X.AI (Grok) models
+	if len(model) >= 4 && model[:4] == "grok" {
+		return "xai"
 	}
 
 	// Default to OpenAI-compatible
