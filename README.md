@@ -30,6 +30,28 @@ systems without Python dependencies.
 go get github.com/aixgo-dev/aixgo
 ```
 
+### Setup
+
+Before running your agents, you need to configure API keys for LLM providers. Create a `.env` file in your project root (or set environment variables):
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env and add your API keys
+# Required: At least one of these API keys
+export OPENAI_API_KEY=sk-...        # For GPT models
+export XAI_API_KEY=xai-...          # For Grok models
+export ANTHROPIC_API_KEY=sk-ant-... # For Claude models (optional)
+export HUGGINGFACE_API_KEY=hf_...  # For HuggingFace models (optional)
+```
+
+The framework will automatically detect the appropriate API key based on your model name:
+- `grok-*` or `xai-*` models use `XAI_API_KEY`
+- `gpt-*` models use `OPENAI_API_KEY`
+- `claude-*` models use `ANTHROPIC_API_KEY`
+- HuggingFace models (e.g., `meta-llama/*`) use `HUGGINGFACE_API_KEY`
+
 ### Your First Agent
 
 Create a simple multi-agent system in under 5 minutes:
@@ -273,11 +295,68 @@ For comprehensive documentation, visit **[https://aixgo.dev](https://aixgo.dev)*
 
 **Repository Documentation:**
 
+### Getting Started
+
 - [Quick Start Guide](docs/QUICKSTART.md) - Get started in 5 minutes
+- [Deployment Guide](docs/DEPLOYMENT.md) - Deploy to Cloud Run, Kubernetes, or local
+- [API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo) - GoDoc documentation
+
+### Development
+
 - [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
 - [Testing Guide](docs/TESTING_GUIDE.md) - Testing strategies
 - [Observability Guide](docs/OBSERVABILITY.md) - OpenTelemetry integration
-- [API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo) - GoDoc documentation
+- [Tools Reference](TOOLS.md) - Development tools and commands
+
+### Security
+
+- [Authentication Guide](docs/AUTHENTICATION.md) - Configure auth modes for different deployments
+- [Security Status](SECURITY_STATUS.md) - Current security implementation status
+- [Security Best Practices](SECURITY_BEST_PRACTICES.md) - Secure development guidelines
+- [Production Security Checklist](PRODUCTION_SECURITY_CHECKLIST.md) - Pre-deployment requirements
+- [Docker Security](DOCKER_SECURITY.md) - Container security hardening
+
+## Authentication Configuration
+
+Aixgo supports flexible authentication modes for different deployment scenarios:
+
+| Mode | Use Case | Description |
+|------|----------|-------------|
+| `disabled` | Local development | No authentication (NOT for production) |
+| `delegated` | Cloud Run + IAP | Infrastructure handles auth |
+| `builtin` | Self-hosted | Application validates API keys |
+| `hybrid` | Mixed auth | Both infrastructure and API keys |
+
+### Quick Examples
+
+**Local Development** (no auth):
+```yaml
+environment: development
+auth_mode: disabled
+```
+
+**Cloud Run with IAP**:
+```yaml
+environment: production
+auth_mode: delegated
+delegated_auth:
+  identity_header: X-Goog-Authenticated-User-Email
+  iap:
+    enabled: true
+```
+
+**Self-hosted with API Keys**:
+```yaml
+environment: production
+auth_mode: builtin
+builtin_auth:
+  method: api_key
+  api_keys:
+    source: environment
+    env_prefix: AIXGO_API_KEY_
+```
+
+See [Authentication Guide](docs/AUTHENTICATION.md) for complete documentation and [examples/](examples/) for full configuration files.
 
 ## Contributing
 

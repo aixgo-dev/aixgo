@@ -1,0 +1,42 @@
+supervisor:
+  name: coordinator
+  model: grok-beta
+  max_rounds: 10
+
+mcp_servers:
+  - name: weather-tools
+    transport: local
+
+model_services:
+  - name: phi-local
+    provider: huggingface
+    model: phi3.5:3.8b-mini-instruct-q4_K_M
+    runtime: ollama
+    transport: local
+    config:
+      quantization: int4
+
+agents:
+  - name: producer
+    role: producer
+    interval: 5s
+    outputs:
+      - target: assistant
+
+  - name: assistant
+    role: react
+    model: phi-local
+    prompt: |
+      You are a helpful AI assistant with access to weather tools.
+      When asked about weather, use the get_weather tool to fetch current conditions.
+      Always be concise and friendly in your responses.
+    mcp_servers: [weather-tools]
+    inputs:
+      - source: producer
+    outputs:
+      - target: logger
+
+  - name: logger
+    role: logger
+    inputs:
+      - source: assistant

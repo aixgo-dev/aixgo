@@ -2,10 +2,16 @@ package supervisor
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
 )
+
+func init() {
+	// Set a test API key for tests
+	_ = os.Setenv("OPENAI_API_KEY", "test-key-for-testing")
+}
 
 func TestNew(t *testing.T) {
 	tests := []struct {
@@ -81,10 +87,14 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := New(tt.def, tt.agents, tt.rt)
+			s, err := New(tt.def, tt.agents, tt.rt)
+			if err != nil {
+				t.Fatalf("New returned error: %v", err)
+			}
 
 			if s == nil {
 				t.Fatal("New returned nil supervisor")
+				return
 			}
 
 			if s.def.Name != tt.def.Name {
@@ -171,7 +181,10 @@ func TestSupervisor_Start(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := New(tt.def, tt.agents, tt.rt)
+			s, err := New(tt.def, tt.agents, tt.rt)
+			if err != nil {
+				t.Fatalf("New returned error: %v", err)
+			}
 
 			ctx := context.Background()
 			if tt.name == "start with canceled context" {
@@ -180,7 +193,7 @@ func TestSupervisor_Start(t *testing.T) {
 				cancel() // Cancel immediately
 			}
 
-			err := s.Start(ctx)
+			err = s.Start(ctx)
 
 			if tt.wantErr {
 				if err == nil {
@@ -227,17 +240,17 @@ func TestSupervisorDef_ZeroValue(t *testing.T) {
 	}
 }
 
-func TestGetAPIKey(t *testing.T) {
-	key := getAPIKey()
-
+func TestGetAPIKeyFromEnv(t *testing.T) {
+	// Test with grok model
+	key := getAPIKeyFromEnv("grok-beta")
 	if key == "" {
-		t.Error("getAPIKey returned empty string")
+		t.Error("getAPIKeyFromEnv returned empty string for grok model")
 	}
 
-	// Verify it returns the placeholder
-	expected := "xai-api-key-placeholder"
-	if key != expected {
-		t.Errorf("getAPIKey() = %v, want %v", key, expected)
+	// Test with gpt model
+	key = getAPIKeyFromEnv("gpt-4")
+	if key == "" {
+		t.Error("getAPIKeyFromEnv returned empty string for gpt model")
 	}
 }
 
@@ -254,7 +267,10 @@ func TestSupervisor_Fields(t *testing.T) {
 
 	rt := &mockRuntime{}
 
-	s := New(def, agents, rt)
+	s, err := New(def, agents, rt)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
 
 	// Verify all fields are properly set
 	if s.def.Name != def.Name {
@@ -289,7 +305,10 @@ func TestSupervisor_ClientInitialization(t *testing.T) {
 		MaxRounds: 10,
 	}
 
-	s := New(def, nil, nil)
+	s, err := New(def, nil, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
 
 	if s.client == nil {
 		t.Fatal("client should be initialized")
@@ -304,8 +323,14 @@ func TestSupervisor_MultipleInstances(t *testing.T) {
 	def1 := SupervisorDef{Name: "supervisor1", Model: "model1", MaxRounds: 5}
 	def2 := SupervisorDef{Name: "supervisor2", Model: "model2", MaxRounds: 10}
 
-	s1 := New(def1, nil, nil)
-	s2 := New(def2, nil, nil)
+	s1, err := New(def1, nil, nil)
+	if err != nil {
+		t.Fatalf("New returned error for s1: %v", err)
+	}
+	s2, err := New(def2, nil, nil)
+	if err != nil {
+		t.Fatalf("New returned error for s2: %v", err)
+	}
 
 	if s1.def.Name == s2.def.Name {
 		t.Error("supervisors should have different names")
@@ -332,7 +357,12 @@ func TestSupervisor_StartConcurrent(t *testing.T) {
 				Model:     "model",
 				MaxRounds: 10,
 			}
-			s := New(def, nil, nil)
+			s, err := New(def, nil, nil)
+			if err != nil {
+				t.Errorf("New returned error: %v", err)
+				done <- true
+				return
+			}
 			ctx := context.Background()
 			_ = s.Start(ctx)
 			done <- true
@@ -357,7 +387,10 @@ func TestSupervisor_AgentsMapModification(t *testing.T) {
 		MaxRounds: 10,
 	}
 
-	s := New(def, agents, nil)
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
 
 	// Modify original map
 	agents["agent2"] = &mockAgent{}

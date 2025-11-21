@@ -1,0 +1,90 @@
+name: Deploy to Cloud Run
+
+# Disabled - deployment workflows not in use
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - '**.go'
+  #     - 'go.mod'
+  #     - 'go.sum'
+  #     - 'docker/**'
+  #     - 'deploy/cloudrun/**'
+  #     - '.github/workflows/deploy-cloudrun.yml'
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  SERVICE_NAME: aixgo-mcp
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+        service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Deploy to Cloud Run
+      run: |
+        go run cmd/deploy/cloudrun/main.go \
+          -project ${{ env.PROJECT_ID }} \
+          -region ${{ env.REGION }} \
+          -service ${{ env.SERVICE_NAME }} \
+          -env ${{ github.event.inputs.environment || 'staging' }}
+      env:
+        XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+
+    - name: Get Service URL
+      id: url
+      run: |
+        SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+          --platform=managed \
+          --region=${{ env.REGION }} \
+          --format='value(status.url)')
+        echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
+
+    - name: Create deployment summary
+      run: |
+        cat >> $GITHUB_STEP_SUMMARY <<EOF
+        ## Cloud Run Deployment
+
+        - **Service**: ${{ env.SERVICE_NAME }}
+        - **Environment**: ${{ github.event.inputs.environment || 'staging' }}
+        - **Region**: ${{ env.REGION }}
+        - **Image**: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/aixgo/mcp-server:${{ github.sha }}
+        - **URL**: ${{ steps.url.outputs.url }}
+        - **Status**: :white_check_mark: Success
+        EOF

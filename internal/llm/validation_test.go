@@ -33,7 +33,7 @@ func TestNewValidator(t *testing.T) {
 			if v == nil {
 				t.Fatal("NewValidator returned nil")
 			}
-			if v.Schema == nil && tt.schema != nil {
+			if tt.schema != nil && v.Schema == nil {
 				t.Error("Validator.Schema is nil")
 			}
 		})

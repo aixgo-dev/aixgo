@@ -1,0 +1,17 @@
+# Local Development Configuration
+# This configuration is for local development only - NO AUTHENTICATION
+# WARNING: Never use this in production!
+
+environment: development
+auth_mode: disabled
+
+# Authorization is disabled for easy local testing
+authorization:
+  enabled: false
+  default_deny: false
+
+# Audit logging is disabled to reduce noise
+audit:
+  enabled: false
+  backend: memory
+  log_auth_decisions: false

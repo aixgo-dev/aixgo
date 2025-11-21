@@ -1,0 +1,130 @@
+name: Deploy to Kubernetes
+
+# Disabled - deployment workflows not in use
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - '**.go'
+  #     - 'go.mod'
+  #     - 'go.sum'
+  #     - 'docker/**'
+  #     - 'deploy/k8s/**'
+  #     - '.github/workflows/deploy-k8s.yml'
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: aixgo-cluster
+  GKE_ZONE: us-central1
+  REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to GKE
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+        service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Deploy to Kubernetes
+      run: |
+        go run cmd/deploy/k8s/main.go \
+          -project ${{ env.PROJECT_ID }} \
+          -cluster ${{ env.GKE_CLUSTER }} \
+          -zone ${{ env.GKE_ZONE }} \
+          -env ${{ github.event.inputs.environment || 'staging' }} \
+          -tag ${{ github.sha }}
+      env:
+        XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+
+    - name: Verify deployment
+      run: |
+        NAMESPACE="${{ github.event.inputs.environment == 'production' && 'aixgo' || 'aixgo-staging' }}"
+        kubectl get pods -n $NAMESPACE
+        kubectl get services -n $NAMESPACE
+
+    - name: Create deployment summary
+      run: |
+        NAMESPACE="${{ github.event.inputs.environment == 'production' && 'aixgo' || 'aixgo-staging' }}"
+
+        cat >> $GITHUB_STEP_SUMMARY <<EOF
+        ## Kubernetes Deployment
+
+        - **Environment**: ${{ github.event.inputs.environment || 'staging' }}
+        - **Cluster**: ${{ env.GKE_CLUSTER }}
+        - **Namespace**: $NAMESPACE
+        - **Orchestrator Image**: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/orchestrator:${{ github.sha }}
+        - **MCP Server Image**: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/aixgo/mcp-server:${{ github.sha }}
+        - **Status**: :white_check_mark: Success
+
+        ### Pods Status
+        \`\`\`
+        $(kubectl get pods -n $NAMESPACE)
+        \`\`\`
+
+        ### Services
+        \`\`\`
+        $(kubectl get services -n $NAMESPACE)
+        \`\`\`
+        EOF
+
+  notify:
+    name: Notify deployment
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: always()
+    steps:
+    - name: Send Slack notification
+      if: env.SLACK_WEBHOOK_URL != ''
+      uses: slackapi/slack-github-action@v1
+      with:
+        payload: |
+          {
+            "text": "Kubernetes Deployment ${{ needs.build-and-deploy.result }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Kubernetes Deployment*\n*Status:* ${{ needs.build-and-deploy.result }}\n*Environment:* ${{ github.event.inputs.environment || 'staging' }}\n*Commit:* <${{ github.event.repository.html_url }}/commit/${{ github.sha }}|${{ github.sha }}>"
+                }
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aixgo-config
+  namespace: aixgo
+  labels:
+    app: aixgo
+data:
+  environment: "production"
+  log_level: "info"
+  ollama_url: "http://ollama-service:11434"
+  mcp_server_url: "mcp-server-service:9090"
+  # Agent configuration
+  max_rounds: "10"
+  agent_timeout: "300"
+  # Observability
+  enable_tracing: "true"
+  enable_metrics: "true"
+  metrics_port: "8080"

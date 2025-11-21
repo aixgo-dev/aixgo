@@ -58,6 +58,7 @@ func TestStartSpan(t *testing.T) {
 
 			if span == nil {
 				t.Fatal("StartSpan returned nil")
+				return
 			}
 
 			if span.name != tt.spanName {
@@ -152,6 +153,7 @@ func TestSpan_Lifecycle(t *testing.T) {
 
 	if span == nil {
 		t.Fatal("StartSpan returned nil")
+		return
 	}
 
 	if span.name != "lifecycle-test" {
@@ -215,6 +217,7 @@ func TestSpan_LargeData(t *testing.T) {
 
 	if span == nil {
 		t.Fatal("StartSpan with large data returned nil")
+		return
 	}
 
 	if len(span.data) != len(largeData) {

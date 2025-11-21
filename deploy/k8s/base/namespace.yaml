@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aixgo
+  labels:
+    app: aixgo
+    environment: production

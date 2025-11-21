@@ -14,6 +14,7 @@ func TestNewSimpleRuntime(t *testing.T) {
 
 	if rt == nil {
 		t.Fatal("NewSimpleRuntime returned nil")
+		return
 	}
 
 	if rt.channels == nil {
@@ -200,7 +201,7 @@ func TestSimpleRuntime_Recv_SameChannelTwice(t *testing.T) {
 
 	// Both should return the same channel
 	msg := &agent.Message{Message: &pb.Message{Id: "test"}}
-	rt.Send(source, msg)
+	_ = rt.Send(source, msg)
 
 	// Both ch1 and ch2 should receive the message
 	select {
@@ -214,7 +215,7 @@ func TestSimpleRuntime_Recv_SameChannelTwice(t *testing.T) {
 
 	// Send another message
 	msg2 := &agent.Message{Message: &pb.Message{Id: "test2"}}
-	rt.Send(source, msg2)
+	_ = rt.Send(source, msg2)
 
 	select {
 	case receivedMsg := <-ch2:

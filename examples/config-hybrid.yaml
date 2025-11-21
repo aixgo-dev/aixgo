@@ -1,0 +1,39 @@
+# Hybrid Configuration
+# This configuration uses both delegated (IAP) and builtin (API key) auth
+# Useful when you have both human users (via IAP) and service accounts (via API keys)
+
+environment: production
+auth_mode: hybrid
+
+# Delegated authentication via Google Cloud IAP (for human users)
+delegated_auth:
+  identity_header: X-Goog-Authenticated-User-Email
+  iap:
+    enabled: true
+    verify_jwt: true
+    audience: "/projects/123456789/apps/my-project-id"
+  header_mapping:
+    name: X-Goog-Authenticated-User-Email
+
+# Builtin API key authentication (for service-to-service calls)
+builtin_auth:
+  method: api_key
+  api_keys:
+    source: environment
+    env_prefix: AIXGO_API_KEY_
+
+# Authorization with RBAC
+authorization:
+  enabled: true
+  default_deny: true
+
+# Comprehensive audit logging
+audit:
+  enabled: true
+  backend: json
+  log_auth_decisions: true
+
+# How hybrid mode works:
+# 1. If request has IAP headers -> use delegated auth
+# 2. If request has Authorization: Bearer <api-key> -> use builtin auth
+# 3. Both auth methods can coexist in the same deployment

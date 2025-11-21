@@ -408,6 +408,7 @@ func TestValidateOptionalGeneric(t *testing.T) {
 
 	if user == nil {
 		t.Fatal("ValidateOptional() returned nil for non-nil input")
+		return
 	}
 
 	if user.Name != "Alice" {

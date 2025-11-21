@@ -2,9 +2,13 @@ package agent
 
 import (
 	"context"
-	pb "github.com/aixgo-dev/aixgo/proto"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
+
+	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
 type Agent interface {
@@ -12,16 +16,17 @@ type Agent interface {
 }
 
 type AgentDef struct {
-	Name     string         `yaml:"name"`
-	Role     string         `yaml:"role"`
-	Interval Duration       `yaml:"interval,omitempty"`
-	Listen   string         `yaml:"listen,omitempty"`
-	Inputs   []Input        `yaml:"inputs,omitempty"`
-	Outputs  []Output       `yaml:"outputs,omitempty"`
-	Model    string         `yaml:"model,omitempty"`
-	Prompt   string         `yaml:"prompt,omitempty"`
-	Tools    []Tool         `yaml:"tools,omitempty"`
-	Extra    map[string]any `yaml:",inline"`
+	Name       string         `yaml:"name"`
+	Role       string         `yaml:"role"`
+	Interval   Duration       `yaml:"interval,omitempty"`
+	Listen     string         `yaml:"listen,omitempty"`
+	Inputs     []Input        `yaml:"inputs,omitempty"`
+	Outputs    []Output       `yaml:"outputs,omitempty"`
+	Model      string         `yaml:"model,omitempty"`
+	Prompt     string         `yaml:"prompt,omitempty"`
+	Tools      []Tool         `yaml:"tools,omitempty"`       // Deprecated: use MCPServers
+	MCPServers []string       `yaml:"mcp_servers,omitempty"` // MCP server names
+	Extra      map[string]any `yaml:",inline"`
 }
 
 type Input struct {
@@ -48,7 +53,21 @@ func (d *AgentDef) GetString(key, def string) string {
 }
 
 func (d *AgentDef) UnmarshalKey(key string, v any) error {
-	// TODO: Implement proper unmarshaling when needed
+	raw, exists := d.Extra[key]
+	if !exists {
+		return nil
+	}
+
+	// Marshal the raw value to JSON, then unmarshal into the target
+	data, err := json.Marshal(raw)
+	if err != nil {
+		return fmt.Errorf("marshal key %q: %w", key, err)
+	}
+
+	if err := json.Unmarshal(data, v); err != nil {
+		return fmt.Errorf("unmarshal key %q: %w", key, err)
+	}
+
 	return nil
 }
 
@@ -117,17 +136,26 @@ type Runtime interface {
 
 type RuntimeKey struct{}
 
-// RuntimeFromContext safely extracts the Runtime from context
-func RuntimeFromContext(ctx context.Context) (Runtime, bool) {
+// ErrRuntimeNotFound is returned when runtime is not found in context
+var ErrRuntimeNotFound = errors.New("runtime not found in context")
+
+// RuntimeFromContext safely extracts the Runtime from context.
+// Returns the runtime and nil error if found, or nil and ErrRuntimeNotFound if not found.
+func RuntimeFromContext(ctx context.Context) (Runtime, error) {
 	rt, ok := ctx.Value(RuntimeKey{}).(Runtime)
-	return rt, ok
+	if !ok {
+		return nil, ErrRuntimeNotFound
+	}
+	return rt, nil
 }
 
-// MustRuntimeFromContext extracts the Runtime from context and panics if not found
-// This is useful for maintaining backward compatibility with existing code
+// MustRuntimeFromContext extracts the Runtime from context and panics if not found.
+// Deprecated: Use RuntimeFromContext instead and handle the error appropriately.
+// This function is maintained for backward compatibility but should be avoided
+// in new code as panics can cause unexpected application crashes.
 func MustRuntimeFromContext(ctx context.Context) Runtime {
-	rt, ok := RuntimeFromContext(ctx)
-	if !ok {
+	rt, err := RuntimeFromContext(ctx)
+	if err != nil {
 		panic("runtime not found in context")
 	}
 	return rt

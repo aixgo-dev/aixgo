@@ -118,7 +118,7 @@ agents: []
 
 	// Send interrupt
 	proc, _ := os.FindProcess(os.Getpid())
-	proc.Signal(syscall.SIGINT)
+	_ = proc.Signal(syscall.SIGINT)
 
 	// Wait for completion
 	select {
@@ -174,7 +174,7 @@ agents:
 
 	// Send interrupt
 	proc, _ := os.FindProcess(os.Getpid())
-	proc.Signal(syscall.SIGINT)
+	_ = proc.Signal(syscall.SIGINT)
 
 	// Wait for completion
 	select {
@@ -226,7 +226,7 @@ agents:
 
 	// Send SIGTERM
 	proc, _ := os.FindProcess(os.Getpid())
-	proc.Signal(syscall.SIGTERM)
+	_ = proc.Signal(syscall.SIGTERM)
 
 	// Wait for completion
 	select {
@@ -278,7 +278,7 @@ agents:
 
 	// Send interrupt
 	proc, _ := os.FindProcess(os.Getpid())
-	proc.Signal(syscall.SIGINT)
+	_ = proc.Signal(syscall.SIGINT)
 
 	// Wait for completion (should complete despite agent error)
 	select {
@@ -336,7 +336,7 @@ agents:
 
 	// Send interrupt
 	proc, _ := os.FindProcess(os.Getpid())
-	proc.Signal(syscall.SIGINT)
+	_ = proc.Signal(syscall.SIGINT)
 
 	// Wait for completion
 	select {
