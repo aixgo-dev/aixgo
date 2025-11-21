@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aixgo-orchestrator
+  namespace: aixgo
+  labels:
+    app: aixgo
+    component: orchestrator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aixgo
+      component: orchestrator
+  template:
+    metadata:
+      labels:
+        app: aixgo
+        component: orchestrator
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: aixgo-sa
+      containers:
+      - name: aixgo
+        image: REGION-docker.pkg.dev/PROJECT_ID/aixgo/orchestrator:latest
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: grpc
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2
+            memory: 2Gi
+        env:
+        - name: PORT
+          value: "8080"
+        - name: GRPC_PORT
+          value: "9090"
+        - name: LOG_LEVEL
+          value: info
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: aixgo-config
+              key: environment
+        - name: OLLAMA_URL
+          value: "http://ollama-service:11434"
+        # API Keys from secrets
+        - name: XAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: xai-api-key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: openai-api-key
+        - name: HUGGINGFACE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: huggingface-api-key
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 2
+          timeoutSeconds: 3
+          failureThreshold: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aixgo-service
+  namespace: aixgo
+  labels:
+    app: aixgo
+    component: orchestrator
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: grpc
+  selector:
+    app: aixgo
+    component: orchestrator
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: aixgo-hpa
+  namespace: aixgo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: aixgo-orchestrator
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

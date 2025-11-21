@@ -319,3 +319,13 @@ type testAgent struct {
 func (a *testAgent) Start(ctx context.Context) error {
 	return nil
 }
+
+type mockRuntime struct{}
+
+func (m *mockRuntime) Send(target string, msg *Message) error {
+	return nil
+}
+
+func (m *mockRuntime) Recv(source string) (<-chan *Message, error) {
+	return nil, nil
+}

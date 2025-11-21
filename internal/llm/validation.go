@@ -62,11 +62,12 @@ func validateNumericConstraints(fieldName string, val any, schema map[string]any
 
 	// Handle minimum constraint
 	if min, ok := schema["minimum"].(float64); ok {
-		if kind == reflect.Float64 {
+		switch kind {
+		case reflect.Float64:
 			if val.(float64) < min {
 				return fmt.Errorf("%s below minimum %v", fieldName, min)
 			}
-		} else if kind == reflect.Int {
+		case reflect.Int:
 			if float64(val.(int)) < min {
 				return fmt.Errorf("%s below minimum %v", fieldName, min)
 			}
@@ -75,11 +76,12 @@ func validateNumericConstraints(fieldName string, val any, schema map[string]any
 
 	// Handle maximum constraint
 	if max, ok := schema["maximum"].(float64); ok {
-		if kind == reflect.Float64 {
+		switch kind {
+		case reflect.Float64:
 			if val.(float64) > max {
 				return fmt.Errorf("%s above maximum %v", fieldName, max)
 			}
-		} else if kind == reflect.Int {
+		case reflect.Int:
 			if float64(val.(int)) > max {
 				return fmt.Errorf("%s above maximum %v", fieldName, max)
 			}

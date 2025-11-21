@@ -16,9 +16,9 @@ func init() {
 }
 
 func (l *Logger) Start(ctx context.Context) error {
-	rt, ok := agent.RuntimeFromContext(ctx)
-	if !ok {
-		return fmt.Errorf("runtime not found in context")
+	rt, err := agent.RuntimeFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("runtime not found in context: %w", err)
 	}
 
 	for _, i := range l.def.Inputs {

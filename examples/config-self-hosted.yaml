@@ -1,0 +1,38 @@
+# Self-Hosted Configuration
+# This configuration uses builtin API key authentication
+# The application validates API keys directly
+
+environment: production
+auth_mode: builtin
+
+# Builtin authentication using API keys
+builtin_auth:
+  method: api_key
+
+  # API keys loaded from environment variables
+  api_keys:
+    source: environment
+    # API keys should be in env vars like: AIXGO_API_KEY_user1=secret123
+    env_prefix: AIXGO_API_KEY_
+
+    # Alternative: Load from file
+    # source: file
+    # file_path: /etc/aixgo/api-keys.json
+
+# Authorization with role-based access control
+authorization:
+  enabled: true
+  default_deny: true
+  # Optional: Load additional policies from file
+  # policy_file: /etc/aixgo/policies.json
+
+# Audit logging for compliance
+audit:
+  enabled: true
+  backend: json
+  log_auth_decisions: true
+
+# Example environment variables for API keys:
+# AIXGO_API_KEY_admin=your-admin-api-key-here
+# AIXGO_API_KEY_service1=your-service1-api-key-here
+# AIXGO_API_KEY_service2=your-service2-api-key-here

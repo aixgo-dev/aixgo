@@ -1,0 +1,36 @@
+# Cloud Run with Identity-Aware Proxy Configuration
+# This configuration uses Google Cloud IAP for authentication
+# IAP handles authentication at the infrastructure level
+
+environment: production
+auth_mode: delegated
+
+# Delegated authentication via Google Cloud IAP
+delegated_auth:
+  # IAP provides user identity in this header
+  identity_header: X-Goog-Authenticated-User-Email
+
+  # IAP-specific configuration
+  iap:
+    enabled: true
+    verify_jwt: true
+    # Set this to your IAP audience (format: /projects/PROJECT_NUMBER/apps/PROJECT_ID)
+    audience: "/projects/123456789/apps/my-project-id"
+
+  # Optional: Map additional headers to principal metadata
+  header_mapping:
+    name: X-Goog-Authenticated-User-Email
+    user_id: X-Goog-Authenticated-User-ID
+
+# Authorization is enabled with default deny
+authorization:
+  enabled: true
+  default_deny: true
+  # Optional: Load additional policies from file
+  # policy_file: /etc/aixgo/policies.json
+
+# Audit logging to track all auth decisions
+audit:
+  enabled: true
+  backend: json
+  log_auth_decisions: true

@@ -20,9 +20,9 @@ func init() {
 }
 
 func (p *Producer) Start(ctx context.Context) error {
-	rt, ok := agent.RuntimeFromContext(ctx)
-	if !ok {
-		return fmt.Errorf("runtime not found in context")
+	rt, err := agent.RuntimeFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("runtime not found in context: %w", err)
 	}
 
 	t := time.NewTicker(p.def.Interval.Duration)

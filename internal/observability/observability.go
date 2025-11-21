@@ -87,7 +87,7 @@ func InitFromEnv() error {
 func Init(config Config) error {
 	if !config.Enabled || config.ExporterType == "none" {
 		log.Println("Observability disabled")
-		tracer = trace.NewNoopTracerProvider().Tracer(config.ServiceName)
+		tracer = otel.GetTracerProvider().Tracer(config.ServiceName)
 		return nil
 	}
 
@@ -158,7 +158,7 @@ func Shutdown(ctx context.Context) error {
 func StartSpan(name string, data map[string]any) *Span {
 	// If tracer is not initialized, use a noop tracer
 	if tracer == nil {
-		tracer = trace.NewNoopTracerProvider().Tracer(DefaultServiceName)
+		tracer = otel.GetTracerProvider().Tracer(DefaultServiceName)
 	}
 
 	ctx := context.Background()
@@ -186,7 +186,7 @@ func StartSpan(name string, data map[string]any) *Span {
 func StartSpanWithContext(ctx context.Context, name string, data map[string]any) (context.Context, *Span) {
 	// If tracer is not initialized, use a noop tracer
 	if tracer == nil {
-		tracer = trace.NewNoopTracerProvider().Tracer(DefaultServiceName)
+		tracer = otel.GetTracerProvider().Tracer(DefaultServiceName)
 	}
 
 	spanCtx, span := tracer.Start(ctx, name)

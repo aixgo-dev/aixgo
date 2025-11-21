@@ -1,0 +1,107 @@
+version: '3.9'
+
+services:
+  ollama:
+    build:
+      context: .
+      dockerfile: docker/ollama.Dockerfile
+    container_name: aixgo-ollama
+
+    # Security: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Security: Drop unnecessary capabilities
+    cap_drop:
+      - ALL
+
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '2.0'
+          memory: 4G
+
+    restart: unless-stopped
+
+    ports:
+      - "11434:11434"
+
+    volumes:
+      - ollama-data:/root/.ollama
+
+    networks:
+      - aixgo-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:11434/api/tags || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  aixgo:
+    build:
+      context: .
+      dockerfile: docker/aixgo.Dockerfile
+    container_name: aixgo-app
+
+    # Security: Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Security: Drop all capabilities and only add what's needed
+    cap_drop:
+      - ALL
+
+    # Security: Read-only root filesystem for application code
+    # Commented out as app may need write access to /tmp
+    # read_only: true
+
+    # Security: Writable tmpfs for temporary files
+    tmpfs:
+      - /tmp:noexec,nosuid,nodev,size=100m
+
+    # Security: Resource limits to prevent DoS
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    restart: unless-stopped
+
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - XAI_API_KEY=${XAI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - APP_ENV=production
+      - LOG_LEVEL=info
+
+    # Mount configuration as read-only
+    volumes:
+      - ./config:/root/config:ro
+      - ./examples:/root/examples:ro
+
+    networks:
+      - aixgo-network
+
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+    command: ["/app/aixgo", "-config", "/root/examples/huggingface-mcp/config.yaml"]
+
+networks:
+  aixgo-network:
+    driver: bridge
+
+volumes:
+  ollama-data:
+    driver: local

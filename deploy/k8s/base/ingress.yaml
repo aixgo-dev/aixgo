@@ -1,0 +1,59 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aixgo-ingress
+  namespace: aixgo
+  labels:
+    app: aixgo
+  annotations:
+    # GKE-specific annotations
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "aixgo-ip"
+    networking.gke.io/managed-certificates: "aixgo-cert"
+    # NGINX annotations (if using NGINX ingress)
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    # CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+spec:
+  rules:
+  - host: api.aixgo.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aixgo-service
+            port:
+              number: 8080
+  - host: mcp.aixgo.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mcp-server-service
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - api.aixgo.example.com
+    - mcp.aixgo.example.com
+    secretName: aixgo-tls
+---
+# Managed Certificate for GKE
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: aixgo-cert
+  namespace: aixgo
+spec:
+  domains:
+  - api.aixgo.example.com
+  - mcp.aixgo.example.com

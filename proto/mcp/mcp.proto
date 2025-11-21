@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package mcp;
+
+option go_package = "github.com/aixgo-dev/aixgo/proto/mcp";
+
+// MCPService defines the MCP protocol over gRPC
+service MCPService {
+  // Initialize establishes the connection and exchanges capabilities
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+
+  // ListTools returns all available tools
+  rpc ListTools(ListToolsRequest) returns (ListToolsResponse);
+
+  // CallTool executes a tool with given parameters
+  rpc CallTool(CallToolRequest) returns (CallToolResponse);
+
+  // StreamCallTool executes a tool with streaming response
+  rpc StreamCallTool(CallToolRequest) returns (stream CallToolResponse);
+
+  // Ping checks server health
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// InitializeRequest contains client information
+message InitializeRequest {
+  string protocol_version = 1;
+  ClientInfo client_info = 2;
+  Capabilities capabilities = 3;
+}
+
+// InitializeResponse contains server information
+message InitializeResponse {
+  string protocol_version = 1;
+  ServerInfo server_info = 2;
+  Capabilities capabilities = 3;
+}
+
+// ClientInfo contains client metadata
+message ClientInfo {
+  string name = 1;
+  string version = 2;
+}
+
+// ServerInfo contains server metadata
+message ServerInfo {
+  string name = 1;
+  string version = 2;
+}
+
+// Capabilities defines supported features
+message Capabilities {
+  bool supports_streaming = 1;
+  bool supports_cancellation = 2;
+  bool supports_progress = 3;
+  repeated string supported_content_types = 4;
+}
+
+// ListToolsRequest requests available tools
+message ListToolsRequest {
+  // Optional cursor for pagination
+  string cursor = 1;
+}
+
+// ListToolsResponse returns available tools
+message ListToolsResponse {
+  repeated Tool tools = 1;
+  string next_cursor = 2;
+}
+
+// Tool represents a callable tool
+message Tool {
+  string name = 1;
+  string description = 2;
+  Schema input_schema = 3;
+}
+
+// Schema represents JSON Schema for tool input
+message Schema {
+  string type = 1;
+  map<string, SchemaField> properties = 2;
+  repeated string required = 3;
+}
+
+// SchemaField represents a schema field definition
+message SchemaField {
+  string type = 1;
+  string description = 2;
+  Value default_value = 3;
+}
+
+// CallToolRequest executes a tool
+message CallToolRequest {
+  string name = 1;
+  map<string, Value> arguments = 2;
+}
+
+// CallToolResponse returns tool execution result
+message CallToolResponse {
+  repeated Content content = 1;
+  bool is_error = 2;
+}
+
+// Content represents tool result content
+message Content {
+  string type = 1; // "text", "image", "resource"
+  string text = 2;
+  bytes data = 3;
+  map<string, string> metadata = 4;
+}
+
+// Value represents a dynamic value
+message Value {
+  oneof kind {
+    string string_value = 1;
+    double number_value = 2;
+    bool bool_value = 3;
+    NullValue null_value = 4;
+    ListValue list_value = 5;
+    StructValue struct_value = 6;
+  }
+}
+
+// NullValue represents a null value
+enum NullValue {
+  NULL_VALUE = 0;
+}
+
+// ListValue represents a list of values
+message ListValue {
+  repeated Value values = 1;
+}
+
+// StructValue represents a structured value (map)
+message StructValue {
+  map<string, Value> fields = 1;
+}
+
+// PingRequest checks server health
+message PingRequest {
+  int64 timestamp = 1;
+}
+
+// PingResponse confirms server health
+message PingResponse {
+  int64 timestamp = 1;
+  string status = 2;
+}

@@ -50,6 +50,12 @@ type CompletionRequest struct {
 	// Tools available for the model to call
 	Tools []Tool `json:"tools,omitempty"`
 
+	// MaxIterations is the maximum number of ReAct iterations (for ReAct providers)
+	MaxIterations int `json:"max_iterations,omitempty"`
+
+	// TokenBudget is the total token budget for the entire conversation/loop
+	TokenBudget int `json:"token_budget,omitempty"`
+
 	// Additional provider-specific options
 	Extra map[string]any `json:"extra,omitempty"`
 }

@@ -3,12 +3,18 @@ package agents
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
+
+func init() {
+	// Set a test API key for tests
+	_ = os.Setenv("OPENAI_API_KEY", "test-key-for-testing")
+}
 
 // Test Producer Agent
 
@@ -83,6 +89,7 @@ checkMessages:
 		case msg := <-rt.channels["test-output"]:
 			if msg == nil {
 				t.Error("received nil message")
+				continue
 			}
 			if msg.Type != "ray_burst" {
 				t.Errorf("message Type = %v, want ray_burst", msg.Type)
@@ -137,7 +144,7 @@ func TestProducer_MultipleOutputs(t *testing.T) {
 	ctx = context.WithValue(ctx, agent.RuntimeKey{}, rt)
 
 	// Start producer
-	go producer.Start(ctx)
+	go func() { _ = producer.Start(ctx) }()
 
 	// Wait for context timeout
 	<-ctx.Done()
@@ -403,7 +410,7 @@ func TestReActAgent_Registration(t *testing.T) {
 	}
 
 	reactAgent, ok := ag.(*ReActAgent)
-	if !ok {
+	if !ok || reactAgent == nil {
 		t.Fatal("factory did not return *ReActAgent")
 	}
 

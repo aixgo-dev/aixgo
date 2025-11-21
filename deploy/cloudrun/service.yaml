@@ -1,0 +1,89 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: aixgo-mcp
+  labels:
+    app: aixgo
+    component: mcp-server
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        # CPU and memory configuration
+        autoscaling.knative.dev/minScale: '0'
+        autoscaling.knative.dev/maxScale: '100'
+        run.googleapis.com/cpu-throttling: 'false'
+        run.googleapis.com/startup-cpu-boost: 'true'
+        # Execution environment
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      serviceAccountName: aixgo-mcp@PROJECT_ID.iam.gserviceaccount.com
+      containers:
+      - name: aixgo
+        image: REGION-docker.pkg.dev/PROJECT_ID/aixgo/mcp-server:latest
+        ports:
+        - name: http1
+          containerPort: 8080
+        - name: grpc
+          containerPort: 9090
+        resources:
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        env:
+        - name: PORT
+          value: '8080'
+        - name: GRPC_PORT
+          value: '9090'
+        - name: LOG_LEVEL
+          value: info
+        - name: ENVIRONMENT
+          value: production
+        - name: OLLAMA_URL
+          value: http://ollama-service:11434
+        # API Keys from Secret Manager
+        - name: XAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xai-api-key
+              key: latest
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: latest
+        - name: HUGGINGFACE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: huggingface-api-key
+              key: latest
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 2
+          timeoutSeconds: 3
+          failureThreshold: 30
