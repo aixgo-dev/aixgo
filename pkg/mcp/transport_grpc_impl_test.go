@@ -396,33 +396,36 @@ func TestGRPCTransport_ImplementsInterface(t *testing.T) {
 	var _ Transport = (*GRPCTransport)(nil)
 }
 
-func TestMCPMessage_Serialization(t *testing.T) {
-	msg := MCPMessage{
-		Method: "tools/call",
-		ID:     "123",
+func TestToProtoValue(t *testing.T) {
+	tests := []struct {
+		name  string
+		input any
+	}{
+		{"nil", nil},
+		{"string", "hello"},
+		{"float64", 3.14},
+		{"int", 42},
+		{"bool", true},
+		{"array", []any{"a", "b", "c"}},
+		{"map", map[string]any{"key": "value"}},
 	}
 
-	if msg.Method != "tools/call" {
-		t.Errorf("Method = %q, want %q", msg.Method, "tools/call")
-	}
-
-	if msg.ID != "123" {
-		t.Errorf("ID = %q, want %q", msg.ID, "123")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			protoVal := toProtoValue(tt.input)
+			if protoVal == nil {
+				t.Error("expected non-nil proto value")
+			}
+			// Convert back
+			_ = fromProtoValue(protoVal)
+		})
 	}
 }
 
-func TestMCPError(t *testing.T) {
-	err := MCPError{
-		Code:    -32600,
-		Message: "Invalid Request",
-	}
-
-	if err.Code != -32600 {
-		t.Errorf("Code = %d, want %d", err.Code, -32600)
-	}
-
-	if err.Message != "Invalid Request" {
-		t.Errorf("Message = %q, want %q", err.Message, "Invalid Request")
+func TestFromProtoValue_Nil(t *testing.T) {
+	result := fromProtoValue(nil)
+	if result != nil {
+		t.Error("expected nil for nil input")
 	}
 }
 
@@ -436,4 +439,277 @@ func TestGRPCServer_StopWithoutServing(t *testing.T) {
 	// Stop should be safe even without serving
 	server.Stop()
 	server.ForceStop()
+}
+
+// startTestServer starts the gRPC server on a random port and returns when ready
+func startTestServer(server *GRPCServer) (string, error) {
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- server.Serve("localhost:0")
+	}()
+
+	// Wait for server to start
+	time.Sleep(50 * time.Millisecond)
+
+	select {
+	case err := <-errChan:
+		return "", err
+	default:
+		return server.Address(), nil
+	}
+}
+
+func TestGRPCServerClientCommunication(t *testing.T) {
+	// Create MCP server with a test tool
+	mcpServer := NewServer("test-server")
+	err := mcpServer.RegisterTool(Tool{
+		Name:        "echo",
+		Description: "Echo the input",
+		Handler: func(ctx context.Context, args Args) (any, error) {
+			return args.String("message"), nil
+		},
+		Schema: Schema{
+			"message": SchemaField{
+				Type:        "string",
+				Description: "Message to echo",
+				Required:    true,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to register tool: %v", err)
+	}
+
+	// Create gRPC server
+	grpcServer, err := NewGRPCServer(mcpServer, nil)
+	if err != nil {
+		t.Fatalf("failed to create gRPC server: %v", err)
+	}
+
+	// Start server
+	serverReady := make(chan struct{})
+	go func() {
+		_, err := startTestServer(grpcServer)
+		if err != nil {
+			return
+		}
+		close(serverReady)
+	}()
+
+	select {
+	case <-serverReady:
+	case <-time.After(2 * time.Second):
+		t.Fatal("server did not start in time")
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	serverAddr := grpcServer.Address()
+	if serverAddr == "" {
+		t.Fatal("server address is empty")
+	}
+
+	// Create client transport
+	transport, err := NewGRPCTransportWithConfig(GRPCTransportConfig{
+		Address: serverAddr,
+	})
+	if err != nil {
+		t.Fatalf("failed to create transport: %v", err)
+	}
+	defer func() { _ = transport.Close() }()
+
+	ctx := context.Background()
+
+	// Test Initialize
+	t.Run("Initialize", func(t *testing.T) {
+		result, err := transport.Send(ctx, "initialize", nil)
+		if err != nil {
+			t.Fatalf("initialize failed: %v", err)
+		}
+
+		resp, ok := result.(map[string]any)
+		if !ok {
+			t.Fatal("unexpected response type")
+		}
+
+		if resp["protocolVersion"] != "2024-11-05" {
+			t.Errorf("unexpected protocol version: %v", resp["protocolVersion"])
+		}
+	})
+
+	// Test ListTools
+	t.Run("ListTools", func(t *testing.T) {
+		result, err := transport.Send(ctx, "tools/list", nil)
+		if err != nil {
+			t.Fatalf("list tools failed: %v", err)
+		}
+
+		resp, ok := result.(map[string]any)
+		if !ok {
+			t.Fatal("unexpected response type")
+		}
+
+		tools, ok := resp["tools"].([]map[string]any)
+		if !ok {
+			t.Fatal("missing tools")
+		}
+
+		if len(tools) != 1 {
+			t.Fatalf("expected 1 tool, got %d", len(tools))
+		}
+
+		if tools[0]["name"] != "echo" {
+			t.Errorf("unexpected tool name: %v", tools[0]["name"])
+		}
+	})
+
+	// Test CallTool
+	t.Run("CallTool", func(t *testing.T) {
+		result, err := transport.Send(ctx, "tools/call", map[string]any{
+			"name": "echo",
+			"arguments": map[string]any{
+				"message": "hello world",
+			},
+		})
+		if err != nil {
+			t.Fatalf("call tool failed: %v", err)
+		}
+
+		resp, ok := result.(map[string]any)
+		if !ok {
+			t.Fatal("unexpected response type")
+		}
+
+		if resp["isError"] == true {
+			t.Error("unexpected error in response")
+		}
+
+		content, ok := resp["content"].([]map[string]any)
+		if !ok || len(content) == 0 {
+			t.Fatal("missing content")
+		}
+
+		if content[0]["text"] != "hello world" {
+			t.Errorf("unexpected response text: %v", content[0]["text"])
+		}
+	})
+
+	// Test Ping
+	t.Run("Ping", func(t *testing.T) {
+		result, err := transport.Send(ctx, "ping", nil)
+		if err != nil {
+			t.Fatalf("ping failed: %v", err)
+		}
+
+		resp, ok := result.(map[string]any)
+		if !ok {
+			t.Fatal("unexpected response type")
+		}
+
+		if resp["status"] != "ok" {
+			t.Errorf("unexpected status: %v", resp["status"])
+		}
+	})
+
+	// Test unsupported method
+	t.Run("UnsupportedMethod", func(t *testing.T) {
+		_, err := transport.Send(ctx, "unsupported/method", nil)
+		if err == nil {
+			t.Error("expected error for unsupported method")
+		}
+	})
+
+	// Test invalid params
+	t.Run("InvalidParams", func(t *testing.T) {
+		_, err := transport.Send(ctx, "tools/call", "invalid")
+		if err == nil {
+			t.Error("expected error for invalid params")
+		}
+	})
+
+	// Test tool not found
+	t.Run("ToolNotFound", func(t *testing.T) {
+		result, err := transport.Send(ctx, "tools/call", map[string]any{
+			"name":      "nonexistent",
+			"arguments": map[string]any{},
+		})
+		if err != nil {
+			t.Fatalf("call tool should not return transport error: %v", err)
+		}
+
+		resp, ok := result.(map[string]any)
+		if !ok {
+			t.Fatal("unexpected response type")
+		}
+
+		if resp["isError"] != true {
+			t.Error("expected isError to be true for nonexistent tool")
+		}
+	})
+
+	grpcServer.Stop()
+}
+
+func TestGRPCTransport_StreamCallTool(t *testing.T) {
+	mcpServer := NewServer("test-server")
+	_ = mcpServer.RegisterTool(Tool{
+		Name:        "stream-echo",
+		Description: "Stream echo",
+		Handler: func(ctx context.Context, args Args) (any, error) {
+			return args.String("message"), nil
+		},
+		Schema: Schema{
+			"message": SchemaField{Type: "string", Required: true},
+		},
+	})
+
+	grpcServer, _ := NewGRPCServer(mcpServer, nil)
+
+	serverReady := make(chan struct{})
+	go func() {
+		_, _ = startTestServer(grpcServer)
+		close(serverReady)
+	}()
+	<-serverReady
+	time.Sleep(100 * time.Millisecond)
+
+	transport, _ := NewGRPCTransportWithConfig(GRPCTransportConfig{
+		Address: grpcServer.Address(),
+	})
+	defer func() { _ = transport.Close() }()
+
+	ctx := context.Background()
+	resultChan, errChan := transport.StreamCallTool(ctx, "stream-echo", map[string]any{
+		"message": "streaming hello",
+	})
+
+	var results []*CallToolResult
+	done := make(chan struct{})
+	go func() {
+		for result := range resultChan {
+			results = append(results, result)
+		}
+		close(done)
+	}()
+
+	// Drain error channel
+	go func() {
+		for range errChan {
+		}
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("streaming timeout")
+	}
+
+	if len(results) == 0 {
+		t.Fatal("expected at least one result")
+	}
+
+	if len(results[0].Content) == 0 || results[0].Content[0].Text != "streaming hello" {
+		t.Error("unexpected streaming result")
+	}
+
+	grpcServer.Stop()
 }
