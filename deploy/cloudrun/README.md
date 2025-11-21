@@ -276,6 +276,101 @@ Enable authentication:
 gcloud run services update aixgo-mcp --no-allow-unauthenticated
 ```
 
+### Identity-Aware Proxy (IAP) Integration
+
+For enterprise deployments, you can protect your Cloud Run service with IAP to provide context-aware access control with Google identity.
+
+#### Prerequisites
+
+1. A Cloud Run service deployed with `--no-allow-unauthenticated`
+2. A custom domain mapped to your Cloud Run service (IAP requires a domain)
+3. An OAuth consent screen configured
+
+#### IAP Setup Steps
+
+1. **Configure OAuth Consent Screen**:
+   ```bash
+   # Go to Cloud Console > APIs & Services > OAuth consent screen
+   # Configure for Internal (organization) or External users
+   ```
+
+2. **Create OAuth Client ID**:
+   ```bash
+   # Go to Cloud Console > APIs & Services > Credentials
+   # Create OAuth 2.0 Client ID for "Web application"
+   # Note the Client ID - this becomes your IAP audience
+   ```
+
+3. **Enable IAP for Cloud Run**:
+   ```bash
+   # Enable the IAP API
+   gcloud services enable iap.googleapis.com
+
+   # Create a backend service for your Cloud Run service
+   gcloud compute backend-services create aixgo-backend \
+     --global \
+     --load-balancing-scheme=EXTERNAL_MANAGED
+
+   # Configure IAP
+   gcloud iap web enable --resource-type=backend-services \
+     --service=aixgo-backend
+   ```
+
+4. **Configure IAP Access**:
+   ```bash
+   # Grant IAP access to users
+   gcloud iap web add-iam-policy-binding \
+     --resource-type=backend-services \
+     --service=aixgo-backend \
+     --member="user:user@example.com" \
+     --role="roles/iap.httpsResourceAccessor"
+
+   # Or grant to a group
+   gcloud iap web add-iam-policy-binding \
+     --resource-type=backend-services \
+     --service=aixgo-backend \
+     --member="group:team@example.com" \
+     --role="roles/iap.httpsResourceAccessor"
+   ```
+
+5. **Configure Service for IAP JWT Verification**:
+
+   Set the IAP audience environment variable (format: `/projects/PROJECT_NUMBER/global/backendServices/SERVICE_ID`):
+   ```bash
+   gcloud run services update aixgo-mcp \
+     --set-env-vars="IAP_AUDIENCE=/projects/123456789/global/backendServices/aixgo-backend"
+   ```
+
+#### IAP Headers
+
+When IAP is enabled, requests include these headers:
+- `X-Goog-Authenticated-User-Email`: User's email (format: `accounts.google.com:user@example.com`)
+- `X-Goog-Authenticated-User-Id`: User's unique ID
+- `X-Goog-IAP-JWT-Assertion`: Signed JWT for verification
+
+#### JWT Verification
+
+The `pkg/security/iap.go` module provides JWT verification:
+
+```go
+import "github.com/aixgo-dev/aixgo/pkg/security"
+
+// Create key cache (reuse across requests)
+keyCache := security.NewIAPKeyCache()
+
+// Verify JWT from request
+jwt := r.Header.Get("X-Goog-IAP-JWT-Assertion")
+claims, err := security.VerifyIAPJWT(ctx, jwt, audience, keyCache)
+if err != nil {
+    // Handle verification failure
+}
+
+// Or extract identity with optional verification
+principal, err := security.ExtractIAPIdentity(r, true, audience)
+```
+
+For complete IAP example configurations, see `examples/cloudrun-iap/`.
+
 ## Costs
 
 Estimated costs for Cloud Run:

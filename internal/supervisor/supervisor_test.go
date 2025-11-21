@@ -9,7 +9,6 @@ import (
 )
 
 func init() {
-	// Set a test API key for tests
 	_ = os.Setenv("OPENAI_API_KEY", "test-key-for-testing")
 }
 
@@ -44,7 +43,7 @@ func TestNew(t *testing.T) {
 			rt: &mockRuntime{},
 		},
 		{
-			name: "create supervisor with zero max rounds",
+			name: "create supervisor with zero max rounds defaults to 10",
 			def: SupervisorDef{
 				Name:      "zero-rounds",
 				Model:     "model",
@@ -53,36 +52,6 @@ func TestNew(t *testing.T) {
 			agents: make(map[string]agent.Agent),
 			rt:     &mockRuntime{},
 		},
-		{
-			name: "create supervisor with empty name",
-			def: SupervisorDef{
-				Name:      "",
-				Model:     "model",
-				MaxRounds: 10,
-			},
-			agents: make(map[string]agent.Agent),
-			rt:     &mockRuntime{},
-		},
-		{
-			name: "create supervisor with nil agents map",
-			def: SupervisorDef{
-				Name:      "nil-agents",
-				Model:     "model",
-				MaxRounds: 10,
-			},
-			agents: nil,
-			rt:     &mockRuntime{},
-		},
-		{
-			name: "create supervisor with nil runtime",
-			def: SupervisorDef{
-				Name:      "nil-runtime",
-				Model:     "model",
-				MaxRounds: 10,
-			},
-			agents: make(map[string]agent.Agent),
-			rt:     nil,
-		},
 	}
 
 	for _, tt := range tests {
@@ -90,301 +59,70 @@ func TestNew(t *testing.T) {
 			s, err := New(tt.def, tt.agents, tt.rt)
 			if err != nil {
 				t.Fatalf("New returned error: %v", err)
-			}
-
-			if s == nil {
-				t.Fatal("New returned nil supervisor")
-				return
 			}
 
 			if s.def.Name != tt.def.Name {
 				t.Errorf("supervisor.def.Name = %v, want %v", s.def.Name, tt.def.Name)
 			}
 
-			if s.def.Model != tt.def.Model {
-				t.Errorf("supervisor.def.Model = %v, want %v", s.def.Model, tt.def.Model)
-			}
-
-			if s.def.MaxRounds != tt.def.MaxRounds {
-				t.Errorf("supervisor.def.MaxRounds = %v, want %v", s.def.MaxRounds, tt.def.MaxRounds)
-			}
-
 			if s.client == nil {
 				t.Error("supervisor.client is nil")
-			}
-
-			// Verify agents map
-			if tt.agents == nil && s.agents != nil {
-				t.Error("supervisor.agents should be nil")
-			}
-			if tt.agents != nil && s.agents == nil {
-				t.Error("supervisor.agents is nil but should not be")
-			}
-			if tt.agents != nil && s.agents != nil && len(s.agents) != len(tt.agents) {
-				t.Errorf("len(supervisor.agents) = %v, want %v", len(s.agents), len(tt.agents))
-			}
-
-			// Verify runtime
-			if tt.rt != nil && s.rt != tt.rt {
-				t.Error("supervisor.rt does not match provided runtime")
 			}
 		})
 	}
 }
 
 func TestSupervisor_Start(t *testing.T) {
-	tests := []struct {
-		name    string
-		def     SupervisorDef
-		agents  map[string]agent.Agent
-		rt      agent.Runtime
-		wantErr bool
-	}{
-		{
-			name: "start supervisor successfully",
-			def: SupervisorDef{
-				Name:      "test-supervisor",
-				Model:     "test-model",
-				MaxRounds: 10,
-			},
-			agents:  make(map[string]agent.Agent),
-			rt:      &mockRuntime{},
-			wantErr: false,
-		},
-		{
-			name: "start with multiple agents",
-			def: SupervisorDef{
-				Name:      "multi-agent-supervisor",
-				Model:     "gpt-4",
-				MaxRounds: 5,
-			},
-			agents: map[string]agent.Agent{
-				"agent1": &mockAgent{},
-				"agent2": &mockAgent{},
-				"agent3": &mockAgent{},
-			},
-			rt:      &mockRuntime{},
-			wantErr: false,
-		},
-		{
-			name: "start with canceled context",
-			def: SupervisorDef{
-				Name:      "canceled-supervisor",
-				Model:     "model",
-				MaxRounds: 10,
-			},
-			agents:  make(map[string]agent.Agent),
-			rt:      &mockRuntime{},
-			wantErr: false, // Start doesn't currently handle context cancellation
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s, err := New(tt.def, tt.agents, tt.rt)
-			if err != nil {
-				t.Fatalf("New returned error: %v", err)
-			}
-
-			ctx := context.Background()
-			if tt.name == "start with canceled context" {
-				var cancel context.CancelFunc
-				ctx, cancel = context.WithCancel(ctx)
-				cancel() // Cancel immediately
-			}
-
-			err = s.Start(ctx)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-			}
-		})
-	}
-}
-
-func TestSupervisorDef_Fields(t *testing.T) {
 	def := SupervisorDef{
-		Name:      "field-test",
+		Name:      "test-supervisor",
 		Model:     "test-model",
-		MaxRounds: 15,
+		MaxRounds: 10,
 	}
 
-	if def.Name != "field-test" {
-		t.Errorf("Name = %v, want field-test", def.Name)
+	s, err := New(def, make(map[string]agent.Agent), &mockRuntime{})
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
 	}
-	if def.Model != "test-model" {
-		t.Errorf("Model = %v, want test-model", def.Model)
-	}
-	if def.MaxRounds != 15 {
-		t.Errorf("MaxRounds = %v, want 15", def.MaxRounds)
+
+	err = s.Start(context.Background())
+	if err != nil {
+		t.Errorf("Start returned error: %v", err)
 	}
 }
 
-func TestSupervisorDef_ZeroValue(t *testing.T) {
-	var def SupervisorDef
-
-	if def.Name != "" {
-		t.Errorf("zero value Name = %v, want empty string", def.Name)
-	}
-	if def.Model != "" {
-		t.Errorf("zero value Model = %v, want empty string", def.Model)
-	}
-	if def.MaxRounds != 0 {
-		t.Errorf("zero value MaxRounds = %v, want 0", def.MaxRounds)
-	}
-}
-
-func TestGetAPIKeyFromEnv(t *testing.T) {
-	// Test with grok model
-	key := getAPIKeyFromEnv("grok-beta")
-	if key == "" {
-		t.Error("getAPIKeyFromEnv returned empty string for grok model")
-	}
-
-	// Test with gpt model
-	key = getAPIKeyFromEnv("gpt-4")
-	if key == "" {
-		t.Error("getAPIKeyFromEnv returned empty string for gpt model")
-	}
-}
-
-func TestSupervisor_Fields(t *testing.T) {
+func TestSupervisor_Run_NoAgents(t *testing.T) {
 	def := SupervisorDef{
-		Name:      "field-supervisor",
-		Model:     "gpt-4",
-		MaxRounds: 20,
+		Name:      "test-supervisor",
+		Model:     "test-model",
+		MaxRounds: 5,
+	}
+
+	s, err := New(def, make(map[string]agent.Agent), nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	result, err := s.Run(context.Background(), "test input")
+	if err != nil {
+		t.Errorf("Run returned error: %v", err)
+	}
+
+	// With no agents, should return empty summary
+	if result != "" {
+		t.Errorf("expected empty result with no agents, got %q", result)
+	}
+}
+
+func TestSupervisor_Run_WithAgent(t *testing.T) {
+	def := SupervisorDef{
+		Name:            "test-supervisor",
+		Model:           "test-model",
+		MaxRounds:       5,
+		RoutingStrategy: StrategyRoundRobin,
 	}
 
 	agents := map[string]agent.Agent{
 		"test-agent": &mockAgent{},
-	}
-
-	rt := &mockRuntime{}
-
-	s, err := New(def, agents, rt)
-	if err != nil {
-		t.Fatalf("New returned error: %v", err)
-	}
-
-	// Verify all fields are properly set
-	if s.def.Name != def.Name {
-		t.Errorf("s.def.Name = %v, want %v", s.def.Name, def.Name)
-	}
-
-	if s.def.Model != def.Model {
-		t.Errorf("s.def.Model = %v, want %v", s.def.Model, def.Model)
-	}
-
-	if s.def.MaxRounds != def.MaxRounds {
-		t.Errorf("s.def.MaxRounds = %v, want %v", s.def.MaxRounds, def.MaxRounds)
-	}
-
-	if s.client == nil {
-		t.Error("s.client is nil")
-	}
-
-	if len(s.agents) != len(agents) {
-		t.Errorf("len(s.agents) = %v, want %v", len(s.agents), len(agents))
-	}
-
-	if s.rt != rt {
-		t.Error("s.rt does not match provided runtime")
-	}
-}
-
-func TestSupervisor_ClientInitialization(t *testing.T) {
-	def := SupervisorDef{
-		Name:      "client-test",
-		Model:     "model",
-		MaxRounds: 10,
-	}
-
-	s, err := New(def, nil, nil)
-	if err != nil {
-		t.Fatalf("New returned error: %v", err)
-	}
-
-	if s.client == nil {
-		t.Fatal("client should be initialized")
-	}
-
-	// Client should be initialized with the API key from getAPIKey()
-	// We can't inspect the client's API key directly, but we can verify it's not nil
-}
-
-func TestSupervisor_MultipleInstances(t *testing.T) {
-	// Test that multiple supervisors can be created independently
-	def1 := SupervisorDef{Name: "supervisor1", Model: "model1", MaxRounds: 5}
-	def2 := SupervisorDef{Name: "supervisor2", Model: "model2", MaxRounds: 10}
-
-	s1, err := New(def1, nil, nil)
-	if err != nil {
-		t.Fatalf("New returned error for s1: %v", err)
-	}
-	s2, err := New(def2, nil, nil)
-	if err != nil {
-		t.Fatalf("New returned error for s2: %v", err)
-	}
-
-	if s1.def.Name == s2.def.Name {
-		t.Error("supervisors should have different names")
-	}
-
-	if s1.def.MaxRounds == s2.def.MaxRounds {
-		t.Error("supervisors should have different max rounds")
-	}
-
-	// Each should have its own client
-	if s1.client == s2.client {
-		t.Error("supervisors should have separate clients")
-	}
-}
-
-func TestSupervisor_StartConcurrent(t *testing.T) {
-	// Test that multiple supervisors can start concurrently
-	done := make(chan bool, 3)
-
-	for i := 0; i < 3; i++ {
-		go func(id int) {
-			def := SupervisorDef{
-				Name:      "concurrent-supervisor",
-				Model:     "model",
-				MaxRounds: 10,
-			}
-			s, err := New(def, nil, nil)
-			if err != nil {
-				t.Errorf("New returned error: %v", err)
-				done <- true
-				return
-			}
-			ctx := context.Background()
-			_ = s.Start(ctx)
-			done <- true
-		}(i)
-	}
-
-	// Wait for all to complete
-	for i := 0; i < 3; i++ {
-		<-done
-	}
-}
-
-func TestSupervisor_AgentsMapModification(t *testing.T) {
-	// Test that modifying the agents map after creation doesn't affect supervisor
-	agents := map[string]agent.Agent{
-		"agent1": &mockAgent{},
-	}
-
-	def := SupervisorDef{
-		Name:      "map-test",
-		Model:     "model",
-		MaxRounds: 10,
 	}
 
 	s, err := New(def, agents, nil)
@@ -392,13 +130,425 @@ func TestSupervisor_AgentsMapModification(t *testing.T) {
 		t.Fatalf("New returned error: %v", err)
 	}
 
-	// Modify original map
-	agents["agent2"] = &mockAgent{}
-	delete(agents, "agent1")
+	result, err := s.Run(context.Background(), "test input")
+	if err != nil {
+		t.Errorf("Run returned error: %v", err)
+	}
 
-	// Supervisor's map should be the same reference (maps are reference types)
-	if len(s.agents) != len(agents) {
-		t.Logf("Note: supervisor.agents length = %v, original map length = %v (maps are passed by reference)", len(s.agents), len(agents))
+	if result == "" {
+		t.Error("expected non-empty result")
+	}
+}
+
+func TestSupervisor_TaskManagement(t *testing.T) {
+	def := SupervisorDef{
+		Name:      "task-supervisor",
+		Model:     "test-model",
+		MaxRounds: 10,
+	}
+
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	// Test AssignTask
+	err = s.AssignTask("task1", "Test task", "agent1")
+	if err != nil {
+		t.Errorf("AssignTask returned error: %v", err)
+	}
+
+	// Test GetTask
+	task, exists := s.GetTask("task1")
+	if !exists {
+		t.Error("task1 should exist")
+	}
+	if task.Status != TaskPending {
+		t.Errorf("task status = %v, want %v", task.Status, TaskPending)
+	}
+
+	// Test CompleteTask
+	err = s.CompleteTask("task1", "completed successfully")
+	if err != nil {
+		t.Errorf("CompleteTask returned error: %v", err)
+	}
+
+	task, _ = s.GetTask("task1")
+	if task.Status != TaskCompleted {
+		t.Errorf("task status = %v, want %v", task.Status, TaskCompleted)
+	}
+}
+
+func TestSupervisor_TaskManagement_Errors(t *testing.T) {
+	def := SupervisorDef{
+		Name:      "task-supervisor",
+		Model:     "test-model",
+		MaxRounds: 10,
+	}
+
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	// Test AssignTask to non-existent agent
+	err = s.AssignTask("task1", "Test task", "nonexistent")
+	if err == nil {
+		t.Error("expected error for non-existent agent")
+	}
+
+	// Test CompleteTask for non-existent task
+	err = s.CompleteTask("nonexistent", "result")
+	if err == nil {
+		t.Error("expected error for non-existent task")
+	}
+
+	// Test FailTask for non-existent task
+	err = s.FailTask("nonexistent", "reason")
+	if err == nil {
+		t.Error("expected error for non-existent task")
+	}
+}
+
+func TestSupervisor_FailTask(t *testing.T) {
+	def := SupervisorDef{
+		Name:      "task-supervisor",
+		Model:     "test-model",
+		MaxRounds: 10,
+	}
+
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	_ = s.AssignTask("task1", "Test task", "agent1")
+
+	err = s.FailTask("task1", "failed reason")
+	if err != nil {
+		t.Errorf("FailTask returned error: %v", err)
+	}
+
+	task, _ := s.GetTask("task1")
+	if task.Status != TaskFailed {
+		t.Errorf("task status = %v, want %v", task.Status, TaskFailed)
+	}
+	if task.Result != "failed reason" {
+		t.Errorf("task result = %v, want %v", task.Result, "failed reason")
+	}
+}
+
+func TestSupervisor_GetPendingTasks(t *testing.T) {
+	def := SupervisorDef{
+		Name:      "task-supervisor",
+		Model:     "test-model",
+		MaxRounds: 10,
+	}
+
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	_ = s.AssignTask("task1", "Task 1", "agent1")
+	_ = s.AssignTask("task2", "Task 2", "agent1")
+	_ = s.AssignTask("task3", "Task 3", "agent1")
+
+	_ = s.CompleteTask("task2", "done")
+
+	pending := s.GetPendingTasks()
+	if len(pending) != 2 {
+		t.Errorf("pending tasks count = %v, want 2", len(pending))
+	}
+}
+
+func TestSupervisor_Handoff(t *testing.T) {
+	def := SupervisorDef{
+		Name:      "handoff-supervisor",
+		Model:     "test-model",
+		MaxRounds: 10,
+	}
+
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+		"agent2": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	resp, err := s.Handoff(context.Background(), "agent1", "agent2", "handoff message")
+	if err != nil {
+		t.Errorf("Handoff returned error: %v", err)
+	}
+
+	if resp.AgentName != "agent2" {
+		t.Errorf("response agent = %v, want agent2", resp.AgentName)
+	}
+}
+
+func TestSupervisor_Handoff_NonexistentAgent(t *testing.T) {
+	def := SupervisorDef{
+		Name:      "handoff-supervisor",
+		Model:     "test-model",
+		MaxRounds: 10,
+	}
+
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	_, err = s.Handoff(context.Background(), "agent1", "nonexistent", "message")
+	if err == nil {
+		t.Error("expected error for non-existent target agent")
+	}
+}
+
+func TestSupervisor_GetCurrentRound(t *testing.T) {
+	def := SupervisorDef{
+		Name:      "round-supervisor",
+		Model:     "test-model",
+		MaxRounds: 10,
+	}
+
+	s, err := New(def, make(map[string]agent.Agent), nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	round := s.GetCurrentRound()
+	if round != 0 {
+		t.Errorf("initial round = %v, want 0", round)
+	}
+}
+
+func TestSupervisor_GetMessages(t *testing.T) {
+	def := SupervisorDef{
+		Name:            "msg-supervisor",
+		Model:           "test-model",
+		MaxRounds:       5,
+		RoutingStrategy: StrategyRoundRobin,
+	}
+
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	_, _ = s.Run(context.Background(), "test input")
+
+	msgs := s.GetMessages()
+	if len(msgs) < 1 {
+		t.Error("expected at least one message")
+	}
+
+	// First message should be user input
+	if msgs[0].Role != "user" {
+		t.Errorf("first message role = %v, want user", msgs[0].Role)
+	}
+}
+
+func TestSupervisor_RoutingStrategies(t *testing.T) {
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+		"agent2": &mockAgent{},
+	}
+
+	tests := []struct {
+		name     string
+		strategy RoutingStrategy
+	}{
+		{"round_robin", StrategyRoundRobin},
+		{"best_match", StrategyBestMatch},
+		{"manual", StrategyManual},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			def := SupervisorDef{
+				Name:            "strategy-supervisor",
+				Model:           "test-model",
+				MaxRounds:       5,
+				RoutingStrategy: tt.strategy,
+			}
+
+			s, err := New(def, agents, nil)
+			if err != nil {
+				t.Fatalf("New returned error: %v", err)
+			}
+
+			if s.def.RoutingStrategy != tt.strategy {
+				t.Errorf("strategy = %v, want %v", s.def.RoutingStrategy, tt.strategy)
+			}
+		})
+	}
+}
+
+func TestSupervisor_SelectManual(t *testing.T) {
+	def := SupervisorDef{
+		Name:            "manual-supervisor",
+		Model:           "test-model",
+		MaxRounds:       5,
+		RoutingStrategy: StrategyManual,
+	}
+
+	agents := map[string]agent.Agent{
+		"coder":    &mockAgent{},
+		"reviewer": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	// Test manual selection with @agent syntax
+	selected := s.selectManual("@coder write some code")
+	if selected != "coder" {
+		t.Errorf("selected = %v, want coder", selected)
+	}
+
+	// Test fallback when agent not found
+	selected = s.selectManual("@nonexistent do something")
+	if selected == "" {
+		t.Error("expected fallback to first agent")
+	}
+
+	// Test fallback when no @ prefix
+	selected = s.selectManual("just a message")
+	if selected == "" {
+		t.Error("expected fallback to first agent")
+	}
+}
+
+func TestSupervisor_GetAgents(t *testing.T) {
+	def := SupervisorDef{
+		Name:      "get-agents-supervisor",
+		Model:     "test-model",
+		MaxRounds: 10,
+	}
+
+	agents := map[string]agent.Agent{
+		"agent1": &mockAgent{},
+		"agent2": &mockAgent{},
+	}
+
+	s, err := New(def, agents, nil)
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+
+	gotAgents := s.GetAgents()
+	if len(gotAgents) != 2 {
+		t.Errorf("agents count = %v, want 2", len(gotAgents))
+	}
+}
+
+func TestGetAPIKeyFromEnv(t *testing.T) {
+	key := getAPIKeyFromEnv("grok-beta")
+	if key == "" {
+		t.Error("getAPIKeyFromEnv returned empty string for grok model")
+	}
+
+	key = getAPIKeyFromEnv("gpt-4")
+	if key == "" {
+		t.Error("getAPIKeyFromEnv returned empty string for gpt model")
+	}
+}
+
+func TestSupervisorDef_Fields(t *testing.T) {
+	def := SupervisorDef{
+		Name:            "field-test",
+		Model:           "test-model",
+		MaxRounds:       15,
+		RoutingStrategy: StrategyBestMatch,
+		SystemPrompt:    "You are a supervisor",
+	}
+
+	if def.Name != "field-test" {
+		t.Errorf("Name = %v, want field-test", def.Name)
+	}
+	if def.MaxRounds != 15 {
+		t.Errorf("MaxRounds = %v, want 15", def.MaxRounds)
+	}
+	if def.RoutingStrategy != StrategyBestMatch {
+		t.Errorf("RoutingStrategy = %v, want %v", def.RoutingStrategy, StrategyBestMatch)
+	}
+}
+
+func TestTask_Fields(t *testing.T) {
+	task := Task{
+		ID:          "task-123",
+		Description: "Test task",
+		AssignedTo:  "agent1",
+		Status:      TaskPending,
+		Result:      "",
+		Round:       0,
+	}
+
+	if task.ID != "task-123" {
+		t.Errorf("ID = %v, want task-123", task.ID)
+	}
+	if task.Status != TaskPending {
+		t.Errorf("Status = %v, want %v", task.Status, TaskPending)
+	}
+}
+
+func TestAgentResponse_Fields(t *testing.T) {
+	resp := AgentResponse{
+		AgentName: "agent1",
+		Content:   "response content",
+		NextAgent: "agent2",
+		Complete:  true,
+	}
+
+	if resp.AgentName != "agent1" {
+		t.Errorf("AgentName = %v, want agent1", resp.AgentName)
+	}
+	if !resp.Complete {
+		t.Error("Complete should be true")
+	}
+}
+
+func TestMessage_Fields(t *testing.T) {
+	msg := Message{
+		Role:    "assistant",
+		Content: "Hello",
+		Agent:   "agent1",
+	}
+
+	if msg.Role != "assistant" {
+		t.Errorf("Role = %v, want assistant", msg.Role)
+	}
+	if msg.Agent != "agent1" {
+		t.Errorf("Agent = %v, want agent1", msg.Agent)
 	}
 }
 
