@@ -94,8 +94,7 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 # Generate protobuf code (using Go tool in the future)
-cd proto/mcp
-./generate.sh
+go run proto/mcp/generate.go
 ```
 
 ## Local Development
@@ -397,7 +396,7 @@ Triggered on main branch changes:
 
 Configure in repository settings → Secrets and variables → Actions:
 
-```
+```bash
 GCP_PROJECT_ID: Your GCP project ID
 WIF_PROVIDER: Workload Identity Federation provider
 WIF_SERVICE_ACCOUNT: Service account for WIF

@@ -18,8 +18,7 @@ Deploy to Google Cloud Run for serverless, auto-scaling infrastructure.
 
 **Quick Start**:
 ```bash
-cd cloudrun
-./deploy.sh
+go run deploy/cloudrun/deploy.go
 ```
 
 See [Cloud Run README](cloudrun/README.md) for detailed instructions.

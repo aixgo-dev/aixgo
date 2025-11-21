@@ -9,6 +9,7 @@ This document outlines the security measures implemented in AIxGo Docker images 
 All Docker images run as non-root user `aixgo:1000` to minimize attack surface.
 
 **Implementation:**
+
 ```dockerfile
 # Create non-root user
 RUN addgroup -g 1000 -S aixgo && \
@@ -19,6 +20,7 @@ USER aixgo:aixgo
 ```
 
 **Benefits:**
+
 - Limits damage from container escape vulnerabilities
 - Prevents privilege escalation attacks
 - Follows principle of least privilege
@@ -28,6 +30,7 @@ USER aixgo:aixgo
 Uses `alpine:3.19` (5MB) instead of full Ubuntu/Debian images (100MB+).
 
 **Benefits:**
+
 - Smaller attack surface (fewer installed packages)
 - Faster image pulls and deployments
 - Reduced vulnerability exposure
@@ -37,6 +40,7 @@ Uses `alpine:3.19` (5MB) instead of full Ubuntu/Debian images (100MB+).
 Separates build environment from runtime environment.
 
 **Benefits:**
+
 - No build tools in final image
 - No source code in final image
 - Minimal runtime dependencies
@@ -51,6 +55,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 ```
 
 **Flags:**
+
 - `-trimpath`: Removes file system paths from binary (prevents info disclosure)
 - `-ldflags="-w -s"`: Strips debug info and symbol table (reduces size and info disclosure)
 - `CGO_ENABLED=0`: Creates fully static binary (no dynamic linking vulnerabilities)
@@ -66,6 +71,7 @@ tmpfs:
 ```
 
 **Benefits:**
+
 - Prevents malware from persisting
 - Prevents unauthorized file modifications
 - Limits attack vectors
@@ -82,6 +88,7 @@ cap_drop:
 ```
 
 **Benefits:**
+
 - Minimizes kernel attack surface
 - Prevents privilege escalation
 - Follows least privilege principle
@@ -94,6 +101,7 @@ security_opt:
 ```
 
 **Benefits:**
+
 - Prevents setuid/setgid privilege escalation
 - Blocks malicious privilege elevation
 
@@ -111,6 +119,7 @@ deploy:
 ```
 
 **Benefits:**
+
 - Prevents DoS attacks via resource exhaustion
 - Ensures fair resource sharing
 - Protects host system
@@ -124,6 +133,7 @@ networks:
 ```
 
 **Benefits:**
+
 - Containers isolated from host network
 - Internal-only communication possible
 - Controlled exposure
@@ -136,6 +146,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ```
 
 **Benefits:**
+
 - Automatic detection of unhealthy containers
 - Automatic restart of failed services
 - Improved availability
@@ -149,12 +160,14 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 **Use when**: Maximum security is required, no debugging needed
 
 **Features:**
+
 - FROM scratch (0 bytes base image)
 - Absolutely no shell or utilities
 - Smallest possible attack surface
 - Cannot be accessed with `docker exec`
 
 **Limitations:**
+
 - No shell for debugging
 - No shell-form health check support (exec-form `HEALTHCHECK CMD ["/binary", "health"]` works, but cannot use shell commands or `||` syntax)
 - Requires external monitoring or exec-form healthchecks
@@ -164,12 +177,14 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 **Use when**: Need debugging tools and shell access
 
 **Features:**
+
 - FROM alpine:3.19 (5MB base image)
 - Includes shell and basic utilities
 - Health check support
 - Can use `docker exec` for debugging
 
 **Security:**
+
 - Non-root user with no shell login
 - Minimal package installation
 - Security updates available
@@ -179,6 +194,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 **Use when**: Building via docker-compose
 
 **Features:**
+
 - Optimized for docker-compose workflow
 - Includes health checks
 - Non-root user
@@ -266,21 +282,23 @@ docker pull aixgo:latest
 ### 2. Limit Container Restarts
 
 ```yaml
-restart: unless-stopped  # Not "always"
+restart: unless-stopped # Not "always"
 ```
 
 ### 3. Use Secrets Management
 
 **Don't:**
+
 ```yaml
 environment:
-  - API_KEY=sk-1234567890abcdef  # BAD!
+  - API_KEY=sk-1234567890abcdef # BAD!
 ```
 
 **Do (Docker Compose - Recommended):**
+
 ```yaml
 # docker-compose.yml
-version: "3.8"
+version: '3.8'
 services:
   aixgo:
     image: aixgo:latest
@@ -291,12 +309,13 @@ services:
 
 secrets:
   api_key:
-    file: ./secrets/api_key.txt  # Local file (dev)
+    file: ./secrets/api_key.txt # Local file (dev)
     # Or use external secret for production:
     # external: true
 ```
 
 **Do (Docker Swarm):**
+
 ```bash
 # Use Docker secrets (Swarm mode only)
 echo "sk-1234567890abcdef" | docker secret create api_key -
@@ -310,10 +329,10 @@ docker service create \
 
 ```yaml
 logging:
-  driver: "json-file"
+  driver: 'json-file'
   options:
-    max-size: "10m"
-    max-file: "3"
+    max-size: '10m'
+    max-file: '3'
 ```
 
 ### 5. Network Policies
@@ -322,7 +341,7 @@ logging:
 networks:
   aixgo-network:
     driver: bridge
-    internal: true  # No external access
+    internal: true # No external access
 ```
 
 ---
@@ -404,6 +423,9 @@ If a critical vulnerability is discovered:
 ## Contact
 
 For security issues or questions:
-- **Security Contact**: Create a confidential security issue via GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) or email the project maintainers listed in CODEOWNERS
+
+- **Security Contact**: Create a confidential security issue via GitHub's
+  [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability)
+  or email the project maintainers listed in CODEOWNERS
 - **Response Time**: Security issues are typically triaged within 48 hours
 - **Disclosure Policy**: We follow [responsible disclosure](https://cheatsheetseries.owasp.org/cheatsheets/Vulnerability_Disclosure_Cheat_Sheet.html) practices
