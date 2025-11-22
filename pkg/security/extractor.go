@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -215,13 +216,14 @@ func verifyJWT(token string, audience string) (*JWTClaims, error) {
 	// https://www.gstatic.com/iap/verify/public_key-jwk
 	publicKey, err := fetchGooglePublicKey(header.KeyID)
 	if err != nil {
-		// If we can't fetch the key, we still validate claims structure
-		// but log a warning. In strict mode, this should fail.
-		// For backward compatibility, we allow this to pass with a warning.
-		if os.Getenv("STRICT_JWT_VERIFICATION") == "true" {
-			return nil, fmt.Errorf("failed to fetch public key for verification: %w", err)
+		// Default to strict verification for security
+		// Only allow bypass in development with explicit env var STRICT_JWT_VERIFICATION=false
+		if os.Getenv("STRICT_JWT_VERIFICATION") != "false" {
+			return nil, fmt.Errorf("SECURITY: JWT signature verification required but public key fetch failed: %w", err)
 		}
-		// Claims are valid, but signature not verified
+		// Only reach here if explicitly bypassed for development
+		log.Printf("WARNING: JWT signature verification bypassed - DEVELOPMENT ONLY (STRICT_JWT_VERIFICATION=false)")
+		log.Printf("WARNING: This is INSECURE and should NEVER be used in production")
 		return &claims, nil
 	}
 

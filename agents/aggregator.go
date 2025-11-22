@@ -81,8 +81,8 @@ type AggregatorAgent struct {
 	// AI-specific fields for aggregation
 	inputBuffer      map[string]*AgentInput
 	bufferMu         sync.RWMutex
-	embeddingCache   map[string][]float64
 	aggregationStats AggregationStats
+	statsMu          sync.Mutex
 }
 
 // AggregationStats tracks AI performance metrics
@@ -141,12 +141,11 @@ func NewAggregatorAgent(def agent.AgentDef, rt agent.Runtime) (agent.Agent, erro
 	}
 
 	return &AggregatorAgent{
-		def:            def,
-		provider:       prov,
-		config:         config,
-		rt:             rt,
-		inputBuffer:    make(map[string]*AgentInput),
-		embeddingCache: make(map[string][]float64),
+		def:         def,
+		provider:    prov,
+		config:      config,
+		rt:          rt,
+		inputBuffer: make(map[string]*AgentInput),
 	}, nil
 }
 
@@ -656,6 +655,14 @@ func (a *AggregatorAgent) calculateSemanticConsensus(clusters []SemanticCluster)
 }
 
 func (a *AggregatorAgent) calculateWeightedConsensus(inputs []*AgentInput) float64 {
+	// Handle edge cases
+	if len(inputs) == 0 {
+		return 0.0
+	}
+	if len(inputs) == 1 {
+		return 1.0 // Single input has perfect consensus
+	}
+
 	// Weighted consensus based on confidence scores
 	// This calculates a weighted average where each agent's contribution
 	// is weighted by their confidence score
@@ -894,6 +901,9 @@ func (a *AggregatorAgent) buildRAGContext(inputs []*AgentInput) string {
 }
 
 func (a *AggregatorAgent) updateStats(result *AggregationResult, duration time.Duration) {
+	a.statsMu.Lock()
+	defer a.statsMu.Unlock()
+
 	a.aggregationStats.TotalAggregations++
 	a.aggregationStats.TokensUsed += result.TokensUsed
 	a.aggregationStats.ProcessingTimes = append(a.aggregationStats.ProcessingTimes, duration)
@@ -913,6 +923,9 @@ func (a *AggregatorAgent) updateStats(result *AggregationResult, duration time.D
 }
 
 func (a *AggregatorAgent) logAggregationStats() {
+	a.statsMu.Lock()
+	defer a.statsMu.Unlock()
+
 	var avgTime time.Duration
 	if len(a.aggregationStats.ProcessingTimes) > 0 {
 		var total time.Duration
@@ -931,7 +944,11 @@ func (a *AggregatorAgent) logAggregationStats() {
 }
 
 func (a *AggregatorAgent) sendResult(result *AggregationResult) {
-	resultJSON, _ := json.Marshal(result)
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		log.Printf("Failed to marshal aggregation result: %v", err)
+		return
+	}
 
 	out := &agent.Message{Message: &pb.Message{
 		Type:      "aggregation",
