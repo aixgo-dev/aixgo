@@ -1,0 +1,49 @@
+# RAG Agent Example with OpenAI Embeddings
+# This configuration uses OpenAI's text-embedding-3-small for embeddings
+
+# Embedding configuration
+embeddings:
+  provider: openai
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    model: text-embedding-3-small  # 1536 dimensions
+    base_url: https://api.openai.com/v1
+    # Optional: reduce dimensions for faster search
+    # dimensions: 512
+
+# Vector store configuration
+vectorstore:
+  provider: memory  # Use "firestore" for production
+  embedding_dimensions: 1536  # Match OpenAI model dimensions
+  default_top_k: 5
+  default_distance_metric: cosine
+
+# Supervisor configuration
+supervisor:
+  name: rag-coordinator
+  model: gpt-4
+  max_rounds: 10
+
+# Agent definitions
+agents:
+  - name: rag-assistant
+    role: react
+    model: gpt-4
+    prompt: |
+      You are an AI assistant with access to a knowledge base. When answering
+      questions, always search the knowledge base first and ground your answers
+      in the retrieved information. Cite your sources.
+    tools:
+      - name: search_knowledge
+        description: "Search the vector database for relevant information"
+        input_schema:
+          type: object
+          properties:
+            query: { type: string }
+            top_k: { type: number, default: 5 }
+          required: [query]
+
+  - name: interaction-logger
+    role: logger
+    inputs:
+      - source: rag-assistant
