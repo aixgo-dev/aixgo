@@ -113,6 +113,30 @@ go run main.go
 That's it! You now have a running multi-agent system with producer, analyzer,
 and logger agents orchestrated by a supervisor.
 
+## Documentation & Resources
+
+Comprehensive documentation, guides, and examples are available at **[aixgo.dev](https://aixgo.dev)**:
+
+### 📚 Guides
+- **[Core Concepts](https://aixgo.dev/guides/core-concepts)** - Agent types, orchestration patterns, and architecture
+- **[Multi-Agent Orchestration](https://aixgo.dev/guides/multi-agent-orchestration)** - Supervisor patterns and workflows
+- **[Security Best Practices](https://aixgo.dev/guides/security)** - Production security configurations
+- **[Production Deployment](https://aixgo.dev/guides/deployment)** - Docker, Kubernetes, and Cloud Run
+
+### 🎯 Examples
+Browse **29+ complete, production-ready configuration examples**:
+- **[Agent Types](https://aixgo.dev/examples/agents)** - Producer, ReAct, Logger, Classifier, Aggregator, Planner
+- **[LLM Providers](https://aixgo.dev/examples/llm-providers)** - OpenAI, Anthropic, Gemini, Vertex AI, xAI, HuggingFace
+- **[MCP Integration](https://aixgo.dev/examples/mcp)** - Local transport, gRPC, multi-server setups
+- **[Security](https://aixgo.dev/examples/security)** - Authentication, authorization, TLS configurations
+- **[Orchestration](https://aixgo.dev/examples/orchestration)** - MapReduce, parallel, sequential, reflection patterns
+- **[Use Cases](https://aixgo.dev/examples/use-cases)** - Complete end-to-end applications
+
+### 🚀 Quick Links
+- **[API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo)** - Full Go package documentation
+- **[Release Notes](https://aixgo.dev/releases)** - Track feature development and roadmap
+- **[GitHub Discussions](https://github.com/orgs/aixgo-dev/discussions)** - Ask questions and share ideas
+
 ## Why Aixgo?
 
 ### Production-First Design

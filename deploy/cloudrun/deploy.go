@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/aixgo-dev/aixgo/pkg/security"
 )
 
 // ANSI colors
@@ -222,6 +224,20 @@ func testDeployment() {
 
 func main() {
 	logInfo("Starting Cloud Run deployment...")
+
+	// SECURITY: Validate all deployment inputs to prevent command injection
+	if err := security.ValidateDeploymentInputs(
+		projectID,
+		region,
+		serviceName,
+		repository,
+		imageName,
+		"production", // Default environment
+	); err != nil {
+		logError(fmt.Sprintf("Input validation failed: %v", err))
+		os.Exit(1)
+	}
+
 	checkPrerequisites()
 	setProject()
 	enableAPIs()

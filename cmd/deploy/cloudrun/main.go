@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/aixgo-dev/aixgo/pkg/security"
 )
 
 const (
@@ -87,6 +89,19 @@ func main() {
 
 	if cfg.ProjectID == "" {
 		logError("Project ID is required. Set -project or GCP_PROJECT_ID environment variable")
+		os.Exit(1)
+	}
+
+	// SECURITY: Validate all deployment inputs to prevent command injection
+	if err := security.ValidateDeploymentInputs(
+		cfg.ProjectID,
+		cfg.Region,
+		cfg.ServiceName,
+		cfg.Repository,
+		cfg.ImageName,
+		cfg.Environment,
+	); err != nil {
+		logError("Input validation failed: %v", err)
 		os.Exit(1)
 	}
 
