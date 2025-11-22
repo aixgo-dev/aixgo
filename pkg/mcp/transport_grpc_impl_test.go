@@ -3,6 +3,8 @@ package mcp
 import (
 	"context"
 	"crypto/tls"
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -381,7 +383,19 @@ func TestCreateSecureTLSConfig_GRPC(t *testing.T) {
 }
 
 func TestCreateInsecureTLSConfig(t *testing.T) {
-	config := CreateInsecureTLSConfig()
+	// Ensure ENVIRONMENT is not set to production for this test
+	oldEnv := os.Getenv("ENVIRONMENT")
+	if err := os.Setenv("ENVIRONMENT", "test"); err != nil {
+		t.Fatalf("Failed to set ENVIRONMENT: %v", err)
+	}
+	defer func() {
+		_ = os.Setenv("ENVIRONMENT", oldEnv)
+	}()
+
+	config, err := CreateInsecureTLSConfig()
+	if err != nil {
+		t.Fatalf("CreateInsecureTLSConfig failed: %v", err)
+	}
 
 	if !config.Enabled {
 		t.Error("Enabled should be true")
@@ -389,6 +403,28 @@ func TestCreateInsecureTLSConfig(t *testing.T) {
 
 	if !config.InsecureSkipVerify {
 		t.Error("InsecureSkipVerify should be true for insecure config")
+	}
+}
+
+func TestCreateInsecureTLSConfig_ProductionBlocked(t *testing.T) {
+	// Set ENVIRONMENT to production
+	oldEnv := os.Getenv("ENVIRONMENT")
+	if err := os.Setenv("ENVIRONMENT", "production"); err != nil {
+		t.Fatalf("Failed to set ENVIRONMENT: %v", err)
+	}
+	defer func() {
+		_ = os.Setenv("ENVIRONMENT", oldEnv)
+	}()
+
+	config, err := CreateInsecureTLSConfig()
+	if err == nil {
+		t.Error("CreateInsecureTLSConfig should fail in production environment")
+	}
+	if config != nil {
+		t.Error("Config should be nil when creation fails")
+	}
+	if err != nil && !strings.Contains(err.Error(), "SECURITY") {
+		t.Errorf("Error should mention security concern, got: %v", err)
 	}
 }
 

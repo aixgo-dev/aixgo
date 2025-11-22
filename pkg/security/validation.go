@@ -265,3 +265,144 @@ func checkSQLInjection(input string) error {
 
 	return nil
 }
+
+// Deployment Input Validation
+// These validators prevent command injection in deployment scripts
+
+var (
+	// GCP Project IDs: alphanumeric, hyphens, max 30 chars
+	// Must start with a letter, end with alphanumeric
+	projectIDPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
+
+	// GCP Regions: alphanumeric, hyphens (e.g., us-central1, europe-west1)
+	regionPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{1,62}$`)
+
+	// Service names: alphanumeric, hyphens, max 63 chars
+	// Must start with a letter, end with alphanumeric
+	serviceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,61}[a-z0-9]$`)
+
+	// Repository names: alphanumeric, hyphens, underscores, max 63 chars
+	repositoryNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-_]{0,62}$`)
+
+	// Image names: alphanumeric, hyphens, underscores, slashes for paths
+	imageNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-_/]{0,255}$`)
+
+	// Environment names: alphanumeric, hyphens, underscores
+	environmentPattern = regexp.MustCompile(`^[a-z][a-z0-9-_]{0,31}$`)
+)
+
+// ValidateProjectID validates a GCP project ID
+// Returns error if the project ID doesn't match GCP naming requirements
+// This prevents command injection by ensuring only safe characters are used
+func ValidateProjectID(projectID string) error {
+	if projectID == "" {
+		return fmt.Errorf("project ID cannot be empty")
+	}
+	if len(projectID) < 6 || len(projectID) > 30 {
+		return fmt.Errorf("project ID must be between 6 and 30 characters")
+	}
+	if !projectIDPattern.MatchString(projectID) {
+		return fmt.Errorf("invalid project ID format: must start with lowercase letter, contain only lowercase letters, digits, and hyphens")
+	}
+	return nil
+}
+
+// ValidateRegion validates a GCP region name
+// This prevents command injection in region parameters
+func ValidateRegion(region string) error {
+	if region == "" {
+		return fmt.Errorf("region cannot be empty")
+	}
+	if len(region) > 63 {
+		return fmt.Errorf("region name too long (max 63 characters)")
+	}
+	if !regionPattern.MatchString(region) {
+		return fmt.Errorf("invalid region format: must contain only lowercase letters, digits, and hyphens")
+	}
+	return nil
+}
+
+// ValidateServiceName validates a Cloud Run service name
+// This prevents command injection in service name parameters
+func ValidateServiceName(serviceName string) error {
+	if serviceName == "" {
+		return fmt.Errorf("service name cannot be empty")
+	}
+	if len(serviceName) < 2 || len(serviceName) > 63 {
+		return fmt.Errorf("service name must be between 2 and 63 characters")
+	}
+	if !serviceNamePattern.MatchString(serviceName) {
+		return fmt.Errorf("invalid service name format: must start with lowercase letter, contain only lowercase letters, digits, and hyphens, end with alphanumeric")
+	}
+	return nil
+}
+
+// ValidateRepositoryName validates an Artifact Registry repository name
+// This prevents command injection in repository name parameters
+func ValidateRepositoryName(repoName string) error {
+	if repoName == "" {
+		return fmt.Errorf("repository name cannot be empty")
+	}
+	if len(repoName) > 63 {
+		return fmt.Errorf("repository name too long (max 63 characters)")
+	}
+	if !repositoryNamePattern.MatchString(repoName) {
+		return fmt.Errorf("invalid repository name format: must contain only lowercase letters, digits, hyphens, and underscores")
+	}
+	return nil
+}
+
+// ValidateImageName validates a container image name
+// This prevents command injection in image name parameters
+func ValidateImageName(imageName string) error {
+	if imageName == "" {
+		return fmt.Errorf("image name cannot be empty")
+	}
+	if len(imageName) > 256 {
+		return fmt.Errorf("image name too long (max 256 characters)")
+	}
+	if !imageNamePattern.MatchString(imageName) {
+		return fmt.Errorf("invalid image name format: must contain only lowercase letters, digits, hyphens, underscores, and slashes")
+	}
+	return nil
+}
+
+// ValidateEnvironment validates an environment name
+// This prevents command injection in environment parameters
+func ValidateEnvironment(env string) error {
+	if env == "" {
+		return fmt.Errorf("environment cannot be empty")
+	}
+	if len(env) > 32 {
+		return fmt.Errorf("environment name too long (max 32 characters)")
+	}
+	if !environmentPattern.MatchString(env) {
+		return fmt.Errorf("invalid environment format: must start with lowercase letter, contain only lowercase letters, digits, hyphens, and underscores")
+	}
+	return nil
+}
+
+// ValidateDeploymentInputs validates all deployment-related inputs at once
+// This provides a convenient function to validate all parameters before executing any commands
+// Prevents command injection by ensuring all inputs match safe patterns
+func ValidateDeploymentInputs(projectID, region, serviceName, repoName, imageName, environment string) error {
+	if err := ValidateProjectID(projectID); err != nil {
+		return fmt.Errorf("invalid project ID: %w", err)
+	}
+	if err := ValidateRegion(region); err != nil {
+		return fmt.Errorf("invalid region: %w", err)
+	}
+	if err := ValidateServiceName(serviceName); err != nil {
+		return fmt.Errorf("invalid service name: %w", err)
+	}
+	if err := ValidateRepositoryName(repoName); err != nil {
+		return fmt.Errorf("invalid repository name: %w", err)
+	}
+	if err := ValidateImageName(imageName); err != nil {
+		return fmt.Errorf("invalid image name: %w", err)
+	}
+	if err := ValidateEnvironment(environment); err != nil {
+		return fmt.Errorf("invalid environment: %w", err)
+	}
+	return nil
+}
