@@ -70,9 +70,8 @@ func TestAggregatorStrategies(t *testing.T) {
 			SemanticSimilarity: 0.85,
 			ConsensusThreshold: 0.7,
 		},
-		rt:             rt,
-		inputBuffer:    make(map[string]*AgentInput),
-		embeddingCache: make(map[string][]float64),
+		rt:          rt,
+		inputBuffer: make(map[string]*AgentInput),
 	}
 
 	inputs := []*AgentInput{
