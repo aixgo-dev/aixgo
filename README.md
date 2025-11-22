@@ -1,26 +1,19 @@
 # aixgo
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/aixgo-dev/aixgo)](https://go.dev/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/aixgo-dev/aixgo)](https://go.dev/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/aixgo-dev/aixgo)](https://goreportcard.com/report/github.com/aixgo-dev/aixgo)
 
-Production-grade AI agent framework for Go. Build secure, scalable multi-agent
-systems without Python dependencies.
+Production-grade AI agent framework for Go. Build secure, scalable multi-agent systems without Python dependencies.
 
 **[Documentation](https://aixgo.dev)** | **[Quick Start](#quick-start)** | **[Examples](examples/)** | **[Contributing](docs/CONTRIBUTING.md)**
 
 ## Features
 
-- **Single Binary Deployment**: Ship AI agents in <10MB binaries with zero
-  runtime dependencies
-- **Type-Safe Agent Architecture**: Compile-time error detection with Go's type
-  system
-- **Seamless Scaling**: Start local with Go channels, scale to distributed with
-  gRPC—no code changes
-- **Multi-Agent Orchestration**: Built-in supervisor pattern for coordinating
-  agent workflows
-- **Observable by Default**: OpenTelemetry integration for distributed tracing
-  and monitoring
+- **Single Binary Deployment**: Ship AI agents in <10MB binaries with zero runtime dependencies
+- **Type-Safe Agent Architecture**: Compile-time error detection with Go's type system
+- **Seamless Scaling**: Start local with Go channels, scale to distributed with gRPC—no code changes
+- **Multi-Agent Orchestration**: Built-in supervisor pattern for coordinating agent workflows
+- **Observable by Default**: OpenTelemetry integration for distributed tracing and monitoring
 
 ## Quick Start
 
@@ -47,6 +40,7 @@ export HUGGINGFACE_API_KEY=hf_...  # For HuggingFace models (optional)
 ```
 
 The framework will automatically detect the appropriate API key based on your model name:
+
 - `grok-*` or `xai-*` models use `XAI_API_KEY`
 - `gpt-*` models use `OPENAI_API_KEY`
 - `claude-*` models use `ANTHROPIC_API_KEY`
@@ -110,21 +104,23 @@ func main() {
 go run main.go
 ```
 
-That's it! You now have a running multi-agent system with producer, analyzer,
-and logger agents orchestrated by a supervisor.
+That's it! You now have a running multi-agent system with producer, analyzer, and logger agents orchestrated by a supervisor.
 
 ## Documentation & Resources
 
 Comprehensive documentation, guides, and examples are available at **[aixgo.dev](https://aixgo.dev)**:
 
 ### 📚 Guides
+
 - **[Core Concepts](https://aixgo.dev/guides/core-concepts)** - Agent types, orchestration patterns, and architecture
 - **[Multi-Agent Orchestration](https://aixgo.dev/guides/multi-agent-orchestration)** - Supervisor patterns and workflows
 - **[Security Best Practices](https://aixgo.dev/guides/security)** - Production security configurations
 - **[Production Deployment](https://aixgo.dev/guides/deployment)** - Docker, Kubernetes, and Cloud Run
 
 ### 🎯 Examples
+
 Browse **29+ complete, production-ready configuration examples**:
+
 - **[Agent Types](https://aixgo.dev/examples/agents)** - Producer, ReAct, Logger, Classifier, Aggregator, Planner
 - **[LLM Providers](https://aixgo.dev/examples/llm-providers)** - OpenAI, Anthropic, Gemini, Vertex AI, xAI, HuggingFace
 - **[MCP Integration](https://aixgo.dev/examples/mcp)** - Local transport, gRPC, multi-server setups
@@ -133,6 +129,7 @@ Browse **29+ complete, production-ready configuration examples**:
 - **[Use Cases](https://aixgo.dev/examples/use-cases)** - Complete end-to-end applications
 
 ### 🚀 Quick Links
+
 - **[API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo)** - Full Go package documentation
 - **[Release Notes](https://aixgo.dev/releases)** - Track feature development and roadmap
 - **[GitHub Discussions](https://github.com/orgs/aixgo-dev/discussions)** - Ask questions and share ideas
@@ -141,16 +138,15 @@ Browse **29+ complete, production-ready configuration examples**:
 
 ### Production-First Design
 
-Python AI frameworks excel at prototyping but struggle in production. Aixgo is
-built for systems that ship, scale, and stay running.
+Python AI frameworks excel at prototyping but struggle in production. Aixgo is built for systems that ship, scale, and stay running.
 
-| Dimension | Python Frameworks | Aixgo |
-|-----------|------------------|-------|
-| **Deployment** | 1GB+ containers | <10MB binary |
-| **Cold Start** | 10-45 seconds | <100ms |
-| **Type Safety** | Runtime errors | Compile-time checks |
-| **Concurrency** | GIL limitations | True parallelism |
-| **Scaling** | Manual queues/services | Built-in channels → gRPC |
+| Dimension       | Python Frameworks      | Aixgo                    |
+| --------------- | ---------------------- | ------------------------ |
+| **Deployment**  | 1GB+ containers        | <10MB binary             |
+| **Cold Start**  | 10-45 seconds          | <100ms                   |
+| **Type Safety** | Runtime errors         | Compile-time checks      |
+| **Concurrency** | GIL limitations        | True parallelism         |
+| **Scaling**     | Manual queues/services | Built-in channels → gRPC |
 
 ### Use Cases
 
@@ -211,10 +207,10 @@ agents:
   - name: analyst
     role: react
     model: grok-beta
-    prompt: "You are an expert data analyst."
+    prompt: 'You are an expert data analyst.'
     tools:
       - name: query_database
-        description: "Query the database"
+        description: 'Query the database'
         input_schema:
           type: object
           properties:
@@ -244,19 +240,19 @@ Aixgo uses YAML-based declarative configuration:
 
 ```yaml
 supervisor:
-  name: string          # Supervisor identifier
-  model: string         # LLM model to use
-  max_rounds: int       # Maximum execution rounds
+  name: string # Supervisor identifier
+  model: string # LLM model to use
+  max_rounds: int # Maximum execution rounds
 
 agents:
-  - name: string        # Unique agent name
-    role: string        # producer | react | logger
-    interval: duration  # For producer agents
-    model: string       # For react agents
-    prompt: string      # System prompt for react agents
-    tools: []           # Tool definitions for react agents
-    inputs: []          # Input sources
-    outputs: []         # Output targets
+  - name: string # Unique agent name
+    role: string # producer | react | logger
+    interval: duration # For producer agents
+    model: string # For react agents
+    prompt: string # System prompt for react agents
+    tools: [] # Tool definitions for react agents
+    inputs: [] # Input sources
+    outputs: [] # Output targets
 ```
 
 ## Observability
@@ -344,22 +340,24 @@ For comprehensive documentation, visit **[https://aixgo.dev](https://aixgo.dev)*
 
 Aixgo supports flexible authentication modes for different deployment scenarios:
 
-| Mode | Use Case | Description |
-|------|----------|-------------|
-| `disabled` | Local development | No authentication (NOT for production) |
-| `delegated` | Cloud Run + IAP | Infrastructure handles auth |
-| `builtin` | Self-hosted | Application validates API keys |
-| `hybrid` | Mixed auth | Both infrastructure and API keys |
+| Mode        | Use Case          | Description                            |
+| ----------- | ----------------- | -------------------------------------- |
+| `disabled`  | Local development | No authentication (NOT for production) |
+| `delegated` | Cloud Run + IAP   | Infrastructure handles auth            |
+| `builtin`   | Self-hosted       | Application validates API keys         |
+| `hybrid`    | Mixed auth        | Both infrastructure and API keys       |
 
 ### Quick Examples
 
 **Local Development** (no auth):
+
 ```yaml
 environment: development
 auth_mode: disabled
 ```
 
 **Cloud Run with IAP**:
+
 ```yaml
 environment: production
 auth_mode: delegated
@@ -370,6 +368,7 @@ delegated_auth:
 ```
 
 **Self-hosted with API Keys**:
+
 ```yaml
 environment: production
 auth_mode: builtin
@@ -415,8 +414,7 @@ Python excels at AI research and prototyping. Go excels at production systems. A
 - **Scalability**: Native support for distributed systems
 - **Maintainability**: Type safety catches errors before production
 
-Build AI agents that ship with the same performance, security, and operational
-simplicity as the rest of your Go stack.
+Build AI agents that ship with the same performance, security, and operational simplicity as the rest of your Go stack.
 
 ---
 

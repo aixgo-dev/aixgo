@@ -1,0 +1,114 @@
+# RAG (Retrieval Augmented Generation) Agent Example
+# This example demonstrates using vector search with HuggingFace embeddings
+# for building a knowledge-based AI assistant
+
+# Embedding configuration
+embeddings:
+  provider: huggingface
+  huggingface:
+    # Free model from HuggingFace - no API key required for public models
+    model: sentence-transformers/all-MiniLM-L6-v2
+    endpoint: https://api-inference.huggingface.co
+    # Optional: Add your HuggingFace API key for higher rate limits
+    # api_key: ${HUGGINGFACE_API_KEY}
+    wait_for_model: true
+    use_cache: true
+
+# Vector store configuration
+vectorstore:
+  provider: memory  # Use "firestore" for production
+  embedding_dimensions: 384  # Must match the embedding model dimensions
+  default_top_k: 5
+  default_distance_metric: cosine
+
+  # For production with Firestore:
+  # provider: firestore
+  # firestore:
+  #   project_id: your-gcp-project-id
+  #   collection: knowledge_base
+  #   # Optional: credentials_file path, otherwise uses ADC
+  #   # credentials_file: /path/to/service-account.json
+
+# Supervisor configuration
+supervisor:
+  name: rag-coordinator
+  model: gpt-4
+  max_rounds: 10
+
+# Agent definitions
+agents:
+  # Knowledge ingestion agent
+  - name: document-indexer
+    role: react
+    model: gpt-4
+    prompt: |
+      You are a document indexing specialist. Your job is to prepare documents
+      for storage in a vector database. Break down large documents into
+      meaningful chunks and extract metadata.
+    tools:
+      - name: chunk_document
+        description: "Break a document into semantic chunks suitable for vector storage"
+        input_schema:
+          type: object
+          properties:
+            document: { type: string }
+            chunk_size: { type: number, default: 500 }
+          required: [document]
+
+      - name: extract_metadata
+        description: "Extract key metadata from a document (author, date, category, etc.)"
+        input_schema:
+          type: object
+          properties:
+            document: { type: string }
+          required: [document]
+
+      - name: store_embedding
+        description: "Store a document chunk with its embedding in the vector database"
+        input_schema:
+          type: object
+          properties:
+            id: { type: string }
+            content: { type: string }
+            metadata: { type: object }
+          required: [id, content]
+
+  # RAG query agent
+  - name: rag-assistant
+    role: react
+    model: gpt-4
+    prompt: |
+      You are an AI assistant with access to a knowledge base. When answering
+      questions, always search the knowledge base first and ground your answers
+      in the retrieved information. Cite your sources using the document IDs.
+
+      If the knowledge base doesn't contain relevant information, say so clearly.
+    tools:
+      - name: search_knowledge
+        description: "Search the vector database for relevant information"
+        input_schema:
+          type: object
+          properties:
+            query: { type: string }
+            top_k: { type: number, default: 5 }
+            min_score: { type: number, default: 0.7 }
+            filter:
+              type: object
+              properties:
+                category: { type: string }
+                date_after: { type: string }
+          required: [query]
+
+      - name: get_document
+        description: "Retrieve a full document by its ID"
+        input_schema:
+          type: object
+          properties:
+            id: { type: string }
+          required: [id]
+
+  # Logger for observability
+  - name: interaction-logger
+    role: logger
+    inputs:
+      - source: rag-assistant
