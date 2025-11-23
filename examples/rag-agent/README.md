@@ -319,6 +319,7 @@ import (
     "context"
     "github.com/aixgo-dev/aixgo/pkg/embeddings"
     "github.com/aixgo-dev/aixgo/pkg/vectorstore"
+    "github.com/aixgo-dev/aixgo/pkg/vectorstore/memory"
 )
 
 func indexDocuments() error {
@@ -336,15 +337,14 @@ func indexDocuments() error {
     defer embSvc.Close()
 
     // Initialize vector store
-    storeCfg := vectorstore.Config{
-        Provider: "memory",
-        EmbeddingDimensions: embSvc.Dimensions(),
-    }
-    store, err := vectorstore.New(storeCfg)
+    store, err := memory.New()
     if err != nil {
         return err
     }
     defer store.Close()
+
+    // Get collection
+    coll := store.Collection("knowledge_base")
 
     // Prepare documents
     docs := []string{
@@ -363,18 +363,21 @@ func indexDocuments() error {
         }
 
         // Create document
-        doc := vectorstore.Document{
-            ID:        fmt.Sprintf("doc-%d", i),
-            Content:   content,
-            Embedding: embedding,
-            Metadata: map[string]interface{}{
+        doc := &vectorstore.Document{
+            ID:      fmt.Sprintf("doc-%d", i),
+            Content: vectorstore.NewTextContent(content),
+            Embedding: vectorstore.NewEmbedding(
+                embedding,
+                embSvc.ModelName(),
+            ),
+            Metadata: map[string]any{
                 "source": "documentation",
                 "index":  i,
             },
         }
 
         // Store in vector database
-        if err := store.Upsert(ctx, []vectorstore.Document{doc}); err != nil {
+        if _, err := coll.Upsert(ctx, doc); err != nil {
             return err
         }
     }
@@ -389,6 +392,9 @@ func indexDocuments() error {
 func searchDocuments(query string) error {
     // ... initialize services as above ...
 
+    // Get collection
+    coll := store.Collection("knowledge_base")
+
     // Generate query embedding
     ctx := context.Background()
     queryEmbedding, err := embSvc.Embed(ctx, query)
@@ -396,24 +402,23 @@ func searchDocuments(query string) error {
         return err
     }
 
-    // Search vector store
-    results, err := store.Search(ctx, vectorstore.SearchQuery{
-        Embedding: queryEmbedding,
-        TopK:      5,
-        MinScore:  0.7,
-        Filter: &vectorstore.MetadataFilter{
-            Must: map[string]interface{}{
-                "source": "documentation",
-            },
-        },
+    // Query the collection
+    results, err := coll.Query(ctx, &vectorstore.Query{
+        Embedding: vectorstore.NewEmbedding(
+            queryEmbedding,
+            embSvc.ModelName(),
+        ),
+        Limit:    5,
+        MinScore: 0.7,
+        Filters: vectorstore.Eq("source", "documentation"),
     })
     if err != nil {
         return err
     }
 
     // Process results
-    for _, result := range results {
-        fmt.Printf("Score: %.3f - %s\n", result.Score, result.Document.Content)
+    for _, match := range results.Matches {
+        fmt.Printf("Score: %.3f - %s\n", match.Score, match.Document.Content.String())
     }
 
     return nil
