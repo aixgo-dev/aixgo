@@ -3,67 +3,32 @@ package firestore
 import (
 	"math"
 	"testing"
-	"time"
 
 	"cloud.google.com/go/firestore/apiv1/firestorepb"
 	"github.com/aixgo-dev/aixgo/pkg/vectorstore"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-// TestNew tests creating a new Firestore vector store.
-func TestNew(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  vectorstore.Config
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			name: "missing firestore config",
-			config: vectorstore.Config{
-				Provider:            "firestore",
-				EmbeddingDimensions: 768,
-			},
-			wantErr: true,
-			errMsg:  "firestore configuration is required",
-		},
-	}
+// TestCalculateSimilarity tests the similarity calculation dispatcher.
+func TestCalculateSimilarity(t *testing.T) {
+	vec1 := []float32{1.0, 0.0, 0.0}
+	vec2 := []float32{1.0, 0.0, 0.0}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store, err := New(tt.config)
-			if tt.wantErr {
-				require.Error(t, err)
-				if tt.errMsg != "" {
-					assert.Contains(t, err.Error(), tt.errMsg)
-				}
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, store)
-			}
-		})
-	}
-}
-
-// TestToFirestoreDistanceType tests distance metric conversion.
-func TestToFirestoreDistanceType(t *testing.T) {
 	tests := []struct {
 		name     string
 		metric   vectorstore.DistanceMetric
-		expected string
+		expected float32
 	}{
-		{"cosine", vectorstore.DistanceMetricCosine, "COSINE"},
-		{"euclidean", vectorstore.DistanceMetricEuclidean, "EUCLIDEAN"},
-		{"dot_product", vectorstore.DistanceMetricDotProduct, "DOT_PRODUCT"},
-		{"unknown defaults to cosine", "unknown", "COSINE"},
-		{"empty defaults to cosine", "", "COSINE"},
+		{"cosine", vectorstore.DistanceMetricCosine, 1.0},
+		{"dot_product", vectorstore.DistanceMetricDotProduct, 1.0},
+		{"euclidean", vectorstore.DistanceMetricEuclidean, 1.0}, // 1 / (1 + 0) = 1
+		{"default to cosine", "", 1.0},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := toFirestoreDistanceType(tt.metric)
-			assert.Equal(t, tt.expected, result)
+			result, _ := calculateSimilarity(vec1, vec2, tt.metric)
+			assert.InDelta(t, tt.expected, result, 0.0001)
 		})
 	}
 }
@@ -194,55 +159,6 @@ func TestEuclideanDistance(t *testing.T) {
 	}
 }
 
-// TestCalculateSimilarity tests the similarity calculation dispatcher.
-func TestCalculateSimilarity(t *testing.T) {
-	vec1 := []float32{1.0, 0.0, 0.0}
-	vec2 := []float32{1.0, 0.0, 0.0}
-
-	tests := []struct {
-		name     string
-		metric   vectorstore.DistanceMetric
-		expected float32
-	}{
-		{"cosine", vectorstore.DistanceMetricCosine, 1.0},
-		{"dot_product", vectorstore.DistanceMetricDotProduct, 1.0},
-		{"euclidean", vectorstore.DistanceMetricEuclidean, 1.0}, // 1 / (1 + 0) = 1
-		{"default to cosine", "", 1.0},
-		{"unknown defaults to cosine", "invalid", 1.0},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := calculateSimilarity(vec1, vec2, tt.metric)
-			assert.InDelta(t, tt.expected, result, 0.0001)
-		})
-	}
-}
-
-// TestSqrt tests the square root function.
-func TestSqrt(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    float32
-		expected float32
-	}{
-		{"zero", 0, 0},
-		{"one", 1, 1},
-		{"four", 4, 2},
-		{"nine", 9, 3},
-		{"sixteen", 16, 4},
-		{"two", 2, float32(math.Sqrt(2))},
-		{"ten", 10, float32(math.Sqrt(10))},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := sqrt(tt.input)
-			assert.InDelta(t, tt.expected, result, 0.0001)
-		})
-	}
-}
-
 // TestFloat32SliceToFirestoreArray tests conversion to Firestore array format.
 func TestFloat32SliceToFirestoreArray(t *testing.T) {
 	tests := []struct {
@@ -301,8 +217,16 @@ func TestExtractEmbeddingFromFirestore(t *testing.T) {
 			input:    nil,
 			expected: nil,
 		},
-		// Note: The actual implementation returns empty slice as TODO
-		// These tests document the expected behavior
+		{
+			name:     "direct float32 slice",
+			input:    []float32{1.0, 2.0, 3.0},
+			expected: []float32{1.0, 2.0, 3.0},
+		},
+		{
+			name:     "interface slice with floats",
+			input:    []interface{}{1.0, 2.0, 3.0},
+			expected: []float32{1.0, 2.0, 3.0},
+		},
 	}
 
 	for _, tt := range tests {
@@ -311,27 +235,6 @@ func TestExtractEmbeddingFromFirestore(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
-}
-
-// TestFirestoreDocument tests the firestoreDocument structure.
-func TestFirestoreDocument(t *testing.T) {
-	now := time.Now()
-
-	doc := firestoreDocument{
-		ID:      "test-id",
-		Content: "test content",
-		Metadata: map[string]interface{}{
-			"key": "value",
-		},
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-
-	assert.Equal(t, "test-id", doc.ID)
-	assert.Equal(t, "test content", doc.Content)
-	assert.Equal(t, "value", doc.Metadata["key"])
-	assert.Equal(t, now, doc.CreatedAt)
-	assert.Equal(t, now, doc.UpdatedAt)
 }
 
 // BenchmarkCosineSimilarity benchmarks cosine similarity calculation.

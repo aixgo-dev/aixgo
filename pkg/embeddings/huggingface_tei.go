@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -60,6 +61,7 @@ func NewHuggingFaceTEI(config Config) (EmbeddingService, error) {
 	if err != nil {
 		// If probe fails, log warning but don't fail initialization
 		// Dimensions will be determined on first embedding
+		log.Printf("Warning: HuggingFace TEI dimension probe failed: %v (dimensions will be determined on first embedding)", err)
 		atomic.StoreInt32(&tei.dimensions, 0)
 	} else {
 		atomic.StoreInt32(&tei.dimensions, int32(dims))
