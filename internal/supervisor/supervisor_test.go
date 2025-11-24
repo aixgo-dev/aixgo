@@ -472,9 +472,9 @@ func TestSupervisor_GetAgents(t *testing.T) {
 }
 
 func TestGetAPIKeyFromEnv(t *testing.T) {
-	key := getAPIKeyFromEnv("grok-beta")
+	key := getAPIKeyFromEnv("gpt-4-turbo")
 	if key == "" {
-		t.Error("getAPIKeyFromEnv returned empty string for grok model")
+		t.Error("getAPIKeyFromEnv returned empty string for gpt model")
 	}
 
 	key = getAPIKeyFromEnv("gpt-4")

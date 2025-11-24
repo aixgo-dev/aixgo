@@ -100,7 +100,7 @@ hybrid := inference.NewHybridInference(
 ```yaml
 supervisor:
   name: coordinator
-  model: grok-beta
+  model: gpt-4-turbo
   max_rounds: 10
 
 # MCP server definitions

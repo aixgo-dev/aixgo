@@ -1,6 +1,6 @@
 supervisor:
   name: cosmic-director
-  model: grok-beta
+  model: gpt-4-turbo
   max_rounds: 10
 
 agents:
@@ -12,7 +12,7 @@ agents:
 
   - name: spectrum-analyzer
     role: react
-    model: grok-beta
+    model: gpt-4-turbo
     prompt: |
       You are a cosmic ray physicist. Analyze energy and recommend actions.
       Use tools only when necessary.

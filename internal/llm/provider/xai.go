@@ -31,7 +31,7 @@ func init() {
 			return nil, fmt.Errorf("XAI_API_KEY not set")
 		}
 
-		model := "grok-beta"
+		model := "gpt-4-turbo"
 		if m, ok := config["model"].(string); ok && m != "" {
 			model = m
 		}
@@ -59,7 +59,7 @@ func NewXAIProvider(apiKey, model, baseURL string) *XAIProvider {
 		baseURL = xaiBaseURL
 	}
 	if model == "" {
-		model = "grok-beta"
+		model = "gpt-4-turbo"
 	}
 	return &XAIProvider{
 		apiKey:  apiKey,
