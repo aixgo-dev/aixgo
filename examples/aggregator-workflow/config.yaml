@@ -1,0 +1,139 @@
+# Multi-Agent Research Synthesis Configuration
+# This example demonstrates AI agents collaborating to analyze a complex topic
+
+research_topic:
+  title: "The Impact of Large Language Models on Software Development"
+  description: "A comprehensive analysis of how LLMs are transforming software engineering practices, productivity, and the future of programming"
+  aspects:
+    - "Code generation and automation"
+    - "Developer productivity metrics"
+    - "Quality assurance and testing"
+    - "Security implications"
+    - "Ethical considerations"
+    - "Future of human-AI collaboration"
+
+# Expert agents with different perspectives and expertise
+expert_agents:
+  - name: "technical_expert"
+    role: "Technical Expert"
+    expertise:
+      - "Software architecture"
+      - "Code quality"
+      - "Performance optimization"
+    perspective: "Deep technical analysis focusing on implementation details and best practices"
+    weight: 0.9
+
+  - name: "data_scientist"
+    role: "Data Scientist"
+    expertise:
+      - "Machine learning"
+      - "Statistical analysis"
+      - "Model evaluation"
+    perspective: "Empirical analysis of productivity metrics and performance data"
+    weight: 0.85
+
+  - name: "business_analyst"
+    role: "Business Analyst"
+    expertise:
+      - "ROI analysis"
+      - "Market trends"
+      - "Cost-benefit analysis"
+    perspective: "Business impact and economic implications of LLM adoption"
+    weight: 0.75
+
+  - name: "security_expert"
+    role: "Security Expert"
+    expertise:
+      - "Code security"
+      - "Vulnerability analysis"
+      - "Compliance"
+    perspective: "Security risks and mitigation strategies for AI-generated code"
+    weight: 0.95
+
+  - name: "ethics_expert"
+    role: "Ethics Expert"
+    expertise:
+      - "AI ethics"
+      - "Bias detection"
+      - "Responsible AI"
+    perspective: "Ethical implications and societal impact of AI in software development"
+    weight: 0.8
+
+  - name: "domain_expert"
+    role: "Domain Expert"
+    expertise:
+      - "Industry practices"
+      - "Developer workflows"
+      - "Tool adoption"
+    perspective: "Practical implementation and real-world adoption challenges"
+    weight: 0.85
+
+# Aggregator configuration demonstrating multiple strategies
+aggregator:
+  # Strategies to demonstrate (will run all)
+  strategies:
+    - "consensus"      # Find agreement among experts
+    - "semantic"       # Group by semantic similarity
+    - "weighted"       # Apply expertise weights
+
+  # Conflict resolution approach
+  conflict_resolution: "llm_reasoning"  # Use LLM to resolve conflicts intelligently
+
+  # Consensus parameters
+  consensus_threshold: 0.75  # Minimum agreement level for consensus
+
+  # Semantic clustering parameters
+  semantic_similarity: 0.85  # Threshold for semantic grouping
+
+  # Weighted aggregation - expertise-based weights
+  source_weights:
+    "Technical Expert": 0.9
+    "Data Scientist": 0.85
+    "Business Analyst": 0.75
+    "Security Expert": 0.95
+    "Ethics Expert": 0.8
+    "Domain Expert": 0.85
+
+  # Timing and performance
+  timeout_ms: 5000  # Maximum time to wait for agent responses
+
+  # LLM parameters for aggregation
+  temperature: 0.5   # Balanced creativity for synthesis
+  max_tokens: 2000   # Sufficient for comprehensive aggregation
+
+# Output configuration
+output:
+  format: "json"
+  save_to_file: true
+  file_path: "research_synthesis_output.json"
+  show_conflicts: true    # Display resolved conflicts
+  show_consensus: true    # Show consensus metrics
+  show_clusters: true     # Display semantic clusters
+
+# LLM provider configuration
+llm:
+  provider: "openai"      # Options: openai, anthropic, mock (for testing)
+  model: "gpt-4"
+  api_key: "${OPENAI_API_KEY}"  # Set via environment variable
+  temperature: 0.7
+  max_tokens: 1500
+
+# Advanced features (optional)
+advanced:
+  # Enable RAG-based aggregation
+  enable_rag: false
+
+  # Enable hierarchical aggregation (multi-level)
+  enable_hierarchical: false
+
+  # Enable deduplication
+  deduplication_method: "semantic"
+
+  # Enable summarization
+  summarization_enabled: true
+
+  # Memory configuration
+  semantic_memory:
+    enabled: true
+    max_memories: 100
+    similarity_threshold: 0.7

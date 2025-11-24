@@ -1,0 +1,270 @@
+# Customer Support Ticket Classification Configuration
+# This configuration demonstrates advanced AI/LLM capabilities for multi-label classification
+
+agents:
+  - name: ticket_classifier
+    type: classifier
+    model: gpt-4  # Can use claude-3-opus, gpt-4-turbo, or other supported models
+    prompt: |
+      You are an expert customer support specialist with deep experience in ticket triage.
+      Analyze tickets considering urgency, customer sentiment, technical complexity, and business impact.
+      Provide detailed reasoning that explains the semantic understanding behind your classification.
+
+    inputs:
+      - source: ticket_input
+        type: ticket
+
+    outputs:
+      - target: classification_output
+        type: classification_result
+
+    # AI-specific classifier configuration
+    classifier_config:
+      # Classification categories with semantic descriptions
+      categories:
+        - name: technical_issue
+          description: "Problems with system functionality, API errors, integration failures, or performance issues"
+          keywords:
+            - "error"
+            - "bug"
+            - "crash"
+            - "slow"
+            - "API"
+            - "integration"
+            - "500"
+            - "404"
+            - "timeout"
+            - "performance"
+          examples:
+            - "The API returns 500 errors when called"
+            - "Dashboard is loading very slowly"
+            - "Integration with third-party service is broken"
+
+        - name: billing_inquiry
+          description: "Questions or issues related to payments, invoices, subscriptions, or pricing"
+          keywords:
+            - "invoice"
+            - "payment"
+            - "charge"
+            - "billing"
+            - "subscription"
+            - "refund"
+            - "price"
+            - "cost"
+            - "plan"
+          examples:
+            - "I was charged incorrectly on my invoice"
+            - "Need to upgrade subscription plan"
+            - "Request for refund on duplicate charge"
+
+        - name: account_access
+          description: "Login problems, password resets, authentication issues, or security concerns"
+          keywords:
+            - "login"
+            - "password"
+            - "access"
+            - "locked"
+            - "authentication"
+            - "2FA"
+            - "security"
+            - "reset"
+            - "credential"
+          examples:
+            - "Cannot log into my account"
+            - "Password reset email not received"
+            - "Account appears to be compromised"
+
+        - name: feature_request
+          description: "Suggestions for new features, improvements, or enhancements to existing functionality"
+          keywords:
+            - "feature"
+            - "request"
+            - "suggestion"
+            - "improvement"
+            - "enhance"
+            - "would be nice"
+            - "could you add"
+            - "wish"
+          examples:
+            - "It would be great if you could add dark mode"
+            - "Feature request: bulk export functionality"
+            - "Suggestion to improve the reporting dashboard"
+
+        - name: bug_report
+          description: "Detailed reports of system bugs, unexpected behavior, or functionality not working as documented"
+          keywords:
+            - "bug"
+            - "broken"
+            - "not working"
+            - "unexpected"
+            - "malfunction"
+            - "defect"
+            - "glitch"
+            - "issue"
+          examples:
+            - "Button on settings page does nothing when clicked"
+            - "Data export produces corrupted files"
+            - "Calculation results are incorrect"
+
+        - name: positive_feedback
+          description: "Compliments, testimonials, positive reviews, or expressions of satisfaction"
+          keywords:
+            - "thank"
+            - "great"
+            - "excellent"
+            - "amazing"
+            - "love"
+            - "awesome"
+            - "fantastic"
+            - "wonderful"
+            - "appreciate"
+          examples:
+            - "Your support team is fantastic!"
+            - "Love the new features you added"
+            - "Thank you for the quick resolution"
+
+        - name: general_inquiry
+          description: "General questions about products, services, or policies that don't fit other categories"
+          keywords:
+            - "how"
+            - "what"
+            - "when"
+            - "information"
+            - "question"
+            - "wondering"
+            - "curious"
+            - "clarify"
+          examples:
+            - "What are your business hours?"
+            - "How does the free trial work?"
+            - "Questions about data retention policy"
+
+      # Enable multi-label classification (ticket can belong to multiple categories)
+      multi_label: false  # Set to true to allow multiple category assignments
+
+      # Confidence threshold for classification acceptance
+      confidence_threshold: 0.7  # Classifications below this threshold trigger escalation
+
+      # Temperature for LLM (lower = more deterministic, higher = more creative)
+      temperature: 0.3  # Low temperature for consistent classification
+
+      # Maximum tokens for classification response
+      max_tokens: 500  # Enough for detailed reasoning
+
+      # Enable embeddings for semantic similarity matching
+      use_embeddings: false  # Set to true if you have embedding support configured
+
+      # Few-shot learning examples to improve classification accuracy
+      few_shot_examples:
+        - input: "I tried to reset my password three times but never received the reset email. My account has important data and I need access urgently."
+          category: "account_access"
+          reason: "The ticket describes authentication issues (password reset) and inability to access the account, which are core account access problems."
+
+        - input: "Your new dashboard is incredible! The real-time analytics feature has transformed how we monitor our KPIs. Thank you!"
+          category: "positive_feedback"
+          reason: "The customer is expressing satisfaction and gratitude for the product features, with no issues mentioned."
+
+        - input: "We're experiencing 429 rate limit errors even though our usage is at 50% of the quota according to the dashboard."
+          category: "technical_issue"
+          reason: "This describes an API technical problem with rate limiting that's affecting system functionality."
+
+        - input: "Our latest invoice shows $500 but we were quoted $300 for the enterprise plan. Please clarify this discrepancy."
+          category: "billing_inquiry"
+          reason: "The ticket is specifically about invoice amounts and pricing discrepancies, which are billing concerns."
+
+        - input: "Could you add a feature to export reports in PowerPoint format? Many of our executives prefer PPT over PDF."
+          category: "feature_request"
+          reason: "The customer is suggesting a new feature (PowerPoint export) that doesn't currently exist."
+
+        - input: "After the update, the search function returns no results even for items I know exist in the database."
+          category: "bug_report"
+          reason: "This describes specific unexpected behavior (search not working) after an update, indicating a software bug."
+
+        - input: "I noticed several failed login attempts from unknown IPs. Please help me secure my account immediately."
+          category: "account_access"
+          reason: "Security concerns and potential unauthorized access attempts are account access and security issues."
+
+        - input: "The mobile app crashes every time I try to upload a photo larger than 5MB."
+          category: "bug_report"
+          reason: "Describes a reproducible crash condition in the mobile app, which is a clear bug."
+
+# Routing configuration for team assignment
+routing:
+  rules:
+    - category: technical_issue
+      team: "Technical Support L2"
+      sla_hours: 4
+      auto_escalate: true
+
+    - category: billing_inquiry
+      team: "Billing Department"
+      sla_hours: 8
+      auto_escalate: false
+
+    - category: account_access
+      team: "Security Team"
+      sla_hours: 2  # Urgent for security issues
+      auto_escalate: true
+
+    - category: feature_request
+      team: "Product Management"
+      sla_hours: 48
+      auto_escalate: false
+
+    - category: bug_report
+      team: "Engineering"
+      sla_hours: 24
+      auto_escalate: true
+
+    - category: positive_feedback
+      team: "Customer Success"
+      sla_hours: 72
+      auto_escalate: false
+
+    - category: general_inquiry
+      team: "Customer Support L1"
+      sla_hours: 24
+      auto_escalate: false
+
+# Workflow settings
+workflow:
+  # Enable detailed AI reasoning in responses
+  include_reasoning: true
+
+  # Show alternative classifications when confidence is below threshold
+  show_alternatives: true
+
+  # Maximum alternatives to display
+  max_alternatives: 3
+
+  # Enable sentiment analysis alongside classification
+  analyze_sentiment: true
+
+  # Enable priority scoring based on content analysis
+  calculate_priority: true
+
+  # Batch processing settings
+  batch_size: 10
+  batch_timeout_seconds: 30
+
+  # Retry configuration for failed classifications
+  max_retries: 3
+  retry_delay_seconds: 5
+
+# Observability settings for AI monitoring
+observability:
+  # Track token usage and costs
+  track_token_usage: true
+
+  # Log classification confidence scores
+  log_confidence_scores: true
+
+  # Alert on low confidence classifications
+  alert_threshold: 0.7
+
+  # Performance tracking
+  track_latency: true
+  latency_threshold_ms: 2000
+
+  # Export metrics for analysis
+  metrics_export_interval: 60  # seconds
