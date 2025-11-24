@@ -122,6 +122,8 @@ Comprehensive documentation, guides, and examples are available at **[aixgo.dev]
 Browse **29+ complete, production-ready configuration examples**:
 
 - **[Agent Types](https://aixgo.dev/examples/agents)** - Producer, ReAct, Logger, Classifier, Aggregator, Planner
+  - [Classifier Workflow](examples/classifier-workflow/) - AI-powered ticket classification with confidence scoring
+  - [Aggregator Workflow](examples/aggregator-workflow/) - Multi-agent synthesis with consensus and semantic strategies
 - **[LLM Providers](https://aixgo.dev/examples/llm-providers)** - OpenAI, Anthropic, Gemini, Vertex AI, xAI, HuggingFace
 - **[MCP Integration](https://aixgo.dev/examples/mcp)** - Local transport, gRPC, multi-server setups
 - **[Security](https://aixgo.dev/examples/security)** - Authentication, authorization, TLS configurations
@@ -165,6 +167,8 @@ Aixgo implements a message-based multi-agent architecture with three core patter
 - **Producer**: Generates messages at configured intervals
 - **ReAct**: Reasoning + Acting agents powered by LLMs with tool calling
 - **Logger**: Consumes and logs messages from other agents
+- **Classifier**: LLM-powered content classification with confidence scoring and structured outputs
+- **Aggregator**: Multi-agent output synthesis using consensus, weighted, semantic, or hierarchical strategies
 
 ### Communication Model
 
@@ -232,6 +236,53 @@ agents:
     role: logger
     inputs:
       - source: analyst
+```
+
+### Classifier Agent
+
+LLM-powered content classification with structured outputs and confidence scoring:
+
+```yaml
+agents:
+  - name: ticket-classifier
+    role: classifier
+    model: gpt-4-turbo
+    inputs:
+      - source: support-tickets
+    outputs:
+      - target: classified-tickets
+    classifier_config:
+      categories:
+        - name: technical_issue
+          description: "Issues requiring technical troubleshooting"
+          keywords: ["error", "bug", "crash"]
+        - name: billing_inquiry
+          description: "Questions about payments or invoices"
+          keywords: ["payment", "charge", "refund"]
+      confidence_threshold: 0.7
+      temperature: 0.3
+```
+
+### Aggregator Agent
+
+Synthesizes outputs from multiple agents using intelligent strategies:
+
+```yaml
+agents:
+  - name: research-synthesizer
+    role: aggregator
+    model: gpt-4-turbo
+    inputs:
+      - source: expert-1
+      - source: expert-2
+      - source: expert-3
+    outputs:
+      - target: final-report
+    aggregator_config:
+      aggregation_strategy: consensus  # or weighted, semantic, hierarchical, rag_based
+      consensus_threshold: 0.75
+      conflict_resolution: llm_mediated
+      timeout_ms: 5000
 ```
 
 ## Configuration
