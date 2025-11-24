@@ -55,7 +55,7 @@ Create `config/agents.yaml`:
 ```yaml
 supervisor:
   name: data-pipeline-supervisor
-  model: grok-beta
+  model: gpt-4-turbo
   max_rounds: 10
 
 agents:
@@ -69,7 +69,7 @@ agents:
   # Analyzer agent processes data using LLM
   - name: data-analyzer
     role: react
-    model: grok-beta
+    model: gpt-4-turbo
     prompt: |
       You are a data analyst. Analyze the incoming data and provide
       a brief summary with key insights.
@@ -153,7 +153,7 @@ Let's break down the configuration file:
 ```yaml
 supervisor:
   name: data-pipeline-supervisor # Unique identifier
-  model: grok-beta # LLM model for orchestration
+  model: gpt-4-turbo # LLM model for orchestration
   max_rounds: 10 # Maximum execution rounds
 ```
 
@@ -178,7 +178,7 @@ Generates periodic messages for downstream processing.
 ```yaml
 - name: data-analyzer
   role: react
-  model: grok-beta # LLM to use
+  model: gpt-4-turbo # LLM to use
   prompt: | # System prompt
     You are a data analyst...
   inputs:
@@ -209,7 +209,7 @@ Enhance your ReAct agent with tools:
 ```yaml
 - name: data-analyzer
   role: react
-  model: grok-beta
+  model: gpt-4-turbo
   prompt: 'You are a data analyst with access to a database.'
   tools:
     - name: query_database
@@ -236,7 +236,7 @@ Agents can have multiple inputs and outputs:
 ```yaml
 - name: aggregator
   role: react
-  model: grok-beta
+  model: gpt-4-turbo
   prompt: 'Aggregate data from multiple sources.'
   inputs:
     - source: producer-1

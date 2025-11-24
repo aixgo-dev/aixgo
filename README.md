@@ -55,7 +55,7 @@ Create a simple multi-agent system in under 5 minutes:
 ```yaml
 supervisor:
   name: coordinator
-  model: grok-beta
+  model: gpt-4-turbo
   max_rounds: 10
 
 agents:
@@ -67,7 +67,7 @@ agents:
 
   - name: analyzer
     role: react
-    model: grok-beta
+    model: gpt-4-turbo
     prompt: |
       You are a data analyst. Analyze incoming data and provide insights.
     inputs:
@@ -206,7 +206,7 @@ LLM-powered agent with reasoning and tool calling:
 agents:
   - name: analyst
     role: react
-    model: grok-beta
+    model: gpt-4-turbo
     prompt: 'You are an expert data analyst.'
     tools:
       - name: query_database

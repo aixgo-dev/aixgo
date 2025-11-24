@@ -11,7 +11,7 @@ import (
 )
 
 func TestXAIProvider_Name(t *testing.T) {
-	p := NewXAIProvider("test-key", "grok-beta", "")
+	p := NewXAIProvider("test-key", "gpt-4-turbo", "")
 	if p.Name() != "xai" {
 		t.Errorf("Name() = %q, want %q", p.Name(), "xai")
 	}
@@ -36,8 +36,8 @@ func TestXAIProvider_CreateCompletion(t *testing.T) {
 			t.Fatalf("Failed to decode request: %v", err)
 		}
 
-		if req.Model != "grok-beta" {
-			t.Errorf("Model = %q, want grok-beta", req.Model)
+		if req.Model != "gpt-4-turbo" {
+			t.Errorf("Model = %q, want gpt-4-turbo", req.Model)
 		}
 
 		// Return response
@@ -72,7 +72,7 @@ func TestXAIProvider_CreateCompletion(t *testing.T) {
 	}))
 	defer server.Close()
 
-	p := NewXAIProvider("test-key", "grok-beta", server.URL)
+	p := NewXAIProvider("test-key", "gpt-4-turbo", server.URL)
 
 	req := CompletionRequest{
 		Messages: []Message{
@@ -146,7 +146,7 @@ func TestXAIProvider_CreateCompletion_WithTools(t *testing.T) {
 	}))
 	defer server.Close()
 
-	p := NewXAIProvider("test-key", "grok-beta", server.URL)
+	p := NewXAIProvider("test-key", "gpt-4-turbo", server.URL)
 
 	req := CompletionRequest{
 		Messages: []Message{
@@ -211,7 +211,7 @@ func TestXAIProvider_CreateStreaming(t *testing.T) {
 	}))
 	defer server.Close()
 
-	p := NewXAIProvider("test-key", "grok-beta", server.URL)
+	p := NewXAIProvider("test-key", "gpt-4-turbo", server.URL)
 
 	stream, err := p.CreateStreaming(context.Background(), CompletionRequest{
 		Messages: []Message{{Role: "user", Content: "Hi"}},
@@ -273,7 +273,7 @@ func TestXAIProvider_CreateStructured(t *testing.T) {
 	}))
 	defer server.Close()
 
-	p := NewXAIProvider("test-key", "grok-beta", server.URL)
+	p := NewXAIProvider("test-key", "gpt-4-turbo", server.URL)
 
 	resp, err := p.CreateStructured(context.Background(), StructuredRequest{
 		CompletionRequest: CompletionRequest{
@@ -335,7 +335,7 @@ func TestXAIProvider_ErrorHandling(t *testing.T) {
 			}))
 			defer server.Close()
 
-			p := NewXAIProvider("test-key", "grok-beta", server.URL)
+			p := NewXAIProvider("test-key", "gpt-4-turbo", server.URL)
 
 			_, err := p.CreateCompletion(context.Background(), CompletionRequest{
 				Messages: []Message{{Role: "user", Content: "Hi"}},
@@ -359,13 +359,13 @@ func TestXAIProvider_ErrorHandling(t *testing.T) {
 
 func TestXAIProvider_DefaultModel(t *testing.T) {
 	p := NewXAIProvider("test-key", "", "")
-	if p.model != "grok-beta" {
-		t.Errorf("Default model = %q, want %q", p.model, "grok-beta")
+	if p.model != "gpt-4-turbo" {
+		t.Errorf("Default model = %q, want %q", p.model, "gpt-4-turbo")
 	}
 }
 
 func TestXAIProvider_DefaultBaseURL(t *testing.T) {
-	p := NewXAIProvider("test-key", "grok-beta", "")
+	p := NewXAIProvider("test-key", "gpt-4-turbo", "")
 	if p.baseURL != xaiBaseURL {
 		t.Errorf("Default baseURL = %q, want %q", p.baseURL, xaiBaseURL)
 	}

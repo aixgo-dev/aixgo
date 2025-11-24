@@ -365,7 +365,7 @@ func TestConfigLoading(t *testing.T) {
     mockReader.AddFile("config.yaml", []byte(`
 supervisor:
   name: test-supervisor
-  model: grok-beta
+  model: gpt-4-turbo
 agents:
   - name: producer
     role: producer
