@@ -30,3 +30,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Compiled example binaries
+aggregator-workflow
+classifier-workflow
+rag-agent
