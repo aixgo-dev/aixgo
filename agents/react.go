@@ -25,6 +25,7 @@ type OpenAIClient interface {
 }
 
 type ReActAgent struct {
+	*BaseAgent   // Provides Name(), Role(), Ready(), Stop()
 	def          agent.AgentDef
 	client       OpenAIClient
 	provider     provider.Provider
@@ -85,6 +86,7 @@ func NewReActAgentWithProvider(def agent.AgentDef, rt agent.Runtime, client Open
 	}
 
 	agent := &ReActAgent{
+		BaseAgent:    NewBaseAgent(def),
 		def:          def,
 		client:       client,
 		provider:     prov,
@@ -159,7 +161,35 @@ func (r *ReActAgent) SetProvider(prov provider.Provider) {
 	r.provider = prov
 }
 
+// Execute performs synchronous ReAct execution
+func (r *ReActAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	if !r.Ready() {
+		return nil, fmt.Errorf("agent not ready")
+	}
+
+	// Extract string from message
+	inputStr := ""
+	if input != nil && input.Message != nil {
+		inputStr = input.Payload
+	}
+
+	// Use the existing think method to process the input
+	result, err := r.think(ctx, inputStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert result back to Message
+	return &agent.Message{
+		Message: &pb.Message{
+			Type:    "react_response",
+			Payload: result,
+		},
+	}, nil
+}
+
 func (r *ReActAgent) Start(ctx context.Context) error {
+	r.InitContext(ctx)  // Initialize context from BaseAgent
 	if len(r.def.Inputs) == 0 {
 		return fmt.Errorf("no inputs defined for ReActAgent")
 	}
@@ -176,6 +206,9 @@ func (r *ReActAgent) Start(ctx context.Context) error {
 		DisallowControlChars: true,
 	}
 
+	// Create prompt injection detector
+	injectionDetector := security.NewPromptInjectionDetector(security.SensitivityMedium)
+
 	for m := range ch {
 		// Validate input message
 		if err := inputValidator.Validate(m.Payload); err != nil {
@@ -183,8 +216,18 @@ func (r *ReActAgent) Start(ctx context.Context) error {
 			continue
 		}
 
-		span := observability.StartSpan("react.think", map[string]any{"input": m.Payload})
-		res, err := r.think(ctx, m.Payload)
+		// Check for prompt injection
+		inputPayload := m.Payload
+		detectionResult := injectionDetector.Detect(inputPayload)
+		if detectionResult.Detected {
+			log.Printf("Potential prompt injection detected (confidence: %.2f): %v",
+				detectionResult.Confidence, detectionResult.MatchedPatterns)
+			// Sanitize by wrapping in delimiters
+			inputPayload = "<<<USER_INPUT_START>>>\n" + inputPayload + "\n<<<USER_INPUT_END>>>"
+		}
+
+		span := observability.StartSpan("react.think", map[string]any{"input": inputPayload})
+		res, err := r.think(ctx, inputPayload)
 		span.End()
 		if err != nil {
 			log.Printf("ReAct error: %v", err)
@@ -336,23 +379,60 @@ func (r *ReActAgent) buildProviderTools() []provider.Tool {
 
 // executeProviderTool executes a tool call from the provider
 func (r *ReActAgent) executeProviderTool(ctx context.Context, call provider.ToolCall) (any, error) {
-	// Parse arguments
+	// 1. Validate tool name format
+	if err := security.ValidateToolName(call.Function.Name); err != nil {
+		return nil, fmt.Errorf("invalid tool name: %w", err)
+	}
+
+	// 2. Unmarshal arguments
 	var args map[string]any
 	if err := json.Unmarshal(call.Function.Arguments, &args); err != nil {
 		return nil, fmt.Errorf("unmarshal arguments: %w", err)
 	}
 
-	// Check if it's an agent-defined tool
+	// 3. Sanitize string arguments
+	for key, value := range args {
+		if str, ok := value.(string); ok {
+			// Check for suspicious content
+			if containsSuspiciousContent(str) {
+				return nil, fmt.Errorf("suspicious content in argument %s", key)
+			}
+			// Sanitize
+			args[key] = security.SanitizeString(str)
+		}
+	}
+
+	// 4. Check if agent-defined tool
 	if toolFunc, ok := r.tools[call.Function.Name]; ok {
 		return toolFunc(ctx, args)
 	}
 
-	// Check if it's an MCP tool
+	// 5. Check if MCP tool
 	if r.toolRegistry.HasTool(call.Function.Name) {
 		return r.executeMCPTool(ctx, call.Function.Name, args)
 	}
 
 	return nil, fmt.Errorf("unknown tool: %s", call.Function.Name)
+}
+
+// containsSuspiciousContent checks for injection patterns in tool arguments
+func containsSuspiciousContent(s string) bool {
+	suspicious := []string{
+		"../",         // Path traversal
+		"&&", "||", ";", "|", // Command injection
+		"<script",     // XSS
+		"javascript:", // XSS
+		"drop table",  // SQL injection
+		"delete from", // SQL injection
+	}
+
+	lower := strings.ToLower(s)
+	for _, pattern := range suspicious {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 // executeMCPTool executes an MCP tool

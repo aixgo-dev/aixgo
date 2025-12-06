@@ -21,7 +21,7 @@ This repository contains essential documentation for contributors and developers
 
 ### Quick Reference
 
-- **[Quick Start](QUICKSTART.md)** - Get running in under 5 minutes
+- **[Pattern Catalog](PATTERNS.md)** - 9 orchestration patterns with examples
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to aixgo
 - **[Testing Guide](TESTING_GUIDE.md)** - Testing strategies and utilities
 - **[Observability Guide](OBSERVABILITY.md)** - OpenTelemetry integration and tracing
@@ -34,7 +34,7 @@ This repository contains essential documentation for contributors and developers
 
 This repository maintains minimal documentation focused on:
 
-1. Quick Start - Getting developers productive immediately
+1. Orchestration Patterns - Detailed pattern catalog
 2. Contributing - Supporting open source collaboration
 3. Testing - Ensuring code quality
 4. Observability - Production monitoring

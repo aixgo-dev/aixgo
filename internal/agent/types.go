@@ -11,8 +11,28 @@ import (
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
+// Agent interface supports both synchronous (Execute) and asynchronous (Start) execution.
+// Agents can implement one or both methods depending on their use case.
 type Agent interface {
+	// Name returns the unique identifier for this agent instance
+	Name() string
+
+	// Role returns the agent type/role (e.g., "react", "classifier", "planner")
+	Role() string
+
+	// Start runs the agent asynchronously (e.g., listening on inputs)
+	// Returns when context is canceled or agent encounters fatal error
 	Start(ctx context.Context) error
+
+	// Execute performs synchronous request-response execution
+	// Used by orchestration patterns for direct invocation
+	Execute(ctx context.Context, input *Message) (*Message, error)
+
+	// Stop gracefully shuts down the agent
+	Stop(ctx context.Context) error
+
+	// Ready returns true if the agent is ready to accept requests
+	Ready() bool
 }
 
 type AgentDef struct {
@@ -128,16 +148,62 @@ func GetFactory(role string) (FactoryFunc, bool) {
 	return defaultRegistry.GetFactory(role)
 }
 
-// Runtime interface - placeholder, will be implemented based on your architecture
+// Runtime interface provides agent execution and message passing capabilities.
+// Supports both local (single binary) and distributed (gRPC) deployment modes.
 type Runtime interface {
+	// Send sends a message to a target agent asynchronously
 	Send(target string, msg *Message) error
+
+	// Recv returns a channel to receive messages from a source agent
 	Recv(source string) (<-chan *Message, error)
+
+	// Call invokes an agent synchronously and waits for response
+	// Used by orchestration patterns for request-response execution
+	Call(ctx context.Context, target string, input *Message) (*Message, error)
+
+	// CallParallel invokes multiple agents concurrently and returns all results
+	// Execution continues even if some agents fail (partial results returned)
+	CallParallel(ctx context.Context, targets []string, input *Message) (map[string]*Message, map[string]error)
+
+	// Broadcast sends a message to all registered agents asynchronously
+	Broadcast(msg *Message) error
+
+	// Register registers an agent instance with the runtime
+	Register(agent Agent) error
+
+	// Unregister removes an agent from the runtime
+	Unregister(name string) error
+
+	// Get retrieves a registered agent by name
+	Get(name string) (Agent, error)
+
+	// List returns all registered agent names
+	List() []string
+
+	// Start starts the runtime (e.g., gRPC server for distributed mode)
+	Start(ctx context.Context) error
+
+	// Stop gracefully shuts down the runtime
+	Stop(ctx context.Context) error
 }
 
 type RuntimeKey struct{}
 
 // ErrRuntimeNotFound is returned when runtime is not found in context
 var ErrRuntimeNotFound = errors.New("runtime not found in context")
+
+// ErrAgentNotFound is returned when an agent is not found in the runtime
+var ErrAgentNotFound = errors.New("agent not found")
+
+// NotImplementedError is returned when a method is not implemented by an agent
+type NotImplementedError struct {
+	AgentName string
+	Method    string
+}
+
+func (e *NotImplementedError) Error() string {
+	return fmt.Sprintf("agent %s does not implement %s", e.AgentName, e.Method)
+}
 
 // RuntimeFromContext safely extracts the Runtime from context.
 // Returns the runtime and nil error if found, or nil and ErrRuntimeNotFound if not found.

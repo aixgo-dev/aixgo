@@ -555,6 +555,14 @@ func TestMessage_Fields(t *testing.T) {
 // Mock types for testing
 type mockAgent struct{}
 
+func (m *mockAgent) Name() string                                                      { return "mock" }
+func (m *mockAgent) Role() string                                                      { return "test" }
+func (m *mockAgent) Ready() bool                                                       { return true }
+func (m *mockAgent) Stop(ctx context.Context) error                                    { return nil }
+func (m *mockAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	return input, nil
+}
+
 func (m *mockAgent) Start(ctx context.Context) error {
 	return nil
 }
@@ -568,4 +576,44 @@ func (m *mockRuntime) Send(target string, msg *agent.Message) error {
 func (m *mockRuntime) Recv(source string) (<-chan *agent.Message, error) {
 	ch := make(chan *agent.Message)
 	return ch, nil
+}
+
+func (m *mockRuntime) Call(ctx context.Context, target string, input *agent.Message) (*agent.Message, error) {
+	return input, nil
+}
+
+func (m *mockRuntime) CallParallel(ctx context.Context, targets []string, input *agent.Message) (map[string]*agent.Message, map[string]error) {
+	results := make(map[string]*agent.Message)
+	for _, t := range targets {
+		results[t] = input
+	}
+	return results, nil
+}
+
+func (m *mockRuntime) Broadcast(msg *agent.Message) error {
+	return nil
+}
+
+func (m *mockRuntime) Register(agent agent.Agent) error {
+	return nil
+}
+
+func (m *mockRuntime) Unregister(name string) error {
+	return nil
+}
+
+func (m *mockRuntime) Get(name string) (agent.Agent, error) {
+	return nil, agent.ErrAgentNotFound
+}
+
+func (m *mockRuntime) List() []string {
+	return []string{}
+}
+
+func (m *mockRuntime) Start(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockRuntime) Stop(ctx context.Context) error {
+	return nil
 }

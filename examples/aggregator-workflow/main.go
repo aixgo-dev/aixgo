@@ -13,6 +13,7 @@ import (
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/internal/runtime"
 	"github.com/aixgo-dev/aixgo/pkg/memory"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"gopkg.in/yaml.v3"
@@ -164,7 +165,7 @@ func NewResearchSynthesisSystem(config *WorkflowConfig) (*ResearchSynthesisSyste
 	}
 
 	// Initialize runtime
-	rt := agent.NewLocalRuntime()
+	rt := runtime.NewLocalRuntime()
 
 	// Initialize semantic memory for enhanced analysis
 	mem := memory.NewSemanticMemory(memory.Config{
@@ -668,11 +669,11 @@ func (s *ResearchSynthesisSystem) saveResults(synthesis map[string]interface{}) 
 func initializeLLMProvider(config LLMConfig) (provider.Provider, error) {
 	switch config.Provider {
 	case "openai":
-		return provider.NewOpenAI(config.APIKey)
+		return provider.NewOpenAIProvider(config.APIKey, "https://api.openai.com/v1"), nil
 	case "anthropic":
-		return provider.NewAnthropic(config.APIKey)
+		return provider.NewAnthropicProvider(config.APIKey, "https://api.anthropic.com/v1"), nil
 	default:
-		return provider.NewMockProvider(), nil
+		return provider.NewMockProvider("mock-model"), nil
 	}
 }
 
