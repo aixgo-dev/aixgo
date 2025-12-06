@@ -3,10 +3,12 @@ package observability
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -99,24 +101,52 @@ func InitLangfuse() error {
 		config.Enabled = false
 	}
 
+	var initErr error
 	langfuseInitOnce.Do(func() {
-		DefaultLangfuseClient = NewLangfuseClient(config)
+		client, err := NewLangfuseClient(config)
+		if err != nil {
+			initErr = err
+			return
+		}
+		DefaultLangfuseClient = client
 	})
 
-	return nil
+	return initErr
 }
 
 // NewLangfuseClient creates a new Langfuse client
-func NewLangfuseClient(config LangfuseConfig) *LangfuseClient {
+func NewLangfuseClient(config LangfuseConfig) (*LangfuseClient, error) {
+	if !config.Enabled {
+		return &LangfuseClient{enabled: false}, nil
+	}
+
+	// Enforce HTTPS
+	if !strings.HasPrefix(config.BaseURL, "https://") {
+		return nil, fmt.Errorf("langfuse baseURL must use HTTPS, got: %s", config.BaseURL)
+	}
+
+	// Validate credentials
+	if config.PublicKey == "" || config.SecretKey == "" {
+		return nil, fmt.Errorf("langfuse credentials required when enabled")
+	}
+	if len(config.SecretKey) < 16 {
+		return nil, fmt.Errorf("invalid langfuse secret key format (too short)")
+	}
+
 	return &LangfuseClient{
 		baseURL:   config.BaseURL,
 		publicKey: config.PublicKey,
 		secretKey: config.SecretKey,
-		enabled:   config.Enabled,
+		enabled:   true,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+				},
+			},
 		},
-	}
+	}, nil
 }
 
 // TrackGeneration tracks an LLM generation in Langfuse

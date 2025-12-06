@@ -3,7 +3,9 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
@@ -15,14 +17,15 @@ import (
 // LocalRuntime provides in-process agent execution using Go channels.
 // All agents run in the same process, ideal for single-binary deployments.
 type LocalRuntime struct {
-	agents    map[string]agent.Agent
-	channels  map[string]chan *agent.Message
-	config    *RuntimeConfig
-	mu        sync.RWMutex
-	started   bool
-	ctx       context.Context
-	cancel    context.CancelFunc
-	semaphore chan struct{} // For limiting concurrent calls
+	agents       map[string]agent.Agent
+	channels     map[string]chan *agent.Message
+	config       *RuntimeConfig
+	mu           sync.RWMutex
+	started      bool
+	ctx          context.Context
+	cancel       context.CancelFunc
+	semaphore    chan struct{} // For limiting concurrent calls
+	messagesSent uint64        // Atomic counter for metrics
 }
 
 // NewLocalRuntime creates a new LocalRuntime with the given options
@@ -114,12 +117,33 @@ func (r *LocalRuntime) Send(target string, msg *agent.Message) error {
 		return fmt.Errorf("%w: %s", ErrAgentNotFound, target)
 	}
 
+	// Warn if channel is >80% full
+	utilization := len(ch) * 100 / cap(ch)
+	if utilization > 80 {
+		log.Printf("WARNING: Channel %s is %d%% full (%d/%d messages)",
+			target, utilization, len(ch), cap(ch))
+	}
+
 	select {
 	case ch <- msg:
+		atomic.AddUint64(&r.messagesSent, 1)
 		return nil
 	case <-time.After(5 * time.Second):
-		return fmt.Errorf("timeout sending message to %s", target)
+		return fmt.Errorf("timeout sending message to %s (channel full)", target)
 	}
+}
+
+// GetChannelStats returns statistics for a channel
+func (r *LocalRuntime) GetChannelStats(name string) (capacity, length int, err error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	ch, exists := r.channels[name]
+	if !exists {
+		return 0, 0, ErrAgentNotFound
+	}
+
+	return cap(ch), len(ch), nil
 }
 
 // Recv returns a channel to receive messages from a source agent
@@ -192,7 +216,6 @@ func (r *LocalRuntime) CallParallel(ctx context.Context, targets []string, input
 	results := make(map[string]*agent.Message)
 	errors := make(map[string]error)
 	var mu sync.Mutex
-	var wg sync.WaitGroup
 
 	ctx, span := observability.StartSpanWithOtel(ctx, "runtime.call_parallel",
 		trace.WithAttributes(
@@ -204,10 +227,31 @@ func (r *LocalRuntime) CallParallel(ctx context.Context, targets []string, input
 
 	startTime := time.Now()
 
+	// Use semaphore for concurrency limiting
+	maxWorkers := 8 // Default worker pool size
+	if r.config.MaxConcurrentCalls > 0 {
+		maxWorkers = r.config.MaxConcurrentCalls
+	}
+
+	sem := make(chan struct{}, maxWorkers)
+	var wg sync.WaitGroup
+
 	for _, target := range targets {
 		wg.Add(1)
+
 		go func(t string) {
 			defer wg.Done()
+
+			// Acquire semaphore
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			case <-ctx.Done():
+				mu.Lock()
+				errors[t] = ctx.Err()
+				mu.Unlock()
+				return
+			}
 
 			result, err := r.Call(ctx, t, input)
 
@@ -229,6 +273,7 @@ func (r *LocalRuntime) CallParallel(ctx context.Context, targets []string, input
 			attribute.Int64("execution.duration_ms", duration.Milliseconds()),
 			attribute.Int("execution.success_count", len(results)),
 			attribute.Int("execution.error_count", len(errors)),
+			attribute.Int("execution.max_workers", maxWorkers),
 		)
 	}
 

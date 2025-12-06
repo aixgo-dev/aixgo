@@ -112,19 +112,41 @@ func (c *Calculator) GetPricing(model string) (*ModelPricing, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	// Exact match first
-	if pricing, ok := c.pricing[model]; ok {
-		return pricing, true
-	}
+	var pricing *ModelPricing
 
-	// Try prefix match (e.g., "gpt-4-0613" matches "gpt-4")
-	for key, pricing := range c.pricing {
-		if strings.HasPrefix(model, key) {
-			return pricing, true
+	// Exact match first
+	if p, ok := c.pricing[model]; ok {
+		pricing = p
+	} else {
+		// Prefix match (sort keys by length for determinism)
+		var keys []string
+		for k := range c.pricing {
+			keys = append(keys, k)
+		}
+		// Sort by length (longest first) for deterministic matching
+		for i := 0; i < len(keys); i++ {
+			for j := i + 1; j < len(keys); j++ {
+				if len(keys[i]) < len(keys[j]) {
+					keys[i], keys[j] = keys[j], keys[i]
+				}
+			}
+		}
+
+		for _, key := range keys {
+			if strings.HasPrefix(model, key) {
+				pricing = c.pricing[key]
+				break
+			}
 		}
 	}
 
-	return nil, false
+	if pricing == nil {
+		return nil, false
+	}
+
+	// Return a copy to prevent concurrent modification
+	pricingCopy := *pricing
+	return &pricingCopy, true
 }
 
 // Calculate computes the cost for the given usage

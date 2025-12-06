@@ -3,6 +3,8 @@ package orchestration
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
@@ -126,16 +128,58 @@ func (s *Swarm) isValidAgent(name string) bool {
 }
 
 // extractHandoff determines if the agent wants to handoff and to whom
-// This is a placeholder - in practice, you'd define a standard format in Message
 func extractHandoff(msg *agent.Message) (string, bool) {
 	if msg == nil || msg.Message == nil {
 		return "", false
 	}
 
-	// TODO: Implement proper handoff extraction based on Message structure
-	// Could use metadata, special markers, or structured format
-	// For now, return no handoff
+	// Check metadata for handoff instruction
+	if msg.Metadata != nil {
+		if nextAgent, exists := msg.Metadata["handoff_to"]; exists {
+			if nextStr, ok := nextAgent.(string); ok && nextStr != "" {
+				// Validate agent name format
+				if isValidAgentName(nextStr) {
+					return nextStr, true
+				}
+				log.Printf("Invalid handoff agent name: %s", nextStr)
+			}
+		}
+	}
+
+	// Alternative: Check for handoff marker in payload
+	if strings.HasPrefix(msg.Payload, "HANDOFF:") {
+		parts := strings.SplitN(msg.Payload, ":", 2)
+		if len(parts) == 2 {
+			agentName := strings.TrimSpace(parts[1])
+			if isValidAgentName(agentName) {
+				return agentName, true
+			}
+		}
+	}
+
 	return "", false
+}
+
+// isValidAgentName validates agent name format
+func isValidAgentName(name string) bool {
+	// Only allow lowercase alphanumeric, hyphens, underscores, max 64 chars
+	if len(name) == 0 || len(name) > 64 {
+		return false
+	}
+	for i, r := range name {
+		if i == 0 {
+			// Must start with lowercase letter
+			if r < 'a' || r > 'z' {
+				return false
+			}
+		} else {
+			// Can contain lowercase letters, digits, hyphens, underscores
+			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' && r != '_' {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // HandoffInstruction represents a handoff instruction from an agent
