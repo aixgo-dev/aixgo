@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
+	"github.com/aixgo-dev/aixgo/internal/runtime"
 	"github.com/aixgo-dev/aixgo/pkg/config"
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
@@ -140,18 +141,25 @@ func NewWorkflowOrchestrator(configPath string) (*WorkflowOrchestrator, error) {
 	}
 
 	// Initialize runtime
-	rt := agent.NewDefaultRuntime()
+	rt := runtime.NewLocalRuntime()
 
 	// Initialize agents
 	agents := make(map[string]agent.Agent)
-	for _, agentDef := range cfg.Agents {
-		if agentDef.Type == "classifier" {
-			a, err := agent.CreateAgent(agentDef, rt)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create agent %s: %w", agentDef.Name, err)
-			}
-			agents[agentDef.Name] = a
+	for name, agentCfg := range cfg.Agents {
+		// Convert config.AgentConfig to agent.AgentDef
+		agentDef := agent.AgentDef{
+			Name:   name,
+			Role:   agentCfg.Role,
+			Model:  agentCfg.Model,
+			Prompt: agentCfg.Prompt,
+			Extra:  agentCfg.Settings,
 		}
+
+		a, err := agent.CreateAgent(agentDef, rt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create agent %s: %w", name, err)
+		}
+		agents[name] = a
 	}
 
 	return &WorkflowOrchestrator{
@@ -440,7 +448,7 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	fmt.Println("Customer Support Ticket Classifier - AI-Powered Workflow")
-	fmt.Println("=========================================================\n")
+	fmt.Println("=========================================================")
 
 	// Load configuration
 	configPath := "config.yaml"
@@ -458,19 +466,19 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	for name, agent := range workflow.agents {
+	for name, agt := range workflow.agents {
 		go func(n string, a agent.Agent) {
 			if err := a.Start(ctx); err != nil {
 				log.Printf("Agent %s error: %v", n, err)
 			}
-		}(name, agent)
+		}(name, agt)
 	}
 
 	// Allow agents to initialize
 	time.Sleep(2 * time.Second)
 
 	// Process sample tickets
-	fmt.Println("Processing sample customer support tickets...\n")
+	fmt.Println("Processing sample customer support tickets...")
 
 	for i, ticket := range SampleTickets {
 		fmt.Printf("[%d/%d] Processing ticket %s: %s\n",

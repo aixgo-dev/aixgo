@@ -73,6 +73,7 @@ type SemanticCluster struct {
 
 // AggregatorAgent implements AI-powered output aggregation
 type AggregatorAgent struct {
+	*BaseAgent
 	def              agent.AgentDef
 	provider         provider.Provider
 	config           AggregatorConfig
@@ -141,6 +142,7 @@ func NewAggregatorAgent(def agent.AgentDef, rt agent.Runtime) (agent.Agent, erro
 	}
 
 	return &AggregatorAgent{
+		BaseAgent:   NewBaseAgent(def),
 		def:         def,
 		provider:    prov,
 		config:      config,
@@ -149,8 +151,42 @@ func NewAggregatorAgent(def agent.AgentDef, rt agent.Runtime) (agent.Agent, erro
 	}, nil
 }
 
+// Execute performs synchronous aggregation
+func (a *AggregatorAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	if !a.Ready() {
+		return nil, fmt.Errorf("agent not ready")
+	}
+
+	// Convert input message to AgentInput
+	agentInput := &AgentInput{
+		AgentName: "input",
+		Content:   input.Message.Payload,
+		Timestamp: time.Now(),
+	}
+
+	// Perform aggregation and return result
+	result, err := a.aggregate(ctx, []*AgentInput{agentInput})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert AggregationResult to agent.Message
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal aggregation result: %w", err)
+	}
+
+	return &agent.Message{
+		Message: &pb.Message{
+			Type:    "aggregation_result",
+			Payload: string(resultJSON),
+		},
+	}, nil
+}
+
 // Start begins the aggregation agent's processing loop
 func (a *AggregatorAgent) Start(ctx context.Context) error {
+	a.InitContext(ctx)
 	if len(a.def.Inputs) == 0 {
 		return fmt.Errorf("no inputs defined for AggregatorAgent")
 	}
