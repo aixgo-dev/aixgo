@@ -7,12 +7,25 @@ import (
 	"log"
 )
 
-type Logger struct{ def agent.AgentDef }
+type Logger struct {
+	def agent.AgentDef
+}
 
 func init() {
 	agent.Register("logger", func(d agent.AgentDef, rt agent.Runtime) (agent.Agent, error) {
 		return &Logger{def: d}, nil
 	})
+}
+
+func (l *Logger) Name() string                                                      { return l.def.Name }
+func (l *Logger) Role() string                                                      { return l.def.Role }
+func (l *Logger) Ready() bool                                                       { return true }
+func (l *Logger) Stop(ctx context.Context) error                                    { return nil }
+func (l *Logger) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	if input != nil && input.Message != nil {
+		log.Printf("[ALERT] %s | %s", input.Message.Type, input.Message.Payload)
+	}
+	return input, nil
 }
 
 func (l *Logger) Start(ctx context.Context) error {

@@ -25,6 +25,7 @@ type OpenAIClient interface {
 }
 
 type ReActAgent struct {
+	*BaseAgent   // Provides Name(), Role(), Ready(), Stop()
 	def          agent.AgentDef
 	client       OpenAIClient
 	provider     provider.Provider
@@ -85,6 +86,7 @@ func NewReActAgentWithProvider(def agent.AgentDef, rt agent.Runtime, client Open
 	}
 
 	agent := &ReActAgent{
+		BaseAgent:    NewBaseAgent(def),
 		def:          def,
 		client:       client,
 		provider:     prov,
@@ -159,7 +161,35 @@ func (r *ReActAgent) SetProvider(prov provider.Provider) {
 	r.provider = prov
 }
 
+// Execute performs synchronous ReAct execution
+func (r *ReActAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	if !r.Ready() {
+		return nil, fmt.Errorf("agent not ready")
+	}
+
+	// Extract string from message
+	inputStr := ""
+	if input != nil && input.Message != nil {
+		inputStr = input.Message.Payload
+	}
+
+	// Use the existing think method to process the input
+	result, err := r.think(ctx, inputStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert result back to Message
+	return &agent.Message{
+		Message: &pb.Message{
+			Type:    "react_response",
+			Payload: result,
+		},
+	}, nil
+}
+
 func (r *ReActAgent) Start(ctx context.Context) error {
+	r.InitContext(ctx)  // Initialize context from BaseAgent
 	if len(r.def.Inputs) == 0 {
 		return fmt.Errorf("no inputs defined for ReActAgent")
 	}

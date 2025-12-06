@@ -392,6 +392,14 @@ type testAgent struct {
 	def agent.AgentDef
 }
 
+func (a *testAgent) Name() string                                                      { return a.def.Name }
+func (a *testAgent) Role() string                                                      { return a.def.Role }
+func (a *testAgent) Ready() bool                                                       { return true }
+func (a *testAgent) Stop(ctx context.Context) error                                    { return nil }
+func (a *testAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	return input, nil
+}
+
 func (a *testAgent) Start(ctx context.Context) error {
 	<-ctx.Done()
 	return nil
@@ -399,7 +407,15 @@ func (a *testAgent) Start(ctx context.Context) error {
 
 type errorAgent struct{}
 
-func (a *errorAgent) Start(ctx context.Context) error {
+func (e *errorAgent) Name() string                                                      { return "error" }
+func (e *errorAgent) Role() string                                                      { return "error" }
+func (e *errorAgent) Ready() bool                                                       { return true }
+func (e *errorAgent) Stop(ctx context.Context) error                                    { return nil }
+func (e *errorAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	return nil, os.ErrInvalid
+}
+
+func (e *errorAgent) Start(ctx context.Context) error {
 	return os.ErrInvalid
 }
 

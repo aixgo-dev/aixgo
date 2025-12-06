@@ -316,6 +316,12 @@ type testAgent struct {
 	runtime Runtime
 }
 
+func (a *testAgent) Name() string                                                 { return a.name }
+func (a *testAgent) Role() string                                                 { return "test" }
+func (a *testAgent) Ready() bool                                                  { return true }
+func (a *testAgent) Stop(ctx context.Context) error                               { return nil }
+func (a *testAgent) Execute(ctx context.Context, input *Message) (*Message, error) { return input, nil }
+
 func (a *testAgent) Start(ctx context.Context) error {
 	return nil
 }
@@ -328,4 +334,44 @@ func (m *mockRuntime) Send(target string, msg *Message) error {
 
 func (m *mockRuntime) Recv(source string) (<-chan *Message, error) {
 	return nil, nil
+}
+
+func (m *mockRuntime) Call(ctx context.Context, target string, input *Message) (*Message, error) {
+	return input, nil
+}
+
+func (m *mockRuntime) CallParallel(ctx context.Context, targets []string, input *Message) (map[string]*Message, map[string]error) {
+	results := make(map[string]*Message)
+	for _, t := range targets {
+		results[t] = input
+	}
+	return results, nil
+}
+
+func (m *mockRuntime) Broadcast(msg *Message) error {
+	return nil
+}
+
+func (m *mockRuntime) Register(agent Agent) error {
+	return nil
+}
+
+func (m *mockRuntime) Unregister(name string) error {
+	return nil
+}
+
+func (m *mockRuntime) Get(name string) (Agent, error) {
+	return nil, ErrAgentNotFound
+}
+
+func (m *mockRuntime) List() []string {
+	return []string{}
+}
+
+func (m *mockRuntime) Start(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockRuntime) Stop(ctx context.Context) error {
+	return nil
 }

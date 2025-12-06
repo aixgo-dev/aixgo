@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	context2 "context"
 	"crypto/sha256"
 	"flag"
 	"fmt"
@@ -83,7 +84,7 @@ func loadConfig(filename string) (*Config, error) {
 }
 
 // initializeServices creates and configures all required services
-func initializeServices(ctx context.Context, cfg *Config) (embeddings.Service, vectorstore.VectorStore, llm.Client, error) {
+func initializeServices(ctx context.Context, cfg *Config) (embeddings.EmbeddingService, vectorstore.VectorStore, llm.Client, error) {
 	// Initialize embedding service
 	embCfg := embeddings.Config{
 		Provider: cfg.EmbeddingProvider,
@@ -124,12 +125,12 @@ func initializeServices(ctx context.Context, cfg *Config) (embeddings.Service, v
 			return nil, nil, nil, fmt.Errorf("GCP_PROJECT required for Firestore")
 		}
 		opts := []firestore.Option{
-			firestore.WithProject(cfg.GCPProject),
+			firestore.WithProjectID(cfg.GCPProject),
 		}
 		if cfg.GCPCredentials != "" {
-			opts = append(opts, firestore.WithCredentials(cfg.GCPCredentials))
+			opts = append(opts, firestore.WithCredentialsFile(cfg.GCPCredentials))
 		}
-		store, err = firestore.New(opts...)
+		store, err = firestore.New(ctx, opts...)
 		if err != nil {
 			embSvc.Close()
 			return nil, nil, nil, fmt.Errorf("failed to create Firestore store: %w", err)
@@ -142,14 +143,7 @@ func initializeServices(ctx context.Context, cfg *Config) (embeddings.Service, v
 	// Initialize LLM client
 	var llmClient llm.Client
 	if cfg.OpenAIKey != "" {
-		llmCfg := llm.Config{
-			Provider: "openai",
-			OpenAI: &llm.OpenAIConfig{
-				APIKey: cfg.OpenAIKey,
-				Model:  "gpt-4-turbo",
-			},
-		}
-		llmClient, err = llm.New(llmCfg)
+		llmClient, err = llm.NewClient("openai", cfg.OpenAIKey)
 		if err != nil {
 			embSvc.Close()
 			store.Close()
@@ -161,8 +155,8 @@ func initializeServices(ctx context.Context, cfg *Config) (embeddings.Service, v
 }
 
 // runIndexMode indexes sample documents into the vector store
-func runIndexMode(ctx context.Context, embSvc embeddings.Service, store vectorstore.VectorStore) error {
-	fmt.Println("=== Indexing Documents ===\n")
+func runIndexMode(ctx context.Context, embSvc embeddings.EmbeddingService, store vectorstore.VectorStore) error {
+	fmt.Println("=== Indexing Documents ===")
 
 	// Get collection
 	coll := store.Collection("knowledge_base")
@@ -255,8 +249,8 @@ func runIndexMode(ctx context.Context, embSvc embeddings.Service, store vectorst
 }
 
 // runQueryMode performs a single query and displays results
-func runQueryMode(ctx context.Context, embSvc embeddings.Service, store vectorstore.VectorStore, llmClient llm.Client) error {
-	fmt.Println("=== Query Mode ===\n")
+func runQueryMode(ctx context.Context, embSvc embeddings.EmbeddingService, store vectorstore.VectorStore, llmClient llm.Client) error {
+	fmt.Println("=== Query Mode ===")
 
 	// Example query
 	query := "What LLM providers does Aixgo support?"
@@ -280,7 +274,7 @@ func runQueryMode(ctx context.Context, embSvc embeddings.Service, store vectorst
 
 	// Generate answer with LLM if available
 	if llmClient != nil && results.HasMatches() {
-		fmt.Println("\n--- Generating Answer ---\n")
+		fmt.Println("\n--- Generating Answer ---")
 		answer, err := generateAnswer(ctx, llmClient, query, results)
 		if err != nil {
 			return fmt.Errorf("answer generation failed: %w", err)
@@ -292,10 +286,10 @@ func runQueryMode(ctx context.Context, embSvc embeddings.Service, store vectorst
 }
 
 // runInteractiveMode provides an interactive Q&A session
-func runInteractiveMode(ctx context.Context, embSvc embeddings.Service, store vectorstore.VectorStore, llmClient llm.Client) error {
+func runInteractiveMode(ctx context.Context, embSvc embeddings.EmbeddingService, store vectorstore.VectorStore, llmClient llm.Client) error {
 	fmt.Println("=== Interactive RAG Assistant ===")
 	fmt.Println("Ask questions about Aixgo. Type 'exit' to quit.")
-	fmt.Println("Note: Run with --mode=index first to populate the knowledge base.\n")
+	fmt.Println("Note: Run with --mode=index first to populate the knowledge base.")
 
 	// Simple interactive loop
 	for {
@@ -352,7 +346,7 @@ func runInteractiveMode(ctx context.Context, embSvc embeddings.Service, store ve
 }
 
 // searchKnowledgeBase performs semantic search on the knowledge base
-func searchKnowledgeBase(ctx context.Context, embSvc embeddings.Service, store vectorstore.VectorStore, query string, topK int) (*vectorstore.QueryResult, error) {
+func searchKnowledgeBase(ctx context.Context, embSvc embeddings.EmbeddingService, store vectorstore.VectorStore, query string, topK int) (*vectorstore.QueryResult, error) {
 	// Generate query embedding
 	queryEmbedding, err := embSvc.Embed(ctx, query)
 	if err != nil {
@@ -412,28 +406,24 @@ User Question: %s
 
 Answer:`, context, query)
 
-	// Generate response
-	genCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	// Generate response with timeout
+	genCtx, cancel := context2.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	req := &llm.Request{
-		Messages: []llm.Message{
-			{Role: "user", Content: prompt},
-		},
-		Temperature: 0.7,
-		MaxTokens:   500,
+	messages := []llm.Message{
+		{Role: "user", Content: prompt},
 	}
 
-	resp, err := client.Generate(genCtx, req)
+	resp, err := client.Chat(genCtx, messages, llm.WithMaxTokens(500), llm.WithTemperature(0.7))
 	if err != nil {
 		return "", fmt.Errorf("LLM generation failed: %w", err)
 	}
 
-	return resp.Choices[0].Message.Content, nil
+	return resp.Content, nil
 }
 
 // cleanup closes all services
-func cleanup(embSvc embeddings.Service, store vectorstore.VectorStore) {
+func cleanup(embSvc embeddings.EmbeddingService, store vectorstore.VectorStore) {
 	if embSvc != nil {
 		embSvc.Close()
 	}

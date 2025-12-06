@@ -109,6 +109,7 @@ type RiskFactor struct {
 
 // PlannerAgent implements AI-powered Chain-of-Thought planning
 type PlannerAgent struct {
+	*BaseAgent
 	def      agent.AgentDef
 	provider provider.Provider
 	config   PlannerConfig
@@ -200,8 +201,41 @@ func NewPlannerAgent(def agent.AgentDef, rt agent.Runtime) (agent.Agent, error) 
 	}, nil
 }
 
+// Execute performs synchronous planning
+func (p *PlannerAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	if !p.Ready() {
+		return nil, fmt.Errorf("agent not ready")
+	}
+
+	// Perform planning and return result
+	plan, err := p.createPlan(ctx, input.Payload)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert plan to message
+	return p.planToMessage(plan, input.Message)
+}
+
+// planToMessage converts a ReasoningPlan to an agent.Message
+func (p *PlannerAgent) planToMessage(plan *ReasoningPlan, input *pb.Message) (*agent.Message, error) {
+	// Marshal plan to JSON
+	planJSON, err := json.Marshal(plan)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal plan: %w", err)
+	}
+
+	return &agent.Message{
+		Message: &pb.Message{
+			Type:    "plan",
+			Payload: string(planJSON),
+		},
+	}, nil
+}
+
 // Start begins the planner agent's processing loop
 func (p *PlannerAgent) Start(ctx context.Context) error {
+	p.InitContext(ctx)
 	if len(p.def.Inputs) == 0 {
 		return fmt.Errorf("no inputs defined for PlannerAgent")
 	}
