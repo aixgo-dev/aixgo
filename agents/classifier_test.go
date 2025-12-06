@@ -76,6 +76,46 @@ func (m *MockRuntime) Recv(source string) (<-chan *agent.Message, error) {
 	return ch, nil
 }
 
+func (m *MockRuntime) Call(ctx context.Context, target string, input *agent.Message) (*agent.Message, error) {
+	return input, nil
+}
+
+func (m *MockRuntime) CallParallel(ctx context.Context, targets []string, input *agent.Message) (map[string]*agent.Message, map[string]error) {
+	results := make(map[string]*agent.Message)
+	for _, t := range targets {
+		results[t] = input
+	}
+	return results, nil
+}
+
+func (m *MockRuntime) Broadcast(msg *agent.Message) error {
+	return nil
+}
+
+func (m *MockRuntime) Register(a agent.Agent) error {
+	return nil
+}
+
+func (m *MockRuntime) Unregister(name string) error {
+	return nil
+}
+
+func (m *MockRuntime) Get(name string) (agent.Agent, error) {
+	return nil, agent.ErrAgentNotFound
+}
+
+func (m *MockRuntime) List() []string {
+	return []string{}
+}
+
+func (m *MockRuntime) Start(ctx context.Context) error {
+	return nil
+}
+
+func (m *MockRuntime) Stop(ctx context.Context) error {
+	return nil
+}
+
 // Test Classifier Agent
 
 func TestNewClassifierAgent(t *testing.T) {

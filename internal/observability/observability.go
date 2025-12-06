@@ -154,7 +154,8 @@ func Shutdown(ctx context.Context) error {
 	return tracerProvider.Shutdown(ctx)
 }
 
-// StartSpan creates a new span with the given name and attributes
+// StartSpan creates a new span with the given name and attributes (legacy version with map)
+// Deprecated: Use StartSpanWithContext for context-aware tracing
 func StartSpan(name string, data map[string]any) *Span {
 	// If tracer is not initialized, use a noop tracer
 	if tracer == nil {
@@ -180,6 +181,19 @@ func StartSpan(name string, data map[string]any) *Span {
 		data:  data,
 		ended: false,
 	}
+}
+
+// StartSpanWithOtel creates a new span with the given name and OpenTelemetry options.
+// This is the preferred method for context-aware tracing.
+// Returns a context with the span and the raw OpenTelemetry span.
+func StartSpanWithOtel(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	// Get the tracer (will use global if not initialized)
+	tr := tracer
+	if tr == nil {
+		tr = otel.GetTracerProvider().Tracer(DefaultServiceName)
+	}
+
+	return tr.Start(ctx, name, opts...)
 }
 
 // StartSpanWithContext creates a new span from a parent context

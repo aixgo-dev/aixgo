@@ -66,6 +66,11 @@ type ClassifierAgent struct {
 	promptCache     map[string]string
 	categoryEmbeds  map[string][]float64
 	performanceData []ClassificationMetrics
+
+	// State management
+	ready  bool
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // ClassificationMetrics for AI observability
@@ -114,14 +119,83 @@ func NewClassifierAgent(def agent.AgentDef, rt agent.Runtime) (agent.Agent, erro
 		promptCache:     make(map[string]string),
 		categoryEmbeds:  make(map[string][]float64),
 		performanceData: make([]ClassificationMetrics, 0, 1000),
+		ready:           true,
 	}, nil
 }
 
-// Start begins the classification agent's processing loop
+// Name returns the agent name
+func (c *ClassifierAgent) Name() string {
+	return c.def.Name
+}
+
+// Role returns the agent role
+func (c *ClassifierAgent) Role() string {
+	return c.def.Role
+}
+
+// Ready returns whether the agent is ready
+func (c *ClassifierAgent) Ready() bool {
+	return c.ready
+}
+
+// Stop gracefully stops the agent
+func (c *ClassifierAgent) Stop(ctx context.Context) error {
+	if c.cancel != nil {
+		c.cancel()
+	}
+	c.ready = false
+	return nil
+}
+
+// Execute performs synchronous classification
+func (c *ClassifierAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
+	if !c.ready {
+		return nil, fmt.Errorf("agent not ready")
+	}
+
+	// Input validation for security
+	validator := &security.StringValidator{
+		MaxLength:            100000,
+		DisallowNullBytes:    true,
+		DisallowControlChars: true,
+	}
+
+	if err := validator.Validate(input.Payload); err != nil {
+		return nil, fmt.Errorf("input validation error: %w", err)
+	}
+
+	span := observability.StartSpan("classifier.execute", map[string]any{
+		"input_length": len(input.Payload),
+		"categories":   len(c.config.Categories),
+	})
+	defer span.End()
+
+	result, err := c.classify(ctx, input.Payload)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert result to message
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	return &agent.Message{Message: &pb.Message{
+		Id:        input.Id,
+		Type:      "classification",
+		Payload:   string(resultJSON),
+		Timestamp: time.Now().Format(time.RFC3339),
+	}}, nil
+}
+
+// Start begins the classification agent's processing loop (async mode)
 func (c *ClassifierAgent) Start(ctx context.Context) error {
 	if len(c.def.Inputs) == 0 {
 		return fmt.Errorf("no inputs defined for ClassifierAgent")
 	}
+
+	c.ctx, c.cancel = context.WithCancel(ctx)
 
 	ch, err := c.rt.Recv(c.def.Inputs[0].Source)
 	if err != nil {
@@ -135,28 +209,38 @@ func (c *ClassifierAgent) Start(ctx context.Context) error {
 		DisallowControlChars: true,
 	}
 
-	for m := range ch {
-		if err := validator.Validate(m.Payload); err != nil {
-			log.Printf("Classifier input validation error: %v", err)
-			continue
+	for {
+		select {
+		case <-c.ctx.Done():
+			c.ready = false
+			return c.ctx.Err()
+		case m, ok := <-ch:
+			if !ok {
+				c.ready = false
+				return nil
+			}
+
+			if err := validator.Validate(m.Payload); err != nil {
+				log.Printf("Classifier input validation error: %v", err)
+				continue
+			}
+
+			span := observability.StartSpan("classifier.classify", map[string]any{
+				"input_length": len(m.Payload),
+				"categories":   len(c.config.Categories),
+			})
+
+			result, err := c.classify(c.ctx, m.Payload)
+			span.End()
+
+			if err != nil {
+				log.Printf("Classification error: %v", err)
+				continue
+			}
+
+			c.sendResult(result, m)
 		}
-
-		span := observability.StartSpan("classifier.classify", map[string]any{
-			"input_length": len(m.Payload),
-			"categories":   len(c.config.Categories),
-		})
-
-		result, err := c.classify(ctx, m.Payload)
-		span.End()
-
-		if err != nil {
-			log.Printf("Classification error: %v", err)
-			continue
-		}
-
-		c.sendResult(result, m)
 	}
-	return nil
 }
 
 // classify performs AI-powered classification with advanced prompting

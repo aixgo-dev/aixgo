@@ -470,4 +470,4 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 ---
 
-**Next:** [Testing Guide](./TESTING_GUIDE.md) | [Quick Start](./QUICKSTART.md)
+**Next:** [Testing Guide](./TESTING_GUIDE.md) | [Pattern Catalog](./PATTERNS.md)

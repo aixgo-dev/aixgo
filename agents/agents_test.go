@@ -662,6 +662,46 @@ func (m *mockRuntime) Recv(source string) (<-chan *agent.Message, error) {
 	return ch, nil
 }
 
+func (m *mockRuntime) Call(ctx context.Context, target string, input *agent.Message) (*agent.Message, error) {
+	return input, nil
+}
+
+func (m *mockRuntime) CallParallel(ctx context.Context, targets []string, input *agent.Message) (map[string]*agent.Message, map[string]error) {
+	results := make(map[string]*agent.Message)
+	for _, t := range targets {
+		results[t] = input
+	}
+	return results, nil
+}
+
+func (m *mockRuntime) Broadcast(msg *agent.Message) error {
+	return nil
+}
+
+func (m *mockRuntime) Register(a agent.Agent) error {
+	return nil
+}
+
+func (m *mockRuntime) Unregister(name string) error {
+	return nil
+}
+
+func (m *mockRuntime) Get(name string) (agent.Agent, error) {
+	return nil, agent.ErrAgentNotFound
+}
+
+func (m *mockRuntime) List() []string {
+	return []string{}
+}
+
+func (m *mockRuntime) Start(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockRuntime) Stop(ctx context.Context) error {
+	return nil
+}
+
 func TestProducer_NoOutputs(t *testing.T) {
 	def := agent.AgentDef{
 		Name:     "no-outputs",
