@@ -9,11 +9,39 @@ Production-grade AI agent framework for Go. Build secure, scalable multi-agent s
 
 ## Features
 
+### Core Architecture
 - **Single Binary Deployment**: Ship AI agents in <10MB binaries with zero runtime dependencies
 - **Type-Safe Agent Architecture**: Compile-time error detection with Go's type system
 - **Seamless Scaling**: Start local with Go channels, scale to distributed with gRPC—no code changes
-- **Multi-Agent Orchestration**: Built-in supervisor pattern for coordinating agent workflows
-- **Observable by Default**: OpenTelemetry integration for distributed tracing and monitoring
+- **Runtime Systems**: Local (in-process) and Distributed (gRPC) runtimes with identical APIs
+
+### Agent Orchestration
+- **Multi-Pattern Orchestration**: 13 production-proven patterns (Supervisor, Sequential, Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier, Aggregation, Planning, MapReduce)
+- **Intelligent Routing**: Router pattern for cost optimization (25-50% savings)
+- **Parallel Execution**: 3-4× speedup for independent tasks
+- **RAG Pattern**: Retrieval-Augmented Generation with vector store integration
+- **Quality Improvement**: Reflection and Ensemble patterns for higher accuracy
+
+### Agent Types
+- **ReAct Agents**: Reasoning and acting with LLM integration and tool calling
+- **Classifier Agents**: AI-powered content classification with confidence scoring
+- **Aggregator Agents**: Multi-agent synthesis with consensus, weighted, semantic, and hierarchical strategies
+- **Planner Agents**: Task decomposition and planning
+- **Producer/Logger Agents**: Data generation and logging
+
+### LLM & AI Integration
+- **Multi-Provider Support**: OpenAI, Anthropic (Claude), xAI (Grok), Google (Gemini), HuggingFace
+- **MCP Integration**: Model Context Protocol for tool calling (local, gRPC, multi-server)
+- **Vector Stores**: Firestore, in-memory (Qdrant, pgvector, ChromaDB planned)
+- **Embeddings**: OpenAI, HuggingFace models for semantic memory
+- **Semantic Memory**: Long-term knowledge storage with vector search
+
+### Observability & Production
+- **Automatic Cost Tracking**: Every LLM call tracked with token and cost metrics
+- **OpenTelemetry Integration**: Distributed tracing and monitoring
+- **Langfuse Support**: LLM-specific observability and analytics
+- **Health Checks**: Liveness, readiness, and detailed health endpoints
+- **Prometheus Metrics**: HTTP, gRPC, agent, and system metrics
 
 ## Quick Start
 
@@ -160,32 +188,40 @@ Python AI frameworks excel at prototyping but struggle in production. Aixgo is b
 
 ## Architecture
 
-Aixgo implements a message-based multi-agent architecture with three core patterns:
+Aixgo implements a unified orchestration architecture supporting multiple patterns for building production AI agent systems.
+
+### Orchestration Patterns
+
+13 production-proven patterns for different use cases:
+
+- **Supervisor**: Centralized orchestration with specialized agent routing
+- **Sequential**: Ordered pipeline execution (extract → transform → load)
+- **Parallel**: Concurrent execution with 3-4× speedup
+- **Router**: Intelligent routing for 25-50% cost optimization
+- **Swarm**: Decentralized agent handoffs (inspired by OpenAI Swarm)
+- **Hierarchical**: Multi-level delegation for complex workflows
+- **RAG**: Retrieval-Augmented Generation with vector stores
+- **Reflection**: Iterative refinement for quality improvement
+- **Ensemble**: Multi-model voting for high-accuracy decisions
+
+See [docs/PATTERNS.md](docs/PATTERNS.md) for detailed pattern catalog.
 
 ### Agent Types
 
-- **Producer**: Generates messages at configured intervals
 - **ReAct**: Reasoning + Acting agents powered by LLMs with tool calling
-- **Logger**: Consumes and logs messages from other agents
-- **Classifier**: LLM-powered content classification with confidence scoring and structured outputs
+- **Classifier**: LLM-powered content classification with confidence scoring
 - **Aggregator**: Multi-agent output synthesis using consensus, weighted, semantic, or hierarchical strategies
+- **Planner**: Task decomposition and strategic planning
+- **Producer**: Generates messages at configured intervals
+- **Logger**: Consumes and logs messages from other agents
 
-### Communication Model
+### Runtime Systems
 
 Agents communicate through a runtime abstraction layer:
 
-- **Local Mode**: Go channels for in-process communication
-- **Distributed Mode**: gRPC for multi-node orchestration
-- **Same Code**: Automatic transport selection without code changes
-
-### Supervisor Pattern
-
-The supervisor orchestrates agent execution:
-
-- Manages agent lifecycle (start, run, shutdown)
-- Routes messages between agents based on configuration
-- Enforces execution constraints (max rounds, timeouts)
-- Provides observability hooks for monitoring
+- **Local Runtime**: Go channels for in-process communication (single binary deployment)
+- **Distributed Runtime**: gRPC for multi-node orchestration (distributed deployment)
+- **Deployment Flexibility**: Same code runs on both - deployment is just configuration
 
 ## Agent Roles
 
@@ -366,26 +402,18 @@ For comprehensive documentation, visit **[https://aixgo.dev](https://aixgo.dev)*
 
 **Repository Documentation:**
 
-### Getting Started
-
-- [Quick Start Guide](docs/QUICKSTART.md) - Get started in 5 minutes
+- [Pattern Catalog](docs/PATTERNS.md) - 13 orchestration patterns with examples
 - [Deployment Guide](docs/DEPLOYMENT.md) - Deploy to Cloud Run, Kubernetes, or local
-- [API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo) - GoDoc documentation
-
-### Development
-
-- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
+- [Observability Guide](docs/OBSERVABILITY.md) - OpenTelemetry and cost tracking
 - [Testing Guide](docs/TESTING_GUIDE.md) - Testing strategies
-- [Observability Guide](docs/OBSERVABILITY.md) - OpenTelemetry integration
-- [Tools Reference](TOOLS.md) - Development tools and commands
+- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
+- [API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo) - GoDoc documentation
 
 ### Security
 
 - [Authentication Guide](docs/AUTHENTICATION.md) - Configure auth modes for different deployments
-- [Security Status](SECURITY_STATUS.md) - Current security implementation status
 - [Security Best Practices](SECURITY_BEST_PRACTICES.md) - Secure development guidelines
 - [Production Security Checklist](PRODUCTION_SECURITY_CHECKLIST.md) - Pre-deployment requirements
-- [Docker Security](DOCKER_SECURITY.md) - Container security hardening
 
 ## Authentication Configuration
 

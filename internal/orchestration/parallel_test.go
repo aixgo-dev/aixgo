@@ -223,14 +223,14 @@ func TestParallelExecute(t *testing.T) {
 	}
 
 	// Verify all agents were called
-	if agent1.callCount != 1 {
-		t.Errorf("Agent1 call count = %d, want 1", agent1.callCount)
+	if agent1.CallCount() != 1 {
+		t.Errorf("Agent1 call count = %d, want 1", agent1.CallCount())
 	}
-	if agent2.callCount != 1 {
-		t.Errorf("Agent2 call count = %d, want 1", agent2.callCount)
+	if agent2.CallCount() != 1 {
+		t.Errorf("Agent2 call count = %d, want 1", agent2.CallCount())
 	}
-	if agent3.callCount != 1 {
-		t.Errorf("Agent3 call count = %d, want 1", agent3.callCount)
+	if agent3.CallCount() != 1 {
+		t.Errorf("Agent3 call count = %d, want 1", agent3.CallCount())
 	}
 }
 

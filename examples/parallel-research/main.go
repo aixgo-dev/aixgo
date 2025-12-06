@@ -87,6 +87,10 @@ func main() {
 		log.Fatalf("Parallel execution failed: %v", err)
 	}
 
+	if result == nil {
+		log.Fatal("Parallel execution returned nil result")
+	}
+
 	// Display results
 	fmt.Println("✅ Research complete!")
 	fmt.Println()
@@ -133,7 +137,10 @@ func (m *MockResearchAgent) Execute(ctx context.Context, input *agent.Message) (
 		"status":   "completed",
 	}
 
-	resultJSON, _ := json.Marshal(data)
+	resultJSON, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
 
 	return &agent.Message{
 		Message: &pb.Message{
