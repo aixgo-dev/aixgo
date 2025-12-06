@@ -2,7 +2,9 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
@@ -12,7 +14,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 // DistributedRuntime provides distributed agent execution using gRPC.
@@ -454,11 +458,65 @@ type agentServiceServer struct {
 }
 
 func (s *agentServiceServer) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.ExecuteResponse, error) {
-	// TODO: Implement gRPC Execute handler
-	return nil, fmt.Errorf("not implemented")
+	// 1. Validate request
+	if req.AgentName == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "agent_name is required")
+	}
+	if req.Input == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "input is required")
+	}
+
+	// 2. Validate agent name format
+	if !isValidAgentNameGRPC(req.AgentName) {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid agent name format")
+	}
+
+	// 3. Execute with timeout
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	result, err := s.runtime.Call(ctx, req.AgentName, &agent.Message{Message: req.Input})
+	if err != nil {
+		if errors.Is(err, ErrAgentNotFound) {
+			return nil, status.Errorf(codes.NotFound, "agent not found: %s", req.AgentName)
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, status.Errorf(codes.DeadlineExceeded, "execution timeout")
+		}
+		return nil, status.Errorf(codes.Internal, "execution failed: %v", err)
+	}
+
+	return &pb.ExecuteResponse{Output: result.Message}, nil
 }
 
 func (s *agentServiceServer) Send(ctx context.Context, req *pb.SendRequest) (*pb.SendResponse, error) {
-	// TODO: Implement gRPC Send handler
-	return nil, fmt.Errorf("not implemented")
+	// Validate
+	if req.Target == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "target is required")
+	}
+	if req.Message == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "message is required")
+	}
+
+	if !isValidAgentNameGRPC(req.Target) {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid target name")
+	}
+
+	// Send message
+	err := s.runtime.Send(req.Target, &agent.Message{Message: req.Message})
+	if err != nil {
+		if errors.Is(err, ErrAgentNotFound) {
+			return nil, status.Errorf(codes.NotFound, "agent not found: %s", req.Target)
+		}
+		return nil, status.Errorf(codes.Internal, "send failed: %v", err)
+	}
+
+	return &pb.SendResponse{Success: true}, nil
+}
+
+// isValidAgentNameGRPC validates agent name for gRPC requests
+func isValidAgentNameGRPC(name string) bool {
+	// Only allow lowercase alphanumeric, hyphens, underscores, max 64 chars
+	matched, _ := regexp.MatchString(`^[a-z][a-z0-9_-]{0,63}$`, name)
+	return matched
 }

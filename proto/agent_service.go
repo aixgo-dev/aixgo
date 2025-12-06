@@ -11,7 +11,8 @@ import (
 
 // ExecuteRequest represents a request to execute an agent
 type ExecuteRequest struct {
-	Input *Message
+	AgentName string
+	Input     *Message
 }
 
 // ExecuteResponse represents the response from agent execution
@@ -21,11 +22,14 @@ type ExecuteResponse struct {
 
 // SendRequest represents a request to send a message to an agent
 type SendRequest struct {
+	Target  string
 	Message *Message
 }
 
 // SendResponse represents the response from sending a message
-type SendResponse struct{}
+type SendResponse struct {
+	Success bool
+}
 
 // AgentServiceClient is the client interface for the agent service
 type AgentServiceClient interface {

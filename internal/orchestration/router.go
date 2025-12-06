@@ -3,6 +3,7 @@ package orchestration
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
@@ -121,15 +122,46 @@ func (r *Router) Execute(ctx context.Context, input *agent.Message) (*agent.Mess
 }
 
 // extractClassification extracts the classification result from the message
-// This is a placeholder - in practice, you'd define a standard format
 func extractClassification(msg *agent.Message) string {
 	if msg == nil || msg.Message == nil {
 		return ""
 	}
 
-	// TODO: Implement proper extraction based on Message structure
-	// For now, return a placeholder
-	return "default"
+	// Extract from payload (classifier returns classification string)
+	classification := strings.TrimSpace(msg.Payload)
+
+	if classification == "" {
+		return "default"
+	}
+
+	// Validate classification format (prevent injection)
+	if !isValidClassification(classification) {
+		return "default"
+	}
+
+	return classification
+}
+
+// isValidClassification validates classification format
+func isValidClassification(class string) bool {
+	// Only allow lowercase alphanumeric and hyphens, max 32 chars
+	if len(class) == 0 || len(class) > 32 {
+		return false
+	}
+	for i, r := range class {
+		if i == 0 {
+			// Must start with lowercase letter
+			if r < 'a' || r > 'z' {
+				return false
+			}
+		} else {
+			// Can contain lowercase letters, digits, hyphens
+			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // Common routing strategies

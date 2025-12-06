@@ -6,4 +6,5 @@ type Message struct {
 	Type      string
 	Payload   string
 	Timestamp string
+	Metadata  map[string]interface{}
 }
