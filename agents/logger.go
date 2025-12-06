@@ -22,7 +22,7 @@ func (l *Logger) Role() string                                                  
 func (l *Logger) Ready() bool                                                       { return true }
 func (l *Logger) Stop(ctx context.Context) error                                    { return nil }
 func (l *Logger) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
-	if input != nil && input.Message != nil {
+	if input != nil && input.Payload != "" {
 		log.Printf("[ALERT] %s | %s", input.Type, input.Payload)
 	}
 	return input, nil

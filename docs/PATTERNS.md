@@ -4,37 +4,39 @@
 
 ## Overview
 
-Aixgo supports **9 production-proven orchestration patterns** for building AI agent systems. Each pattern solves specific problems and is backed by real-world production usage from frameworks like LangGraph, CrewAI, AutoGen, and OpenAI Swarm.
+Aixgo supports **13 production-proven orchestration patterns** for building AI agent systems. Each pattern solves specific problems and is backed by real-world production usage from frameworks like LangGraph, CrewAI, AutoGen, and OpenAI Swarm.
 
 ### Pattern Status
 
 | Pattern | Status | Phase | Complexity | Production Usage |
 |---------|--------|-------|------------|------------------|
-| [Supervisor](#1-supervisor-pattern) | ✅ **Implemented** (v1.0) | - | Low | High |
-| [Sequential](#2-sequential-pattern) | ✅ **Implemented** (v1.0) | - | Low | High |
-| [Parallel](#3-parallel-pattern) | 🚧 **Planned** (v2.0) | Phase 3 | Medium | Very High |
-| [Router](#4-router-pattern) | 🚧 **Planned** (v2.0) | Phase 3 | Low | Very High |
-| [Swarm](#5-swarm-pattern) | 🚧 **Planned** (v2.0) | Phase 3 | Medium | High |
-| [Hierarchical](#6-hierarchical-pattern) | 🚧 **Planned** (v2.0) | Phase 4 | Medium | High |
-| [RAG](#7-rag-pattern) | 🚧 **Planned** (v2.0) | Phase 3 | Medium | Very High |
-| [Reflection](#8-reflection-pattern) | 🚧 **Planned** (v2.0) | Phase 3 | Medium | Medium |
-| [Ensemble](#9-ensemble-pattern) | 🚧 **Planned** (v2.0) | Phase 4 | Medium | Medium |
-| [Debate](#10-debate-pattern) | 🔮 **Future** (v2.1+) | Phase 5 | High | Low |
-| [Plan-and-Execute](#11-plan-and-execute-pattern) | 🔮 **Future** (v2.1+) | Phase 2 | Low | High |
-| [Nested/Composite](#12-nested-composite-pattern) | 🔮 **Future** (v2.2+) | Phase 6 | High | Medium |
+| [Supervisor](#1-supervisor-pattern) | ✅ **Implemented**  | - | Low | High |
+| [Sequential](#2-sequential-pattern) | ✅ **Implemented**  | - | Low | High |
+| [Parallel](#3-parallel-pattern) | ✅ **Implemented**  | - | Medium | Very High |
+| [Router](#4-router-pattern) | ✅ **Implemented**  | - | Low | Very High |
+| [Swarm](#5-swarm-pattern) | ✅ **Implemented**  | - | Medium | High |
+| [Hierarchical](#6-hierarchical-pattern) | ✅ **Implemented**  | - | Medium | High |
+| [RAG](#7-rag-pattern) | ✅ **Implemented**  | - | Medium | Very High |
+| [Reflection](#8-reflection-pattern) | ✅ **Implemented**  | - | Medium | Medium |
+| [Ensemble](#9-ensemble-pattern) | ✅ **Implemented**  | - | Medium | Medium |
+| [Classifier](#10-classifier-pattern) | ✅ **Implemented**  | - | Low | Very High |
+| [Aggregation](#11-aggregation-pattern) | ✅ **Implemented**  | - | Medium | High |
+| [Planning](#12-planning-pattern) | ✅ **Implemented**  | - | Medium | High |
+| [MapReduce](#13-mapreduce-pattern) | ✅ **Implemented**  | - | Medium | Very High |
+| [Debate](#14-debate-pattern) | 🔮 **Future** | - | High | Low |
+| [Nested/Composite](#15-nested-composite-pattern) | 🔮 **Future** | - | High | Medium |
 
 ### Legend
-- ✅ **Implemented**: Available in current release
-- 🚧 **Planned**: In development roadmap for v2.0
-- 🔮 **Future**: Planned for post-v2.0 releases
+- ✅ **Implemented**: Available in current release with production examples
+- 🔮 **Future**: Planned for future releases
 
 ---
 
-## Implemented Patterns (v1.0)
+## Implemented Patterns 
 
 ### 1. Supervisor Pattern
 
-**Status**: ✅ Implemented (v1.0)
+**Status**: ✅ Implemented 
 
 **Also Known As**: Manager Pattern, Hub-and-Spoke, Coordinator Pattern
 
@@ -120,7 +122,7 @@ result, _ := supervisor.Run(ctx, "I need help with my bill")
 
 ### 2. Sequential Pattern
 
-**Status**: ✅ Implemented (v1.0)
+**Status**: ✅ Implemented 
 
 **Also Known As**: Chain Pattern, Pipeline Pattern, Step-based Execution
 
@@ -203,11 +205,9 @@ result, _ := executor.Execute(ctx, "Write about AI agents")
 
 ---
 
-## Planned Patterns (v2.0)
-
 ### 3. Parallel Pattern
 
-**Status**: 🚧 Planned (Phase 3)
+**Status**: ✅ Implemented
 
 **Also Known As**: Fan-out-Fan-in, Map-Reduce, Scatter-Gather, Concurrent Execution
 
@@ -265,7 +265,7 @@ agents:
       Estimate the total addressable market.
 ```
 
-**Code Example** (v2.0):
+**Code Example** :
 ```go
 import "github.com/aixgo-dev/aixgo/internal/orchestration"
 
@@ -299,7 +299,7 @@ result, _ := parallel.Execute(ctx, inputMsg)
 
 ### 4. Router Pattern
 
-**Status**: 🚧 Planned (Phase 3)
+**Status**: ✅ Implemented
 
 **Also Known As**: Intent Router, Semantic Router, Query Classifier, Dispatcher
 
@@ -358,7 +358,7 @@ agents:
     model: gpt-4-turbo  # Expensive, only for tech queries
 ```
 
-**Code Example** (v2.0):
+**Code Example** :
 ```go
 import "github.com/aixgo-dev/aixgo/internal/orchestration"
 
@@ -398,7 +398,7 @@ result, _ := router.Execute(ctx, userQuery)
 
 ### 5. Swarm Pattern
 
-**Status**: 🚧 Planned (Phase 3)
+**Status**: ✅ Implemented
 
 **Also Known As**: Peer-to-Peer, Decentralized Handoff, Agent Mesh, Dynamic Routing
 
@@ -462,7 +462,7 @@ agents:
       You are a billing specialist. Transfer to tech-agent if technical issue found.
 ```
 
-**Code Example** (v2.0):
+**Code Example** :
 ```go
 import "github.com/aixgo-dev/aixgo/internal/orchestration"
 
@@ -500,7 +500,7 @@ result, _ := swarm.Execute(ctx, userMessage)
 
 ### 6. Hierarchical Pattern
 
-**Status**: 🚧 Planned (Phase 4)
+**Status**: ✅ Implemented
 
 **Also Known As**: Delegator Pattern, Layered Management, Multi-Level Orchestration
 
@@ -550,7 +550,7 @@ orchestration:
         workers: [test-engineer, automation-engineer]
 ```
 
-**Code Example** (v2.0):
+**Code Example** :
 ```go
 import "github.com/aixgo-dev/aixgo/internal/orchestration"
 
@@ -593,7 +593,7 @@ result, _ := hierarchical.Execute(ctx, projectSpec)
 
 ### 7. RAG Pattern
 
-**Status**: 🚧 Planned (Phase 3)
+**Status**: ✅ Implemented
 
 **Also Known As**: Retrieval-Augmented Generation, Knowledge-Grounded Generation
 
@@ -655,7 +655,7 @@ agents:
       Question: {question}
 ```
 
-**Code Example** (v2.0):
+**Code Example** :
 ```go
 import "github.com/aixgo-dev/aixgo/internal/orchestration"
 
@@ -692,7 +692,7 @@ result, _ := rag.Execute(ctx, userQuestion)
 
 ### 8. Reflection Pattern
 
-**Status**: 🚧 Planned (Phase 3)
+**Status**: ✅ Implemented
 
 **Also Known As**: Reflexion, Generator-Critic, Self-Critique, Iterative Refinement
 
@@ -749,7 +749,7 @@ agents:
       Rate quality 0-1. Provide specific feedback.
 ```
 
-**Code Example** (v2.0):
+**Code Example** :
 ```go
 import "github.com/aixgo-dev/aixgo/internal/orchestration"
 
@@ -785,7 +785,7 @@ result, _ := reflection.Execute(ctx, problemDescription)
 
 ### 9. Ensemble Pattern
 
-**Status**: 🚧 Planned (Phase 4)
+**Status**: ✅ Implemented
 
 **Also Known As**: Voting, Multi-Model Aggregation, Model Ensemble
 
@@ -845,7 +845,7 @@ agents:
     model: gemini-1.5-pro
 ```
 
-**Code Example** (v2.0):
+**Code Example** :
 ```go
 import "github.com/aixgo-dev/aixgo/internal/orchestration"
 
@@ -878,11 +878,154 @@ result, _ := ensemble.Execute(ctx, symptoms)
 
 ---
 
-## Future Patterns (v2.1+)
+### 10. Classifier Pattern
 
-### 10. Debate Pattern
+**Status**: ✅ Implemented
 
-**Status**: 🔮 Future (v2.1+)
+**Also Known As**: Intent Classifier, Content Classifier, Categorizer
+
+**Problem It Solves**:
+AI-powered classification of content into predefined categories with confidence scoring, enabling intelligent routing and decision-making based on content analysis.
+
+**When to Use**:
+- Customer support ticket classification
+- Content moderation and filtering
+- Document categorization
+- Intent detection for chatbots
+- Email routing and prioritization
+
+**How It Works**:
+1. Receive input content
+2. LLM analyzes content against category definitions
+3. Returns category classification with confidence score
+4. Optional threshold filtering for low-confidence results
+5. Route to appropriate handler based on classification
+
+**Use Cases**:
+- **Support Tickets**: Classify as technical, billing, sales, general
+- **Content Moderation**: Classify as safe, questionable, unsafe
+- **Document Management**: Classify documents by type and topic
+- **Email Routing**: Classify emails by urgency and department
+
+**Real-World Usage**:
+- Used in all major customer service platforms
+- Content moderation systems
+- Enterprise document management
+
+---
+
+### 11. Aggregation Pattern
+
+**Status**: ✅ Implemented
+
+**Also Known As**: Multi-Agent Synthesis, Consensus Builder, Result Merger
+
+**Problem It Solves**:
+Intelligently synthesize outputs from multiple agents using various strategies (consensus, weighted, semantic, hierarchical) to produce a unified, high-quality result.
+
+**When to Use**:
+- Multi-expert research synthesis
+- Distributed decision-making
+- Quality improvement through multiple perspectives
+- Conflict resolution across agent outputs
+
+**How It Works**:
+1. Collect outputs from multiple agents
+2. Apply aggregation strategy (consensus, weighted, semantic, hierarchical, RAG-based)
+3. Resolve conflicts using configured resolution method
+4. Synthesize final output
+5. Return aggregated result with metadata
+
+**Use Cases**:
+- **Research**: Synthesize findings from multiple research agents
+- **Decision Making**: Aggregate recommendations from expert agents
+- **Content Creation**: Merge content from multiple writers
+- **Analysis**: Combine insights from multiple analytical agents
+
+**Real-World Usage**:
+- Multi-agent research systems
+- Distributed decision support
+- Collaborative content generation
+
+---
+
+### 12. Planning Pattern
+
+**Status**: ✅ Implemented
+
+**Also Known As**: Task Decomposer, Strategic Planner, Goal Breakdown
+
+**Problem It Solves**:
+Decompose complex goals into actionable sub-tasks with dependencies, enabling systematic execution of multi-step workflows.
+
+**When to Use**:
+- Complex project planning
+- Multi-step research initiatives
+- Software development workflows
+- Strategic business planning
+
+**How It Works**:
+1. Receive high-level goal
+2. Analyze goal complexity and requirements
+3. Decompose into ordered sub-tasks
+4. Identify dependencies between tasks
+5. Generate execution plan
+6. Support re-planning based on results
+
+**Use Cases**:
+- **Software Development**: Break down features into implementation tasks
+- **Research Projects**: Plan research methodology and execution steps
+- **Business Strategy**: Decompose strategic goals into actionable initiatives
+- **Data Pipelines**: Plan data processing workflows
+
+**Real-World Usage**:
+- Project management systems
+- Research planning tools
+- Development workflow automation
+
+---
+
+### 13. MapReduce Pattern
+
+**Status**: ✅ Implemented
+
+**Also Known As**: Parallel Map-Reduce, Distributed Processing, Batch Processor
+
+**Problem It Solves**:
+Process large datasets by distributing work across multiple agents (map phase) and aggregating results (reduce phase) for efficient parallel processing.
+
+**When to Use**:
+- Large-scale data processing
+- Batch analysis of documents/records
+- Distributed computation
+- Parallel data transformation
+
+**How It Works**:
+1. Split input data into chunks (map phase)
+2. Distribute chunks to worker agents in parallel
+3. Each agent processes its chunk independently
+4. Collect results from all workers
+5. Aggregate results using reduce function (reduce phase)
+6. Return final aggregated result
+
+**Use Cases**:
+- **Document Processing**: Analyze thousands of documents in parallel
+- **Data Analysis**: Process large datasets across multiple agents
+- **Batch ETL**: Transform and load data in parallel batches
+- **Content Generation**: Generate content for multiple items concurrently
+
+**Real-World Usage**:
+- Big data processing frameworks
+- Distributed computing systems
+- Large-scale analytics platforms
+
+---
+
+## Future Patterns
+
+### 14. Debate Pattern
+
+**Status**: 🔮 Future
 
 **Also Known As**: Multi-Agent Debate, Adversarial Collaboration, Structured Dissent
 
@@ -919,48 +1062,9 @@ Multiple agents with different perspectives debate decisions before reaching con
 
 ---
 
-### 11. Plan-and-Execute Pattern
+### 15. Nested/Composite Pattern
 
-**Status**: 🔮 Future (v2.1+, possibly Phase 2)
-
-**Also Known As**: Planner-Executor, Decompose-Execute, Strategic Planner
-
-**Problem It Solves**:
-Complex tasks requiring upfront planning before execution, with potential re-planning based on results.
-
-**When to Use**:
-- Multi-step research projects
-- Complex data analysis workflows
-- Software development tasks
-- Any task benefiting from strategic planning
-
-**How It Works**:
-1. Planner decomposes goal into sub-tasks
-2. Executor handles individual sub-tasks
-3. Results feed back to planner for re-planning if needed
-4. Larger model for planning, smaller models for execution (cost optimization)
-
-**Use Cases**:
-- Building data pipelines (plan steps, execute each)
-- Research projects (plan research strategy, execute searches)
-- Software development (plan architecture, implement components)
-
-**Performance**:
-- **Cost**: Optimized (cheap models for execution)
-- **Quality**: Better than direct execution
-- **Latency**: Planning adds overhead
-
-**Real-World Usage**:
-- LangChain's plan-and-execute
-- Used in complex workflows
-
-**Note**: Aixgo already has `PlannerAgent` - this pattern integrates it with execution.
-
----
-
-### 12. Nested/Composite Pattern
-
-**Status**: 🔮 Future (v2.2+)
+**Status**: 🔮 Future
 
 **Also Known As**: Sub-Agent Composition, Hierarchical Agents, Agent Trees
 
@@ -1000,15 +1104,18 @@ Encapsulating complex multi-agent workflows within a single agent interface for 
 |---------|-----------|------|---------|----------|--------------|---------------------|
 | Supervisor | Low | 1× | Low | Medium | General | Very High |
 | Sequential | Low | N× | High | Medium | Pipelines | Very High |
-| Parallel | Medium | N× | Low | Medium | Independent tasks | High |
+| Parallel | Medium | N× | Low | Medium | Independent tasks | Very High |
 | Router | Low | 0.25-0.5× | Low | High | Cost optimization | Very High |
-| Swarm | Medium | Variable | Medium | High | Adaptive routing | Medium |
-| Hierarchical | Medium | N× | Medium | High | Complex decomposition | Medium |
+| Swarm | Medium | Variable | Medium | High | Adaptive routing | High |
+| Hierarchical | Medium | N× | Medium | High | Complex decomposition | High |
 | RAG | Medium | 0.3× | Medium | High | Knowledge-intensive | Very High |
-| Reflection | Medium | 2-4× | High | Very High | Quality-critical | Medium |
+| Reflection | Medium | 2-4× | High | Very High | Quality-critical | High |
 | Ensemble | Medium | 3-5× | Low | Very High | High-stakes | High |
+| Classifier | Low | 1× | Low | High | Classification | Very High |
+| Aggregation | Medium | N× | Medium | High | Multi-agent synthesis | High |
+| Planning | Medium | 1× | Low | High | Task decomposition | High |
+| MapReduce | Medium | N× | Low | High | Batch processing | Very High |
 | Debate | High | 9× | Very High | Very High | Complex reasoning | Low |
-| Plan-Execute | Low | Optimized | Medium | High | Multi-step | Medium |
 | Nested | High | Variable | Variable | Variable | Modularity | Low |
 
 ### Cost Legend
@@ -1087,33 +1194,27 @@ Start
 
 ---
 
-## Implementation Timeline
+## Implementation Status
 
-### Phase 1: Foundation (Weeks 1-2)
-- Agent interface redesign
-- LocalRuntime implementation
-- Testing infrastructure
-
-### Phase 2: Observability (Weeks 2-3)
-- Automatic cost tracking
-- Langfuse integration
-
-### Phase 3: Core Patterns (Weeks 3-5)
+### Implemented Patterns (13)
+All core orchestration patterns have been implemented:
+- ✅ Supervisor
+- ✅ Sequential
 - ✅ Parallel
 - ✅ Router
 - ✅ Swarm
+- ✅ Hierarchical
 - ✅ RAG
 - ✅ Reflection
-
-### Phase 4: Advanced Patterns (Weeks 5-7)
-- ✅ Hierarchical
 - ✅ Ensemble
+- ✅ Classifier
+- ✅ Aggregation
+- ✅ Planning
+- ✅ MapReduce
 
-### Phase 5: Future Patterns (v2.1+)
+### Future Patterns (2)
+Planned for future releases:
 - 🔮 Debate
-- 🔮 Plan-Execute (possibly Phase 2)
-
-### Phase 6: Modularity (v2.2+)
 - 🔮 Nested/Composite
 
 ---
@@ -1121,8 +1222,6 @@ Start
 ## Resources
 
 ### Documentation
-- [Architecture Overview](./ARCHITECTURE_V2.md)
-- [Migration Guide](./MIGRATION_V1_TO_V2.md)
 - [Observability Guide](./OBSERVABILITY.md)
 
 ### Examples
