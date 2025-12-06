@@ -33,11 +33,10 @@ type DistributedRuntime struct {
 
 // remoteAgentClient represents a connection to a remote agent
 type remoteAgentClient struct {
-	name    string
-	addr    string
-	conn    *grpc.ClientConn
-	client  pb.AgentServiceClient
-	mu      sync.Mutex
+	name   string
+	addr   string
+	conn   *grpc.ClientConn
+	client pb.AgentServiceClient
 }
 
 // DistributedRuntimeConfig extends RuntimeConfig with distributed-specific options
@@ -130,7 +129,7 @@ func (r *DistributedRuntime) Unregister(name string) error {
 
 	// Check remote agents
 	if remote, exists := r.remoteAgents[name]; exists {
-		remote.conn.Close()
+		_ = remote.conn.Close()
 		delete(r.remoteAgents, name)
 		return nil
 	}
@@ -412,7 +411,7 @@ func (r *DistributedRuntime) Stop(ctx context.Context) error {
 
 	// Close remote connections
 	for _, remote := range r.remoteAgents {
-		remote.conn.Close()
+		_ = remote.conn.Close()
 	}
 
 	// Stop local agents

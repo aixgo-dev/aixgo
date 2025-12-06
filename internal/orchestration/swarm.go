@@ -68,9 +68,6 @@ func (s *Swarm) Execute(ctx context.Context, input *agent.Message) (*agent.Messa
 	currentInput := input
 	handoffCount := 0
 
-	var conversationHistory []*agent.Message
-	conversationHistory = append(conversationHistory, input)
-
 	for {
 		// Check handoff limit
 		if handoffCount >= s.maxHandoffs {
@@ -89,8 +86,6 @@ func (s *Swarm) Execute(ctx context.Context, input *agent.Message) (*agent.Messa
 			span.RecordError(err)
 			return nil, fmt.Errorf("agent %s failed: %w", currentAgent, err)
 		}
-
-		conversationHistory = append(conversationHistory, result)
 
 		// Check if agent wants to handoff
 		nextAgent, shouldHandoff := extractHandoff(result)

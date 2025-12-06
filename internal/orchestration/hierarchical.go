@@ -92,7 +92,7 @@ func (h *Hierarchical) Execute(ctx context.Context, input *agent.Message) (*agen
 		workers, exists := h.teams[teamName]
 		if !exists {
 			span.SetAttributes(
-				attribute.String(fmt.Sprintf("warning.team_not_found"), teamName),
+				attribute.String("warning.team_not_found", teamName),
 			)
 			continue
 		}

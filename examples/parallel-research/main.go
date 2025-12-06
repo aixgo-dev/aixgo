@@ -32,7 +32,7 @@ func main() {
 	if err := rt.Start(ctx); err != nil {
 		log.Fatalf("Failed to start runtime: %v", err)
 	}
-	defer rt.Stop(ctx)
+	defer func() { _ = rt.Stop(ctx) }()
 
 	// Register research agents (in production, these would be real agents)
 	// For this example, we'll use mock agents
@@ -91,7 +91,7 @@ func main() {
 	fmt.Println("✅ Research complete!")
 	fmt.Println()
 	fmt.Println("📊 Aggregated Results:")
-	fmt.Println(result.Message.Payload)
+	fmt.Println(result.Payload)
 	fmt.Println()
 	fmt.Println("💡 Benefits demonstrated:")
 	fmt.Println("  ✓ 4 research tasks completed concurrently")

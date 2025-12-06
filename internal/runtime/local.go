@@ -15,14 +15,13 @@ import (
 // LocalRuntime provides in-process agent execution using Go channels.
 // All agents run in the same process, ideal for single-binary deployments.
 type LocalRuntime struct {
-	agents   map[string]agent.Agent
-	channels map[string]chan *agent.Message
-	config   *RuntimeConfig
-	mu       sync.RWMutex
-	started  bool
-	ctx      context.Context
-	cancel   context.CancelFunc
-	wg       sync.WaitGroup
+	agents    map[string]agent.Agent
+	channels  map[string]chan *agent.Message
+	config    *RuntimeConfig
+	mu        sync.RWMutex
+	started   bool
+	ctx       context.Context
+	cancel    context.CancelFunc
 	semaphore chan struct{} // For limiting concurrent calls
 }
 

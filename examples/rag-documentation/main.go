@@ -33,7 +33,7 @@ func main() {
 	if err := rt.Start(ctx); err != nil {
 		log.Fatalf("Failed to start runtime: %v", err)
 	}
-	defer rt.Stop(ctx)
+	defer func() { _ = rt.Stop(ctx) }()
 
 	// Register agents
 	retriever := NewMockRetrieverAgent()
@@ -81,7 +81,7 @@ func main() {
 		}
 
 		var response map[string]interface{}
-		json.Unmarshal([]byte(result.Message.Payload), &response)
+		_ = json.Unmarshal([]byte(result.Payload), &response)
 
 		fmt.Printf("Answer: %s\n", response["answer"])
 		fmt.Printf("Sources: %v\n", response["sources"])
@@ -130,7 +130,7 @@ func (m *MockRetrieverAgent) Stop(ctx context.Context) error                    
 func (m *MockRetrieverAgent) Ready() bool                                              { return true }
 
 func (m *MockRetrieverAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
-	query := input.Message.Payload
+	query := input.Payload
 
 	// Simple keyword matching (in production, use vector similarity)
 	var retrieved []string
@@ -181,7 +181,7 @@ func (m *MockGeneratorAgent) Execute(ctx context.Context, input *agent.Message) 
 	// For this example, we'll just return the retrieved documents as the answer
 
 	var docs map[string]interface{}
-	json.Unmarshal([]byte(input.Message.Payload), &docs)
+	_ = json.Unmarshal([]byte(input.Payload), &docs)
 
 	documents := docs["documents"].([]interface{})
 	answer := "Based on the documentation: "

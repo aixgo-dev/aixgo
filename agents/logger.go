@@ -23,7 +23,7 @@ func (l *Logger) Ready() bool                                                   
 func (l *Logger) Stop(ctx context.Context) error                                    { return nil }
 func (l *Logger) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	if input != nil && input.Message != nil {
-		log.Printf("[ALERT] %s | %s", input.Message.Type, input.Message.Payload)
+		log.Printf("[ALERT] %s | %s", input.Type, input.Payload)
 	}
 	return input, nil
 }
