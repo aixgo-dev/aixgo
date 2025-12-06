@@ -153,7 +153,7 @@ func ConcatAggregator(separator string) func(results map[string]*agent.Message) 
 		for _, msg := range results {
 			if msg.Message != nil {
 				// Extract text content from message
-				combined += fmt.Sprintf("%v%s", msg.Message.Payload, separator)
+				combined += fmt.Sprintf("%v%s", msg.Payload, separator)
 			}
 		}
 

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	context2 "context"
-	"crypto/sha256"
 	"flag"
 	"fmt"
 	"log"
@@ -116,12 +114,12 @@ func initializeServices(ctx context.Context, cfg *Config) (embeddings.EmbeddingS
 	case "memory":
 		store, err = memory.New()
 		if err != nil {
-			embSvc.Close()
+			_ = embSvc.Close()
 			return nil, nil, nil, fmt.Errorf("failed to create memory store: %w", err)
 		}
 	case "firestore":
 		if cfg.GCPProject == "" {
-			embSvc.Close()
+			_ = embSvc.Close()
 			return nil, nil, nil, fmt.Errorf("GCP_PROJECT required for Firestore")
 		}
 		opts := []firestore.Option{
@@ -132,11 +130,11 @@ func initializeServices(ctx context.Context, cfg *Config) (embeddings.EmbeddingS
 		}
 		store, err = firestore.New(ctx, opts...)
 		if err != nil {
-			embSvc.Close()
+			_ = embSvc.Close()
 			return nil, nil, nil, fmt.Errorf("failed to create Firestore store: %w", err)
 		}
 	default:
-		embSvc.Close()
+		_ = embSvc.Close()
 		return nil, nil, nil, fmt.Errorf("unknown vector provider: %s", cfg.VectorProvider)
 	}
 
@@ -145,8 +143,8 @@ func initializeServices(ctx context.Context, cfg *Config) (embeddings.EmbeddingS
 	if cfg.OpenAIKey != "" {
 		llmClient, err = llm.NewClient("openai", cfg.OpenAIKey)
 		if err != nil {
-			embSvc.Close()
-			store.Close()
+			_ = embSvc.Close()
+			_ = store.Close()
 			return nil, nil, nil, fmt.Errorf("failed to create LLM client: %w", err)
 		}
 	}
@@ -391,7 +389,7 @@ func generateAnswer(ctx context.Context, client llm.Client, query string, result
 			match.Document.Content.String(),
 		))
 	}
-	context := strings.Join(contextParts, "\n\n")
+	contextText := strings.Join(contextParts, "\n\n")
 
 	// Create prompt
 	prompt := fmt.Sprintf(`You are a helpful AI assistant with access to a knowledge base about Aixgo, a Go AI agent framework.
@@ -404,10 +402,10 @@ Retrieved Documents:
 
 User Question: %s
 
-Answer:`, context, query)
+Answer:`, contextText, query)
 
 	// Generate response with timeout
-	genCtx, cancel := context2.WithTimeout(ctx, 30*time.Second)
+	genCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	messages := []llm.Message{
@@ -425,10 +423,10 @@ Answer:`, context, query)
 // cleanup closes all services
 func cleanup(embSvc embeddings.EmbeddingService, store vectorstore.VectorStore) {
 	if embSvc != nil {
-		embSvc.Close()
+		_ = embSvc.Close()
 	}
 	if store != nil {
-		store.Close()
+		_ = store.Close()
 	}
 }
 
@@ -440,8 +438,3 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// hashString creates a hash for deduplication
-func hashString(s string) string {
-	h := sha256.Sum256([]byte(s))
-	return fmt.Sprintf("%x", h[:8])
-}

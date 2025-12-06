@@ -32,7 +32,7 @@ func main() {
 	if err := rt.Start(ctx); err != nil {
 		log.Fatalf("Failed to start runtime: %v", err)
 	}
-	defer rt.Stop(ctx)
+	defer func() { _ = rt.Stop(ctx) }()
 
 	// Register agents
 	classifier := NewMockClassifierAgent()
@@ -94,7 +94,7 @@ func main() {
 		}
 
 		var response map[string]interface{}
-		json.Unmarshal([]byte(result.Message.Payload), &response)
+		_ = json.Unmarshal([]byte(result.Payload), &response)
 
 		modelUsed := response["model"].(string)
 		cost := response["cost"].(float64)
@@ -135,7 +135,7 @@ func (m *MockClassifierAgent) Stop(ctx context.Context) error                   
 func (m *MockClassifierAgent) Ready() bool                                              { return true }
 
 func (m *MockClassifierAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
-	query := input.Message.Payload
+	query := input.Payload
 
 	// Simple heuristic: long queries or technical terms = complex
 	complexity := "simple"

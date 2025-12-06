@@ -33,7 +33,7 @@ func main() {
 	if err := rt.Start(ctx); err != nil {
 		log.Fatalf("Failed to start runtime: %v", err)
 	}
-	defer rt.Stop(ctx)
+	defer func() { _ = rt.Stop(ctx) }()
 
 	// Register agents
 	generator := NewMockCodeGeneratorAgent()
@@ -76,7 +76,7 @@ func main() {
 	}
 
 	var response map[string]interface{}
-	json.Unmarshal([]byte(result.Message.Payload), &response)
+	_ = json.Unmarshal([]byte(result.Payload), &response)
 
 	fmt.Println("✅ Final Code:")
 	fmt.Println(response["code"])
@@ -200,7 +200,7 @@ func (m *MockCodeCriticAgent) Ready() bool                                      
 
 func (m *MockCodeCriticAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	var codeData map[string]interface{}
-	json.Unmarshal([]byte(input.Message.Payload), &codeData)
+	_ = json.Unmarshal([]byte(input.Payload), &codeData)
 
 	code := codeData["code"].(string)
 	iteration := int(codeData["iteration"].(float64))

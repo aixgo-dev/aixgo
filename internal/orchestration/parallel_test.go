@@ -187,9 +187,9 @@ func TestParallelExecute(t *testing.T) {
 	agent2 := NewMockAgent("agent2", "test", 100*time.Millisecond, "result2")
 	agent3 := NewMockAgent("agent3", "test", 100*time.Millisecond, "result3")
 
-	rt.Register(agent1)
-	rt.Register(agent2)
-	rt.Register(agent3)
+	_ = rt.Register(agent1)
+	_ = rt.Register(agent2)
+	_ = rt.Register(agent3)
 
 	// Create parallel orchestrator
 	parallel := NewParallel(
@@ -242,8 +242,8 @@ func TestParallelWithPartialFailure(t *testing.T) {
 	agent1 := NewMockAgent("agent1", "test", 10*time.Millisecond, "result1")
 	agent2 := NewMockAgent("agent2", "test", 10*time.Millisecond, "result2")
 
-	rt.Register(agent1)
-	rt.Register(agent2)
+	_ = rt.Register(agent1)
+	_ = rt.Register(agent2)
 
 	// Create parallel orchestrator with non-existent agent
 	parallel := NewParallel(
@@ -277,7 +277,7 @@ func TestParallelFailFast(t *testing.T) {
 
 	agent1 := NewMockAgent("agent1", "test", 10*time.Millisecond, "result1")
 
-	rt.Register(agent1)
+	_ = rt.Register(agent1)
 
 	// Create parallel orchestrator with fail-fast enabled
 	parallel := NewParallel(

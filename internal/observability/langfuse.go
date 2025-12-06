@@ -154,7 +154,7 @@ func (c *LangfuseClient) TrackGeneration(ctx context.Context, gen *Generation) e
 	if err != nil {
 		return fmt.Errorf("failed to send generation: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("langfuse API returned status %d", resp.StatusCode)
@@ -198,7 +198,7 @@ func (c *LangfuseClient) TrackScore(ctx context.Context, score *Score) error {
 	if err != nil {
 		return fmt.Errorf("failed to send score: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("langfuse API returned status %d", resp.StatusCode)

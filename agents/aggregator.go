@@ -160,7 +160,7 @@ func (a *AggregatorAgent) Execute(ctx context.Context, input *agent.Message) (*a
 	// Convert input message to AgentInput
 	agentInput := &AgentInput{
 		AgentName: "input",
-		Content:   input.Message.Payload,
+		Content:   input.Payload,
 		Timestamp: time.Now(),
 	}
 

@@ -229,9 +229,6 @@ type instrumentedStream struct {
 	provider      string
 	model         string
 	calc          *cost.Calculator
-	totalTokens   int
-	promptTokens  int
-	outputTokens  int
 	chunksCount   int
 	totalDuration time.Duration
 	startTime     time.Time

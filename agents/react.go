@@ -170,7 +170,7 @@ func (r *ReActAgent) Execute(ctx context.Context, input *agent.Message) (*agent.
 	// Extract string from message
 	inputStr := ""
 	if input != nil && input.Message != nil {
-		inputStr = input.Message.Payload
+		inputStr = input.Payload
 	}
 
 	// Use the existing think method to process the input

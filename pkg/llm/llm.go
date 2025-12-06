@@ -108,7 +108,7 @@ type OpenAIClient struct {
 // NewOpenAIClient creates a new OpenAI client
 func NewOpenAIClient(apiKey string) (*OpenAIClient, error) {
 	if apiKey == "" {
-		return nil, fmt.Errorf("OpenAI API key is required")
+		return nil, fmt.Errorf("openai: API key is required")
 	}
 	return &OpenAIClient{apiKey: apiKey}, nil
 }
@@ -152,7 +152,7 @@ type AnthropicClient struct {
 // NewAnthropicClient creates a new Anthropic client
 func NewAnthropicClient(apiKey string) (*AnthropicClient, error) {
 	if apiKey == "" {
-		return nil, fmt.Errorf("Anthropic API key is required")
+		return nil, fmt.Errorf("anthropic: API key is required")
 	}
 	return &AnthropicClient{apiKey: apiKey}, nil
 }
@@ -176,7 +176,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []Message, opts ...
 }
 
 func (c *AnthropicClient) Embed(ctx context.Context, texts []string) ([][]float64, error) {
-	return nil, fmt.Errorf("Anthropic does not support embeddings")
+	return nil, fmt.Errorf("anthropic: embeddings not supported")
 }
 
 func (c *AnthropicClient) Close() error {
