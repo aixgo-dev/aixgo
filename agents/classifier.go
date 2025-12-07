@@ -16,7 +16,7 @@ import (
 
 // ClassifierConfig holds AI-specific configuration for classification
 type ClassifierConfig struct {
-	Categories           []Category `yaml:"categories"`
+	Categories          []Category `yaml:"categories"`
 	UseEmbeddings       bool       `yaml:"use_embeddings"`
 	ConfidenceThreshold float64    `yaml:"confidence_threshold"`
 	MultiLabel          bool       `yaml:"multi_label"`
@@ -35,9 +35,9 @@ type Category struct {
 
 // Example for few-shot learning
 type Example struct {
-	Input    string   `yaml:"input"`
-	Category string   `yaml:"category"`
-	Reason   string   `yaml:"reason"`
+	Input    string `yaml:"input"`
+	Category string `yaml:"category"`
+	Reason   string `yaml:"reason"`
 }
 
 // ClassificationResult with AI-specific metrics

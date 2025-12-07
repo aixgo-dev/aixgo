@@ -22,8 +22,8 @@ import (
 // - Organizational hierarchies
 type Hierarchical struct {
 	*BaseOrchestrator
-	manager string
-	teams   map[string][]string // team name → worker agents
+	manager  string
+	teams    map[string][]string // team name → worker agents
 	maxDepth int
 }
 

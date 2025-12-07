@@ -22,9 +22,9 @@ import (
 // DistributedRuntime provides distributed agent execution using gRPC.
 // Agents can run in separate processes or on different machines.
 type DistributedRuntime struct {
-	localAgents  map[string]agent.Agent              // Agents running in this process
-	remoteAgents map[string]*remoteAgentClient       // Remote agent connections
-	channels     map[string]chan *agent.Message      // Local message channels
+	localAgents  map[string]agent.Agent         // Agents running in this process
+	remoteAgents map[string]*remoteAgentClient  // Remote agent connections
+	channels     map[string]chan *agent.Message // Local message channels
 	config       *RuntimeConfig
 	mu           sync.RWMutex
 	started      bool

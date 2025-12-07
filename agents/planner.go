@@ -17,17 +17,17 @@ import (
 
 // PlannerConfig holds AI-specific configuration for planning
 type PlannerConfig struct {
-	PlanningStrategy     string          `yaml:"planning_strategy"`
-	MaxSteps            int             `yaml:"max_steps"`
-	StepDetailLevel     string          `yaml:"step_detail_level"`
-	EnableBacktracking  bool            `yaml:"enable_backtracking"`
-	EnableSelfCritique  bool            `yaml:"enable_self_critique"`
-	ReasoningDepth      int             `yaml:"reasoning_depth"`
-	ParallelizableSteps bool            `yaml:"parallelizable_steps"`
-	IncludeAlternatives bool            `yaml:"include_alternatives"`
-	Temperature         float64         `yaml:"temperature"`
-	MaxTokens           int             `yaml:"max_tokens"`
-	ExamplePlans        []ExamplePlan   `yaml:"example_plans"`
+	PlanningStrategy    string        `yaml:"planning_strategy"`
+	MaxSteps            int           `yaml:"max_steps"`
+	StepDetailLevel     string        `yaml:"step_detail_level"`
+	EnableBacktracking  bool          `yaml:"enable_backtracking"`
+	EnableSelfCritique  bool          `yaml:"enable_self_critique"`
+	ReasoningDepth      int           `yaml:"reasoning_depth"`
+	ParallelizableSteps bool          `yaml:"parallelizable_steps"`
+	IncludeAlternatives bool          `yaml:"include_alternatives"`
+	Temperature         float64       `yaml:"temperature"`
+	MaxTokens           int           `yaml:"max_tokens"`
+	ExamplePlans        []ExamplePlan `yaml:"example_plans"`
 }
 
 // ExamplePlan for few-shot planning
@@ -39,51 +39,51 @@ type ExamplePlan struct {
 
 // PlanStep represents a single step in the reasoning chain
 type PlanStep struct {
-	StepNumber       int                `json:"step_number"`
-	Action           string             `json:"action"`
-	Reasoning        string             `json:"reasoning"`
-	Prerequisites    []int              `json:"prerequisites,omitempty"`
-	ExpectedOutcome  string             `json:"expected_outcome"`
-	Complexity       string             `json:"complexity"`
-	CanParallelize   bool               `json:"can_parallelize"`
-	Alternatives     []AlternativeStep  `json:"alternatives,omitempty"`
-	Confidence       float64            `json:"confidence"`
-	EstimatedTokens  int                `json:"estimated_tokens,omitempty"`
+	StepNumber      int               `json:"step_number"`
+	Action          string            `json:"action"`
+	Reasoning       string            `json:"reasoning"`
+	Prerequisites   []int             `json:"prerequisites,omitempty"`
+	ExpectedOutcome string            `json:"expected_outcome"`
+	Complexity      string            `json:"complexity"`
+	CanParallelize  bool              `json:"can_parallelize"`
+	Alternatives    []AlternativeStep `json:"alternatives,omitempty"`
+	Confidence      float64           `json:"confidence"`
+	EstimatedTokens int               `json:"estimated_tokens,omitempty"`
 }
 
 // AlternativeStep represents an alternative approach
 type AlternativeStep struct {
-	Action    string  `json:"action"`
-	Reasoning string  `json:"reasoning"`
-	TradeOffs string  `json:"trade_offs"`
+	Action    string `json:"action"`
+	Reasoning string `json:"reasoning"`
+	TradeOffs string `json:"trade_offs"`
 }
 
 // ReasoningPlan with Chain-of-Thought structure
 type ReasoningPlan struct {
-	Problem             string            `json:"problem"`
-	Analysis           ProblemAnalysis    `json:"analysis"`
-	Steps              []PlanStep         `json:"steps"`
-	ExecutionStrategy  string             `json:"execution_strategy"`
-	CriticalPath       []int              `json:"critical_path"`
-	ParallelGroups     [][]int            `json:"parallel_groups,omitempty"`
-	BackupPlans        []BackupPlan       `json:"backup_plans,omitempty"`
-	SuccessCriteria    []string           `json:"success_criteria"`
-	RiskAssessment     RiskAssessment     `json:"risk_assessment"`
-	TotalComplexity    string             `json:"total_complexity"`
-	EstimatedDuration  string             `json:"estimated_duration"`
-	TokensUsed         int                `json:"tokens_used"`
-	PlanningStrategy   string             `json:"planning_strategy"`
-	SelfCritique       string             `json:"self_critique,omitempty"`
+	Problem           string          `json:"problem"`
+	Analysis          ProblemAnalysis `json:"analysis"`
+	Steps             []PlanStep      `json:"steps"`
+	ExecutionStrategy string          `json:"execution_strategy"`
+	CriticalPath      []int           `json:"critical_path"`
+	ParallelGroups    [][]int         `json:"parallel_groups,omitempty"`
+	BackupPlans       []BackupPlan    `json:"backup_plans,omitempty"`
+	SuccessCriteria   []string        `json:"success_criteria"`
+	RiskAssessment    RiskAssessment  `json:"risk_assessment"`
+	TotalComplexity   string          `json:"total_complexity"`
+	EstimatedDuration string          `json:"estimated_duration"`
+	TokensUsed        int             `json:"tokens_used"`
+	PlanningStrategy  string          `json:"planning_strategy"`
+	SelfCritique      string          `json:"self_critique,omitempty"`
 }
 
 // ProblemAnalysis breaks down the problem
 type ProblemAnalysis struct {
-	Type           string   `json:"problem_type"`
-	Domain         string   `json:"domain"`
-	Constraints    []string `json:"constraints"`
-	Resources      []string `json:"available_resources"`
-	KeyChallenges  []string `json:"key_challenges"`
-	Assumptions    []string `json:"assumptions"`
+	Type          string   `json:"problem_type"`
+	Domain        string   `json:"domain"`
+	Constraints   []string `json:"constraints"`
+	Resources     []string `json:"available_resources"`
+	KeyChallenges []string `json:"key_challenges"`
+	Assumptions   []string `json:"assumptions"`
 }
 
 // BackupPlan for contingency planning
@@ -95,16 +95,16 @@ type BackupPlan struct {
 
 // RiskAssessment evaluates plan risks
 type RiskAssessment struct {
-	OverallRisk      string       `json:"overall_risk"`
-	RiskFactors      []RiskFactor `json:"risk_factors"`
-	MitigationSteps  []string     `json:"mitigation_steps"`
+	OverallRisk     string       `json:"overall_risk"`
+	RiskFactors     []RiskFactor `json:"risk_factors"`
+	MitigationSteps []string     `json:"mitigation_steps"`
 }
 
 type RiskFactor struct {
-	Factor      string  `json:"factor"`
-	Severity    string  `json:"severity"`
-	Likelihood  float64 `json:"likelihood"`
-	Impact      string  `json:"impact"`
+	Factor     string  `json:"factor"`
+	Severity   string  `json:"severity"`
+	Likelihood float64 `json:"likelihood"`
+	Impact     string  `json:"impact"`
 }
 
 // PlannerAgent implements AI-powered Chain-of-Thought planning
@@ -116,38 +116,38 @@ type PlannerAgent struct {
 	rt       agent.Runtime
 
 	// AI-specific planning fields
-	planCache       map[string]*ReasoningPlan
-	planHistory     []PlanExecutionHistory
-	reasoningDepth  int
-	metacognition   MetacognitionModule
+	planCache      map[string]*ReasoningPlan
+	planHistory    []PlanExecutionHistory
+	reasoningDepth int
+	metacognition  MetacognitionModule
 }
 
 // PlanExecutionHistory tracks plan performance
 type PlanExecutionHistory struct {
-	PlanID          string
-	Problem         string
-	StepsCompleted  int
-	TotalSteps      int
-	Success         bool
-	ExecutionTime   time.Duration
-	TokensUsed      int
+	PlanID         string
+	Problem        string
+	StepsCompleted int
+	TotalSteps     int
+	Success        bool
+	ExecutionTime  time.Duration
+	TokensUsed     int
 }
 
 // MetacognitionModule for self-reflection and improvement
 type MetacognitionModule struct {
-	SuccessPatterns   []string
-	FailurePatterns   []string
-	LearningInsights  map[string]float64
+	SuccessPatterns  []string
+	FailurePatterns  []string
+	LearningInsights map[string]float64
 }
 
 // Planning strategies
 const (
-	StrategyChainOfThought    = "chain_of_thought"
-	StrategyTreeOfThought     = "tree_of_thought"
-	StrategyReActPlanning     = "react_planning"
-	StrategyMonteCarlo        = "monte_carlo"
-	StrategyBackwardChaining  = "backward_chaining"
-	StrategyHierarchicalPlan  = "hierarchical_plan" // Renamed to avoid conflict
+	StrategyChainOfThought   = "chain_of_thought"
+	StrategyTreeOfThought    = "tree_of_thought"
+	StrategyReActPlanning    = "react_planning"
+	StrategyMonteCarlo       = "monte_carlo"
+	StrategyBackwardChaining = "backward_chaining"
+	StrategyHierarchicalPlan = "hierarchical_plan" // Renamed to avoid conflict
 )
 
 func init() {
@@ -593,9 +593,9 @@ func (p *PlannerAgent) buildPlanSchema() json.RawMessage {
 			"analysis": map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"problem_type":  map[string]any{"type": "string"},
-					"domain":        map[string]any{"type": "string"},
-					"constraints":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+					"problem_type":   map[string]any{"type": "string"},
+					"domain":         map[string]any{"type": "string"},
+					"constraints":    map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
 					"key_challenges": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
 				},
 			},

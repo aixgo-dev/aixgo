@@ -30,13 +30,13 @@ func TestPlannerStrategies(t *testing.T) {
 		provider: mockProvider,
 		config: PlannerConfig{
 			Temperature:    0.7,
-			MaxTokens:     2000,
-			MaxSteps:      20,
+			MaxTokens:      2000,
+			MaxSteps:       20,
 			ReasoningDepth: 3,
 		},
-		rt:            rt,
-		planCache:     make(map[string]*ReasoningPlan),
-		planHistory:   []PlanExecutionHistory{},
+		rt:          rt,
+		planCache:   make(map[string]*ReasoningPlan),
+		planHistory: []PlanExecutionHistory{},
 		metacognition: MetacognitionModule{
 			LearningInsights: make(map[string]float64),
 		},
@@ -51,9 +51,9 @@ func TestPlannerStrategies(t *testing.T) {
 		mockPlan := ReasoningPlan{
 			Problem: problem,
 			Analysis: ProblemAnalysis{
-				Type:   "system_design",
-				Domain: "e-commerce",
-				Constraints: []string{"scalability", "real-time"},
+				Type:          "system_design",
+				Domain:        "e-commerce",
+				Constraints:   []string{"scalability", "real-time"},
 				KeyChallenges: []string{"cold start", "data sparsity"},
 			},
 			Steps: []PlanStep{
@@ -324,7 +324,7 @@ func TestPlannerSelfCritique(t *testing.T) {
 	mockProvider := new(MockProvider)
 
 	plannerAgent := &PlannerAgent{
-		def: agent.AgentDef{Model: "gpt-4"},
+		def:      agent.AgentDef{Model: "gpt-4"},
 		provider: mockProvider,
 		config: PlannerConfig{
 			EnableSelfCritique: true,

@@ -62,10 +62,10 @@ func (p *GeminiProvider) Name() string {
 }
 
 type geminiRequest struct {
-	Contents         []geminiContent    `json:"contents"`
-	SystemInstruction *geminiContent    `json:"systemInstruction,omitempty"`
-	GenerationConfig *geminiGenConfig   `json:"generationConfig,omitempty"`
-	Tools            []geminiTool       `json:"tools,omitempty"`
+	Contents          []geminiContent  `json:"contents"`
+	SystemInstruction *geminiContent   `json:"systemInstruction,omitempty"`
+	GenerationConfig  *geminiGenConfig `json:"generationConfig,omitempty"`
+	Tools             []geminiTool     `json:"tools,omitempty"`
 }
 
 type geminiContent struct {
@@ -74,9 +74,9 @@ type geminiContent struct {
 }
 
 type geminiPart struct {
-	Text         string            `json:"text,omitempty"`
-	FunctionCall *geminiFuncCall   `json:"functionCall,omitempty"`
-	FunctionResp *geminiFuncResp   `json:"functionResponse,omitempty"`
+	Text         string          `json:"text,omitempty"`
+	FunctionCall *geminiFuncCall `json:"functionCall,omitempty"`
+	FunctionResp *geminiFuncResp `json:"functionResponse,omitempty"`
 }
 
 type geminiFuncCall struct {

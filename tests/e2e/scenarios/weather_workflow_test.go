@@ -150,8 +150,8 @@ func TestWeatherWorkflow_FullConversation(t *testing.T) {
 	})
 
 	conversation := []struct {
-		user     string
-		checkFn  func(resp *provider.CompletionResponse)
+		user    string
+		checkFn func(resp *provider.CompletionResponse)
 	}{
 		{
 			user: "Can you help me with weather?",

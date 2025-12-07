@@ -43,9 +43,9 @@ func TestIsValidAgentName(t *testing.T) {
 
 func TestExtractHandoff(t *testing.T) {
 	tests := []struct {
-		name           string
-		msg            *agent.Message
-		expectedAgent  string
+		name            string
+		msg             *agent.Message
+		expectedAgent   string
 		expectedHandoff bool
 	}{
 		{
@@ -57,7 +57,7 @@ func TestExtractHandoff(t *testing.T) {
 					},
 				},
 			},
-			expectedAgent:  "billing-agent",
+			expectedAgent:   "billing-agent",
 			expectedHandoff: true,
 		},
 		{
@@ -67,7 +67,7 @@ func TestExtractHandoff(t *testing.T) {
 					Payload: "HANDOFF:technical-support",
 				},
 			},
-			expectedAgent:  "technical-support",
+			expectedAgent:   "technical-support",
 			expectedHandoff: true,
 		},
 		{
@@ -77,7 +77,7 @@ func TestExtractHandoff(t *testing.T) {
 					Payload: "HANDOFF:  support-agent  ",
 				},
 			},
-			expectedAgent:  "support-agent",
+			expectedAgent:   "support-agent",
 			expectedHandoff: true,
 		},
 		{
@@ -89,7 +89,7 @@ func TestExtractHandoff(t *testing.T) {
 					},
 				},
 			},
-			expectedAgent:  "",
+			expectedAgent:   "",
 			expectedHandoff: false,
 		},
 		{
@@ -99,13 +99,13 @@ func TestExtractHandoff(t *testing.T) {
 					Payload: "HANDOFF:'; DROP TABLE users--",
 				},
 			},
-			expectedAgent:  "",
+			expectedAgent:   "",
 			expectedHandoff: false,
 		},
 		{
-			name:           "nil message",
-			msg:            nil,
-			expectedAgent:  "",
+			name:            "nil message",
+			msg:             nil,
+			expectedAgent:   "",
 			expectedHandoff: false,
 		},
 		{
@@ -115,7 +115,7 @@ func TestExtractHandoff(t *testing.T) {
 					Payload: "Just a regular message",
 				},
 			},
-			expectedAgent:  "",
+			expectedAgent:   "",
 			expectedHandoff: false,
 		},
 		{
@@ -127,7 +127,7 @@ func TestExtractHandoff(t *testing.T) {
 					},
 				},
 			},
-			expectedAgent:  "",
+			expectedAgent:   "",
 			expectedHandoff: false,
 		},
 	}

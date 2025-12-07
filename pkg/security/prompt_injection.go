@@ -24,11 +24,11 @@ const (
 type DetectionCategory string
 
 const (
-	CategorySystemOverride    DetectionCategory = "system_override"
-	CategoryRoleHijacking     DetectionCategory = "role_hijacking"
+	CategorySystemOverride     DetectionCategory = "system_override"
+	CategoryRoleHijacking      DetectionCategory = "role_hijacking"
 	CategoryDelimiterInjection DetectionCategory = "delimiter_injection"
-	CategoryEncodingAttack    DetectionCategory = "encoding_attack"
-	CategoryJailbreak         DetectionCategory = "jailbreak"
+	CategoryEncodingAttack     DetectionCategory = "encoding_attack"
+	CategoryJailbreak          DetectionCategory = "jailbreak"
 )
 
 // DetectionResult contains information about a detected injection attempt

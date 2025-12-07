@@ -22,9 +22,9 @@ import (
 // - Load balancing
 type Router struct {
 	*BaseOrchestrator
-	classifier string            // Agent that classifies the input
-	routes     map[string]string // Map of classification → agent name
-	defaultRoute string          // Fallback agent if classification not found
+	classifier   string            // Agent that classifies the input
+	routes       map[string]string // Map of classification → agent name
+	defaultRoute string            // Fallback agent if classification not found
 }
 
 // RouterOption configures a Router orchestrator

@@ -58,15 +58,15 @@ func (m *MemoryVectorStore) Collection(name string, opts ...vectorstore.Collecti
 	// Create new collection
 	config := vectorstore.ApplyOptions(opts)
 	coll := &MemoryCollection{
-		name:         name,
-		config:       config,
-		documents:    make(map[string]*vectorstore.Document),
-		scopeIndex:   newScopeIndex(),
-		timeIndex:    newTimeIndex(),
-		tagIndex:     newTagIndex(),
-		hashIndex:    make(map[string]string),
-		createdAt:    time.Now(),
-		updatedAt:    time.Now(),
+		name:       name,
+		config:     config,
+		documents:  make(map[string]*vectorstore.Document),
+		scopeIndex: newScopeIndex(),
+		timeIndex:  newTimeIndex(),
+		tagIndex:   newTagIndex(),
+		hashIndex:  make(map[string]string),
+		createdAt:  time.Now(),
+		updatedAt:  time.Now(),
 	}
 
 	m.collections[name] = coll

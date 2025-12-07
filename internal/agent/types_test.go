@@ -78,10 +78,13 @@ func TestAgentDef_UnmarshalKey(t *testing.T) {
 			target: new(int),
 		},
 		{
-			name:   "unmarshal struct",
-			extra:  map[string]any{"config": map[string]any{"host": "localhost", "port": float64(8080)}},
-			key:    "config",
-			target: new(struct{ Host string; Port int }),
+			name:  "unmarshal struct",
+			extra: map[string]any{"config": map[string]any{"host": "localhost", "port": float64(8080)}},
+			key:   "config",
+			target: new(struct {
+				Host string
+				Port int
+			}),
 		},
 		{
 			name:   "missing key",

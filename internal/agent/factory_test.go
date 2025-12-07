@@ -316,10 +316,10 @@ type testAgent struct {
 	runtime Runtime
 }
 
-func (a *testAgent) Name() string                                                 { return a.name }
-func (a *testAgent) Role() string                                                 { return "test" }
-func (a *testAgent) Ready() bool                                                  { return true }
-func (a *testAgent) Stop(ctx context.Context) error                               { return nil }
+func (a *testAgent) Name() string                                                  { return a.name }
+func (a *testAgent) Role() string                                                  { return "test" }
+func (a *testAgent) Ready() bool                                                   { return true }
+func (a *testAgent) Stop(ctx context.Context) error                                { return nil }
 func (a *testAgent) Execute(ctx context.Context, input *Message) (*Message, error) { return input, nil }
 
 func (a *testAgent) Start(ctx context.Context) error {

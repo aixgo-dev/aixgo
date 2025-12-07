@@ -30,10 +30,10 @@ type AggregationConfig struct {
 	Method           AggregationMethod
 	Timeout          time.Duration
 	ConcurrencyLimit int
-	Scorer           Scorer      // For AggregationBest
-	Summarizer       Summarizer  // For AggregationSummarize
-	Delimiter        string      // For AggregationMerge
-	MinimumResponses int         // Minimum responses required
+	Scorer           Scorer     // For AggregationBest
+	Summarizer       Summarizer // For AggregationSummarize
+	Delimiter        string     // For AggregationMerge
+	MinimumResponses int        // Minimum responses required
 }
 
 // AggregationPattern runs multiple agents and aggregates results

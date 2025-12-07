@@ -111,11 +111,11 @@ func TestServerRegisterTypedTool(t *testing.T) {
 
 func TestGenerateSchema(t *testing.T) {
 	type TestInput struct {
-		Name     string  `json:"name" jsonschema:"required,minLength=1,maxLength=100"`
-		Age      int     `json:"age" jsonschema:"minimum=0,maximum=150"`
-		Score    float64 `json:"score"`
-		Active   bool    `json:"active"`
-		Tags     []string `json:"tags"`
+		Name     string            `json:"name" jsonschema:"required,minLength=1,maxLength=100"`
+		Age      int               `json:"age" jsonschema:"minimum=0,maximum=150"`
+		Score    float64           `json:"score"`
+		Active   bool              `json:"active"`
+		Tags     []string          `json:"tags"`
 		Metadata map[string]string `json:"metadata"`
 	}
 

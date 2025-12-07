@@ -100,11 +100,11 @@ func NewMockCodeGeneratorAgent() *MockCodeGeneratorAgent {
 	return &MockCodeGeneratorAgent{iteration: 0}
 }
 
-func (m *MockCodeGeneratorAgent) Name() string                                             { return "code-generator" }
-func (m *MockCodeGeneratorAgent) Role() string                                             { return "generator" }
-func (m *MockCodeGeneratorAgent) Start(ctx context.Context) error                          { return nil }
-func (m *MockCodeGeneratorAgent) Stop(ctx context.Context) error                           { return nil }
-func (m *MockCodeGeneratorAgent) Ready() bool                                              { return true }
+func (m *MockCodeGeneratorAgent) Name() string                    { return "code-generator" }
+func (m *MockCodeGeneratorAgent) Role() string                    { return "generator" }
+func (m *MockCodeGeneratorAgent) Start(ctx context.Context) error { return nil }
+func (m *MockCodeGeneratorAgent) Stop(ctx context.Context) error  { return nil }
+func (m *MockCodeGeneratorAgent) Ready() bool                     { return true }
 
 func (m *MockCodeGeneratorAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	m.iteration++
@@ -192,11 +192,11 @@ func NewMockCodeCriticAgent() *MockCodeCriticAgent {
 	return &MockCodeCriticAgent{}
 }
 
-func (m *MockCodeCriticAgent) Name() string                                             { return "code-critic" }
-func (m *MockCodeCriticAgent) Role() string                                             { return "critic" }
-func (m *MockCodeCriticAgent) Start(ctx context.Context) error                          { return nil }
-func (m *MockCodeCriticAgent) Stop(ctx context.Context) error                           { return nil }
-func (m *MockCodeCriticAgent) Ready() bool                                              { return true }
+func (m *MockCodeCriticAgent) Name() string                    { return "code-critic" }
+func (m *MockCodeCriticAgent) Role() string                    { return "critic" }
+func (m *MockCodeCriticAgent) Start(ctx context.Context) error { return nil }
+func (m *MockCodeCriticAgent) Stop(ctx context.Context) error  { return nil }
+func (m *MockCodeCriticAgent) Ready() bool                     { return true }
 
 func (m *MockCodeCriticAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	var codeData map[string]interface{}

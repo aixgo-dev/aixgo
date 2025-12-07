@@ -72,13 +72,13 @@ type LangfuseUsage struct {
 
 // Score represents a score/evaluation for a trace or generation
 type Score struct {
-	ID          string                 `json:"id,omitempty"`
-	TraceID     string                 `json:"traceId"`
-	Name        string                 `json:"name"`
-	Value       float64                `json:"value"`
-	Comment     string                 `json:"comment,omitempty"`
-	ObservationID string               `json:"observationId,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID            string                 `json:"id,omitempty"`
+	TraceID       string                 `json:"traceId"`
+	Name          string                 `json:"name"`
+	Value         float64                `json:"value"`
+	Comment       string                 `json:"comment,omitempty"`
+	ObservationID string                 `json:"observationId,omitempty"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
 var (

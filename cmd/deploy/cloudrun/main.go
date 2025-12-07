@@ -181,7 +181,6 @@ func checkPrerequisites() error {
 	return nil
 }
 
-
 func setProjectWithConfig(ctx context.Context, cfg *Config, projectID string) error {
 	logInfo("Setting GCP project to %s...", projectID)
 	return runCommandWithConfig(cfg, "gcloud", "config", "set", "project", projectID)

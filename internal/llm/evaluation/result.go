@@ -23,14 +23,14 @@ type BenchmarkReport struct {
 
 // BaselineCompare represents comparison against a baseline
 type BaselineCompare struct {
-	BaselineCommit    string        `json:"baseline_commit"`
-	BaselineDate      time.Time     `json:"baseline_date"`
-	SuccessRateDiff   float64       `json:"success_rate_diff"`
-	LatencyDiffMs     int64         `json:"latency_diff_ms"`
-	TokensDiff        int           `json:"tokens_diff"`
-	Regressions       []string      `json:"regressions,omitempty"`
-	Improvements      []string      `json:"improvements,omitempty"`
-	HasRegression     bool          `json:"has_regression"`
+	BaselineCommit  string    `json:"baseline_commit"`
+	BaselineDate    time.Time `json:"baseline_date"`
+	SuccessRateDiff float64   `json:"success_rate_diff"`
+	LatencyDiffMs   int64     `json:"latency_diff_ms"`
+	TokensDiff      int       `json:"tokens_diff"`
+	Regressions     []string  `json:"regressions,omitempty"`
+	Improvements    []string  `json:"improvements,omitempty"`
+	HasRegression   bool      `json:"has_regression"`
 }
 
 // SaveReport saves benchmark report to JSON file

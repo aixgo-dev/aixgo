@@ -16,15 +16,15 @@ import (
 type AuditEventType string
 
 const (
-	AuditEventToolCall      AuditEventType = "tool.call"
-	AuditEventToolResult    AuditEventType = "tool.result"
-	AuditEventAuthSuccess   AuditEventType = "auth.success"
-	AuditEventAuthFailure   AuditEventType = "auth.failure"
-	AuditEventAuthzAllowed  AuditEventType = "authz.allowed"
-	AuditEventAuthzDenied   AuditEventType = "authz.denied"
-	AuditEventRateLimit     AuditEventType = "ratelimit.exceeded"
-	AuditEventValidation    AuditEventType = "validation.error"
-	AuditEventError         AuditEventType = "error"
+	AuditEventToolCall     AuditEventType = "tool.call"
+	AuditEventToolResult   AuditEventType = "tool.result"
+	AuditEventAuthSuccess  AuditEventType = "auth.success"
+	AuditEventAuthFailure  AuditEventType = "auth.failure"
+	AuditEventAuthzAllowed AuditEventType = "authz.allowed"
+	AuditEventAuthzDenied  AuditEventType = "authz.denied"
+	AuditEventRateLimit    AuditEventType = "ratelimit.exceeded"
+	AuditEventValidation   AuditEventType = "validation.error"
+	AuditEventError        AuditEventType = "error"
 )
 
 // StructuredAuditEvent represents a structured audit event with request tracing
