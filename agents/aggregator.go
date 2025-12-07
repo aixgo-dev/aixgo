@@ -19,65 +19,65 @@ import (
 
 // AggregatorConfig holds AI-specific configuration for aggregation
 type AggregatorConfig struct {
-	AggregationStrategy   string            `yaml:"aggregation_strategy"`
-	ConflictResolution    string            `yaml:"conflict_resolution"`
-	DeduplicationMethod   string            `yaml:"deduplication_method"`
-	SummarizationEnabled  bool              `yaml:"summarization_enabled"`
-	MaxInputSources       int               `yaml:"max_input_sources"`
-	TimeoutMs             int               `yaml:"timeout_ms"`
-	SemanticSimilarity    float64           `yaml:"semantic_similarity_threshold"`
-	WeightedAggregation   map[string]float64 `yaml:"source_weights"`
-	ConsensusThreshold    float64           `yaml:"consensus_threshold"`
-	Temperature           float64           `yaml:"temperature"`
-	MaxTokens             int               `yaml:"max_tokens"`
+	AggregationStrategy  string             `yaml:"aggregation_strategy"`
+	ConflictResolution   string             `yaml:"conflict_resolution"`
+	DeduplicationMethod  string             `yaml:"deduplication_method"`
+	SummarizationEnabled bool               `yaml:"summarization_enabled"`
+	MaxInputSources      int                `yaml:"max_input_sources"`
+	TimeoutMs            int                `yaml:"timeout_ms"`
+	SemanticSimilarity   float64            `yaml:"semantic_similarity_threshold"`
+	WeightedAggregation  map[string]float64 `yaml:"source_weights"`
+	ConsensusThreshold   float64            `yaml:"consensus_threshold"`
+	Temperature          float64            `yaml:"temperature"`
+	MaxTokens            int                `yaml:"max_tokens"`
 }
 
 // AgentInput represents input from a single agent
 type AgentInput struct {
-	AgentName  string          `json:"agent_name"`
-	Content    string          `json:"content"`
-	Timestamp  time.Time       `json:"timestamp"`
-	Confidence float64         `json:"confidence,omitempty"`
-	Metadata   map[string]any  `json:"metadata,omitempty"`
-	Embedding  []float64       `json:"embedding,omitempty"`
+	AgentName  string         `json:"agent_name"`
+	Content    string         `json:"content"`
+	Timestamp  time.Time      `json:"timestamp"`
+	Confidence float64        `json:"confidence,omitempty"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
+	Embedding  []float64      `json:"embedding,omitempty"`
 }
 
 // AggregationResult with AI-enhanced insights
 type AggregationResult struct {
-	AggregatedContent   string                `json:"aggregated_content"`
-	Sources             []string              `json:"sources"`
-	Strategy            string                `json:"strategy_used"`
-	ConflictsSolved     []ConflictResolution  `json:"conflicts_resolved,omitempty"`
-	ConsensusLevel      float64               `json:"consensus_level"`
-	SummaryInsights     string                `json:"summary_insights,omitempty"`
-	TokensUsed          int                   `json:"tokens_used"`
-	ProcessingTimeMs    int64                 `json:"processing_time_ms"`
-	SemanticClusters    []SemanticCluster     `json:"semantic_clusters,omitempty"`
+	AggregatedContent string               `json:"aggregated_content"`
+	Sources           []string             `json:"sources"`
+	Strategy          string               `json:"strategy_used"`
+	ConflictsSolved   []ConflictResolution `json:"conflicts_resolved,omitempty"`
+	ConsensusLevel    float64              `json:"consensus_level"`
+	SummaryInsights   string               `json:"summary_insights,omitempty"`
+	TokensUsed        int                  `json:"tokens_used"`
+	ProcessingTimeMs  int64                `json:"processing_time_ms"`
+	SemanticClusters  []SemanticCluster    `json:"semantic_clusters,omitempty"`
 }
 
 // ConflictResolution describes how conflicts were resolved
 type ConflictResolution struct {
-	Topic       string   `json:"topic"`
-	Sources     []string `json:"conflicting_sources"`
-	Resolution  string   `json:"resolution"`
-	Reasoning   string   `json:"reasoning"`
+	Topic      string   `json:"topic"`
+	Sources    []string `json:"conflicting_sources"`
+	Resolution string   `json:"resolution"`
+	Reasoning  string   `json:"reasoning"`
 }
 
 // SemanticCluster groups semantically similar inputs
 type SemanticCluster struct {
-	ClusterID    string   `json:"cluster_id"`
-	Members      []string `json:"member_agents"`
-	CoreConcept  string   `json:"core_concept"`
-	Similarity   float64  `json:"avg_similarity"`
+	ClusterID   string   `json:"cluster_id"`
+	Members     []string `json:"member_agents"`
+	CoreConcept string   `json:"core_concept"`
+	Similarity  float64  `json:"avg_similarity"`
 }
 
 // AggregatorAgent implements AI-powered output aggregation
 type AggregatorAgent struct {
 	*BaseAgent
-	def              agent.AgentDef
-	provider         provider.Provider
-	config           AggregatorConfig
-	rt               agent.Runtime
+	def      agent.AgentDef
+	provider provider.Provider
+	config   AggregatorConfig
+	rt       agent.Runtime
 
 	// AI-specific fields for aggregation
 	inputBuffer      map[string]*AgentInput
@@ -88,20 +88,20 @@ type AggregatorAgent struct {
 
 // AggregationStats tracks AI performance metrics
 type AggregationStats struct {
-	TotalAggregations   int
-	AvgConsensusLevel   float64
-	ConflictsResolved   int
-	TokensUsed          int
-	ProcessingTimes     []time.Duration
+	TotalAggregations int
+	AvgConsensusLevel float64
+	ConflictsResolved int
+	TokensUsed        int
+	ProcessingTimes   []time.Duration
 }
 
 // Aggregation strategies
 const (
-	StrategyConsensus        = "consensus"
-	StrategyWeighted         = "weighted"
-	StrategySemantic         = "semantic"
-	StrategyHierarchical     = "hierarchical"
-	StrategyRAG              = "rag_based"
+	StrategyConsensus    = "consensus"
+	StrategyWeighted     = "weighted"
+	StrategySemantic     = "semantic"
+	StrategyHierarchical = "hierarchical"
+	StrategyRAG          = "rag_based"
 )
 
 func init() {

@@ -19,10 +19,10 @@ type Config struct {
 	GCPCredentials string `yaml:"gcp_credentials"`
 
 	// Model Configuration
-	DefaultModel    string `yaml:"default_model"`
-	EmbeddingModel  string `yaml:"embedding_model"`
-	MaxTokens       int    `yaml:"max_tokens"`
-	Temperature     float64 `yaml:"temperature"`
+	DefaultModel   string  `yaml:"default_model"`
+	EmbeddingModel string  `yaml:"embedding_model"`
+	MaxTokens      int     `yaml:"max_tokens"`
+	Temperature    float64 `yaml:"temperature"`
 
 	// Vector Store
 	VectorProvider string            `yaml:"vector_provider"` // memory, firestore, pinecone

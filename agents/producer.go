@@ -21,10 +21,10 @@ func init() {
 	})
 }
 
-func (p *Producer) Name() string                                                      { return p.def.Name }
-func (p *Producer) Role() string                                                      { return p.def.Role }
-func (p *Producer) Ready() bool                                                       { return true }
-func (p *Producer) Stop(ctx context.Context) error                                    { return nil }
+func (p *Producer) Name() string                   { return p.def.Name }
+func (p *Producer) Role() string                   { return p.def.Role }
+func (p *Producer) Ready() bool                    { return true }
+func (p *Producer) Stop(ctx context.Context) error { return nil }
 func (p *Producer) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	// Producer doesn't support sync execution - it's designed for async event generation
 	return nil, &agent.NotImplementedError{AgentName: p.def.Name, Method: "Execute"}

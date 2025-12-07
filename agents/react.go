@@ -189,7 +189,7 @@ func (r *ReActAgent) Execute(ctx context.Context, input *agent.Message) (*agent.
 }
 
 func (r *ReActAgent) Start(ctx context.Context) error {
-	r.InitContext(ctx)  // Initialize context from BaseAgent
+	r.InitContext(ctx) // Initialize context from BaseAgent
 	if len(r.def.Inputs) == 0 {
 		return fmt.Errorf("no inputs defined for ReActAgent")
 	}
@@ -418,7 +418,7 @@ func (r *ReActAgent) executeProviderTool(ctx context.Context, call provider.Tool
 // containsSuspiciousContent checks for injection patterns in tool arguments
 func containsSuspiciousContent(s string) bool {
 	suspicious := []string{
-		"../",         // Path traversal
+		"../",                // Path traversal
 		"&&", "||", ";", "|", // Command injection
 		"<script",     // XSS
 		"javascript:", // XSS

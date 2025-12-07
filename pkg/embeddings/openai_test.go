@@ -675,7 +675,7 @@ func TestOpenAIEmptyResponse(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(openAIResponse{
 			Object: "list",
-			Data:   []struct {
+			Data: []struct {
 				Object    string    `json:"object"`
 				Embedding []float32 `json:"embedding"`
 				Index     int       `json:"index"`
@@ -754,7 +754,7 @@ func BenchmarkOpenAIEmbedBatch(b *testing.B) {
 		w.WriteHeader(http.StatusOK)
 		mockResp := openAIResponse{
 			Object: "list",
-			Data:   make([]struct {
+			Data: make([]struct {
 				Object    string    `json:"object"`
 				Embedding []float32 `json:"embedding"`
 				Index     int       `json:"index"`

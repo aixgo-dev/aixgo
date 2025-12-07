@@ -159,7 +159,7 @@ func TestClassifierAgentClassify(t *testing.T) {
 				{Name: "business", Description: "Business content"},
 			},
 			Temperature:         0.3,
-			MaxTokens:          500,
+			MaxTokens:           500,
 			ConfidenceThreshold: 0.7,
 		},
 		rt:              rt,

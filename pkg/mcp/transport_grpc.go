@@ -128,9 +128,9 @@ func (t *GRPCTransport) buildTLSConfig() (*tls.Config, error) {
 		}
 
 		// Log warning for non-production environments
-		log.Printf("WARNING: TLS certificate verification is disabled (InsecureSkipVerify=true). " +
-			"This is a security risk and should NEVER be used in production. " +
-			"Connections are vulnerable to man-in-the-middle attacks. " +
+		log.Printf("WARNING: TLS certificate verification is disabled (InsecureSkipVerify=true). "+
+			"This is a security risk and should NEVER be used in production. "+
+			"Connections are vulnerable to man-in-the-middle attacks. "+
 			"Current ENVIRONMENT=%s", env)
 	}
 
@@ -848,7 +848,7 @@ func CreateInsecureTLSConfig() (*TLSConfig, error) {
 		return nil, fmt.Errorf("SECURITY: Cannot create insecure TLS config in production environment (ENVIRONMENT=%s)", env)
 	}
 
-	log.Printf("WARNING: Creating insecure TLS config with certificate verification disabled. " +
+	log.Printf("WARNING: Creating insecure TLS config with certificate verification disabled. "+
 		"This should NEVER be used in production. Current ENVIRONMENT=%s", env)
 	return &TLSConfig{
 		Enabled:            true,

@@ -189,21 +189,21 @@ func (h *HuggingFaceEmbeddings) makeRequest(ctx context.Context, reqBody hfReque
 func getHuggingFaceModelDimensions(model string) int {
 	// Map of known model dimensions
 	knownDimensions := map[string]int{
-		"sentence-transformers/all-MiniLM-L6-v2":     384,
-		"sentence-transformers/all-MiniLM-L12-v2":    384,
-		"sentence-transformers/all-mpnet-base-v2":    768,
+		"sentence-transformers/all-MiniLM-L6-v2":        384,
+		"sentence-transformers/all-MiniLM-L12-v2":       384,
+		"sentence-transformers/all-mpnet-base-v2":       768,
 		"sentence-transformers/paraphrase-MiniLM-L6-v2": 384,
-		"BAAI/bge-small-en-v1.5":                     384,
-		"BAAI/bge-base-en-v1.5":                      768,
-		"BAAI/bge-large-en-v1.5":                     1024,
-		"thenlper/gte-small":                         384,
-		"thenlper/gte-base":                          768,
-		"thenlper/gte-large":                         1024,
-		"intfloat/e5-small-v2":                       384,
-		"intfloat/e5-base-v2":                        768,
-		"intfloat/e5-large-v2":                       1024,
-		"jinaai/jina-embeddings-v2-small-en":         512,
-		"jinaai/jina-embeddings-v2-base-en":          768,
+		"BAAI/bge-small-en-v1.5":                        384,
+		"BAAI/bge-base-en-v1.5":                         768,
+		"BAAI/bge-large-en-v1.5":                        1024,
+		"thenlper/gte-small":                            384,
+		"thenlper/gte-base":                             768,
+		"thenlper/gte-large":                            1024,
+		"intfloat/e5-small-v2":                          384,
+		"intfloat/e5-base-v2":                           768,
+		"intfloat/e5-large-v2":                          1024,
+		"jinaai/jina-embeddings-v2-small-en":            512,
+		"jinaai/jina-embeddings-v2-base-en":             768,
 	}
 
 	if dim, ok := knownDimensions[model]; ok {

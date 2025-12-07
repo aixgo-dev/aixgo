@@ -306,11 +306,11 @@ func NewSplunkBackend(config *SplunkConfig, batchSize int, flushInterval time.Du
 
 // SplunkEvent wraps audit event for Splunk HEC format
 type SplunkEvent struct {
-	Time   int64                  `json:"time"`
-	Host   string                 `json:"host,omitempty"`
-	Source string                 `json:"source,omitempty"`
-	Index  string                 `json:"index,omitempty"`
-	Event  *StructuredAuditEvent  `json:"event"`
+	Time   int64                 `json:"time"`
+	Host   string                `json:"host,omitempty"`
+	Source string                `json:"source,omitempty"`
+	Index  string                `json:"index,omitempty"`
+	Event  *StructuredAuditEvent `json:"event"`
 }
 
 func (b *SplunkBackend) sendBatch(events []*StructuredAuditEvent) error {

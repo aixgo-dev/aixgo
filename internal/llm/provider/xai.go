@@ -76,13 +76,13 @@ func (p *XAIProvider) Name() string {
 
 // xaiRequest represents the X.AI API request format (OpenAI-compatible)
 type xaiRequest struct {
-	Model          string         `json:"model"`
-	Messages       []xaiMessage   `json:"messages"`
-	Temperature    float64        `json:"temperature,omitempty"`
-	MaxTokens      int            `json:"max_tokens,omitempty"`
-	Tools          []xaiTool      `json:"tools,omitempty"`
-	Stream         bool           `json:"stream,omitempty"`
-	ResponseFormat *xaiRespFmt    `json:"response_format,omitempty"`
+	Model          string       `json:"model"`
+	Messages       []xaiMessage `json:"messages"`
+	Temperature    float64      `json:"temperature,omitempty"`
+	MaxTokens      int          `json:"max_tokens,omitempty"`
+	Tools          []xaiTool    `json:"tools,omitempty"`
+	Stream         bool         `json:"stream,omitempty"`
+	ResponseFormat *xaiRespFmt  `json:"response_format,omitempty"`
 }
 
 type xaiMessage struct {

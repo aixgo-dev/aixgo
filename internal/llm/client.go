@@ -23,8 +23,12 @@ type ClientConfig struct {
 	// DefaultTemperature to use if not specified
 	DefaultTemperature float64
 
-	// MaxRetries for validation failures (default: 3)
+	// MaxRetries for validation failures (default: 3, set to 1 to disable retry)
 	MaxRetries int
+
+	// DisableValidationRetry disables automatic retry on validation failures
+	// When true, validation errors will fail immediately without retry
+	DisableValidationRetry bool
 
 	// StrictValidation enables strict mode (no type coercion)
 	StrictValidation bool
@@ -66,13 +70,13 @@ type CreateOptions struct {
 	ValidationMode string
 }
 
-// CreateStructured creates a structured response of type T
+// CreateStructured creates a structured response of type T with automatic validation retry
 func CreateStructured[T any](ctx context.Context, client *Client, prompt string, options *CreateOptions) (*T, error) {
 	if options == nil {
 		options = &CreateOptions{}
 	}
 
-	// Build messages
+	// Build initial messages
 	messages := []provider.Message{}
 
 	if options.SystemPrompt != "" {
@@ -99,52 +103,79 @@ func CreateStructured[T any](ctx context.Context, client *Client, prompt string,
 		temperature = client.config.DefaultTemperature
 	}
 
-	// Create request
-	request := provider.StructuredRequest{
-		CompletionRequest: provider.CompletionRequest{
-			Messages:    messages,
-			Model:       model,
-			Temperature: temperature,
-			MaxTokens:   options.MaxTokens,
-		},
-		ResponseSchema: options.Schema,
-		StrictSchema:   client.config.StrictValidation || options.ValidationMode == "strict",
+	// Determine max retries (default: 3 for Pydantic AI-style behavior)
+	maxRetries := client.config.MaxRetries
+	if client.config.DisableValidationRetry {
+		maxRetries = 1 // Single attempt if retry is disabled
+	}
+	if maxRetries == 0 {
+		maxRetries = 1 // At least one attempt
 	}
 
-	// Make request
-	response, err := client.provider.CreateStructured(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("provider error: %w", err)
+	// Retry loop for validation failures
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Create request with current messages (includes retry feedback if retrying)
+		request := provider.StructuredRequest{
+			CompletionRequest: provider.CompletionRequest{
+				Messages:    messages,
+				Model:       model,
+				Temperature: temperature,
+				MaxTokens:   options.MaxTokens,
+			},
+			ResponseSchema: options.Schema,
+			StrictSchema:   client.config.StrictValidation || options.ValidationMode == "strict",
+		}
+
+		// Make request
+		response, err := client.provider.CreateStructured(ctx, request)
+		if err != nil {
+			return nil, fmt.Errorf("provider error: %w", err)
+		}
+
+		// Parse response data
+		var data map[string]any
+		if err := json.Unmarshal(response.Data, &data); err != nil {
+			return nil, fmt.Errorf("failed to parse response: %w", err)
+		}
+
+		// Validate and convert to target type
+		var result *T
+		var validationErr error
+		if client.config.StrictValidation || options.ValidationMode == "strict" {
+			result, validationErr = validator.ValidateStrict[T](data)
+		} else {
+			result, validationErr = validator.Validate[T](data)
+		}
+
+		// Success! Return result
+		if validationErr == nil {
+			return result, nil
+		}
+
+		// Last attempt failed - return error
+		if attempt == maxRetries-1 {
+			return nil, fmt.Errorf("validation failed after %d attempts: %w", maxRetries, validationErr)
+		}
+
+		// Retry with validation feedback - append assistant's response and user's feedback
+		feedbackMsg := formatValidationFeedback(validationErr, response.Content)
+		messages = append(messages,
+			provider.Message{Role: "assistant", Content: response.Content},
+			provider.Message{Role: "user", Content: feedbackMsg},
+		)
 	}
 
-	// Parse response data
-	var data map[string]any
-	if err := json.Unmarshal(response.Data, &data); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
-	}
-
-	// Validate and convert to target type
-	var result *T
-	if client.config.StrictValidation || options.ValidationMode == "strict" {
-		result, err = validator.ValidateStrict[T](data)
-	} else {
-		result, err = validator.Validate[T](data)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("validation error: %w", err)
-	}
-
-	return result, nil
+	// Unreachable (loop always returns)
+	return nil, fmt.Errorf("unreachable")
 }
 
-// CreateList creates a list of structured responses of type T
+// CreateList creates a list of structured responses of type T with automatic validation retry
 func CreateList[T any](ctx context.Context, client *Client, prompt string, options *CreateOptions) ([]*T, error) {
 	if options == nil {
 		options = &CreateOptions{}
 	}
 
-	// Build messages
+	// Build initial messages
 	messages := []provider.Message{}
 
 	if options.SystemPrompt != "" {
@@ -173,54 +204,96 @@ func CreateList[T any](ctx context.Context, client *Client, prompt string, optio
 		temperature = client.config.DefaultTemperature
 	}
 
-	// Create request
-	request := provider.StructuredRequest{
-		CompletionRequest: provider.CompletionRequest{
-			Messages:    messages,
-			Model:       model,
-			Temperature: temperature,
-			MaxTokens:   options.MaxTokens,
-		},
-		ResponseSchema: options.Schema,
-		StrictSchema:   client.config.StrictValidation || options.ValidationMode == "strict",
+	// Determine max retries (default: 3 for Pydantic AI-style behavior)
+	maxRetries := client.config.MaxRetries
+	if client.config.DisableValidationRetry {
+		maxRetries = 1 // Single attempt if retry is disabled
+	}
+	if maxRetries == 0 {
+		maxRetries = 1 // At least one attempt
 	}
 
-	// Make request
-	response, err := client.provider.CreateStructured(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("provider error: %w", err)
-	}
-
-	// Parse response data
-	var dataList []any
-	if err := json.Unmarshal(response.Data, &dataList); err != nil {
-		return nil, fmt.Errorf("failed to parse response as array: %w", err)
-	}
-
-	// Validate each item
-	results := make([]*T, 0, len(dataList))
-
-	for i, item := range dataList {
-		mapData, ok := item.(map[string]any)
-		if !ok {
-			return nil, fmt.Errorf("item %d is not an object", i)
+	// Retry loop for validation failures
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Create request with current messages (includes retry feedback if retrying)
+		request := provider.StructuredRequest{
+			CompletionRequest: provider.CompletionRequest{
+				Messages:    messages,
+				Model:       model,
+				Temperature: temperature,
+				MaxTokens:   options.MaxTokens,
+			},
+			ResponseSchema: options.Schema,
+			StrictSchema:   client.config.StrictValidation || options.ValidationMode == "strict",
 		}
 
-		var result *T
-		if client.config.StrictValidation || options.ValidationMode == "strict" {
-			result, err = validator.ValidateStrict[T](mapData)
-		} else {
-			result, err = validator.Validate[T](mapData)
-		}
-
+		// Make request
+		response, err := client.provider.CreateStructured(ctx, request)
 		if err != nil {
-			return nil, fmt.Errorf("validation error for item %d: %w", i, err)
+			return nil, fmt.Errorf("provider error: %w", err)
 		}
 
-		results = append(results, result)
+		// Parse response data
+		var dataList []any
+		if err := json.Unmarshal(response.Data, &dataList); err != nil {
+			// Retry with parsing error feedback
+			if attempt < maxRetries-1 {
+				feedbackMsg := formatValidationFeedback(err, response.Content)
+				messages = append(messages,
+					provider.Message{Role: "assistant", Content: response.Content},
+					provider.Message{Role: "user", Content: feedbackMsg},
+				)
+				continue
+			}
+			return nil, fmt.Errorf("failed to parse response as array: %w", err)
+		}
+
+		// Validate each item
+		results := make([]*T, 0, len(dataList))
+		var validationErr error
+
+		for i, item := range dataList {
+			mapData, ok := item.(map[string]any)
+			if !ok {
+				validationErr = fmt.Errorf("item %d is not an object", i)
+				break
+			}
+
+			var result *T
+			if client.config.StrictValidation || options.ValidationMode == "strict" {
+				result, err = validator.ValidateStrict[T](mapData)
+			} else {
+				result, err = validator.Validate[T](mapData)
+			}
+
+			if err != nil {
+				validationErr = fmt.Errorf("validation error for item %d: %w", i, err)
+				break
+			}
+
+			results = append(results, result)
+		}
+
+		// Success! All items validated
+		if validationErr == nil {
+			return results, nil
+		}
+
+		// Last attempt failed - return error
+		if attempt == maxRetries-1 {
+			return nil, fmt.Errorf("validation failed after %d attempts: %w", maxRetries, validationErr)
+		}
+
+		// Retry with validation feedback
+		feedbackMsg := formatValidationFeedback(validationErr, response.Content)
+		messages = append(messages,
+			provider.Message{Role: "assistant", Content: response.Content},
+			provider.Message{Role: "user", Content: feedbackMsg},
+		)
 	}
 
-	return results, nil
+	// Unreachable (loop always returns)
+	return nil, fmt.Errorf("unreachable")
 }
 
 // CreateCompletion creates a simple text completion
@@ -271,6 +344,15 @@ func CreateCompletion(ctx context.Context, client *Client, prompt string, option
 	}
 
 	return response.Content, nil
+}
+
+// formatValidationFeedback formats validation errors into a user-friendly retry prompt
+func formatValidationFeedback(validationErr error, previousOutput string) string {
+	return fmt.Sprintf(`Your previous response did not pass validation:
+
+%s
+
+Please correct the issues and provide a valid response that matches all requirements.`, validationErr.Error())
 }
 
 // Helper function to create a client with a provider name

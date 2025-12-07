@@ -7,9 +7,9 @@ import (
 
 // SequentialConfig configures sequential execution
 type SequentialConfig struct {
-	ErrorStrategy ErrorStrategy            // How to handle errors
-	Timeout       time.Duration            // Timeout per agent
-	BranchFn      func(string) string      // Optional: determine next agent based on output
+	ErrorStrategy ErrorStrategy       // How to handle errors
+	Timeout       time.Duration       // Timeout per agent
+	BranchFn      func(string) string // Optional: determine next agent based on output
 }
 
 // SequentialPattern executes agents in sequence, passing output as input

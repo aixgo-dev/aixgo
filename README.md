@@ -31,6 +31,7 @@ Production-grade AI agent framework for Go. Build secure, scalable multi-agent s
 
 ### LLM & AI Integration
 - **Multi-Provider Support**: OpenAI, Anthropic (Claude), xAI (Grok), Google (Gemini), HuggingFace
+- **Pydantic AI-Style Validation Retry**: Automatic retry with validation errors for 40-70% improved structured output reliability
 - **MCP Integration**: Model Context Protocol for tool calling (local, gRPC, multi-server)
 - **Vector Stores**: Firestore, in-memory (Qdrant, pgvector, ChromaDB planned)
 - **Embeddings**: OpenAI, HuggingFace models for semantic memory
@@ -153,6 +154,8 @@ Browse **29+ complete, production-ready configuration examples**:
   - [Classifier Workflow](examples/classifier-workflow/) - AI-powered ticket classification with confidence scoring
   - [Aggregator Workflow](examples/aggregator-workflow/) - Multi-agent synthesis with consensus and semantic strategies
 - **[LLM Providers](https://aixgo.dev/examples/llm-providers)** - OpenAI, Anthropic, Gemini, Vertex AI, xAI, HuggingFace
+- **[Structured Output](https://aixgo.dev/examples/structured-output)** - Type-safe LLM responses with validation
+  - [Pydantic-Style Validation](examples/pydantic-style-validation/) - Automatic retry with validation errors for reliable structured data extraction
 - **[MCP Integration](https://aixgo.dev/examples/mcp)** - Local transport, gRPC, multi-server setups
 - **[Security](https://aixgo.dev/examples/security)** - Authentication, authorization, TLS configurations
 - **[Orchestration](https://aixgo.dev/examples/orchestration)** - MapReduce, parallel, sequential, reflection patterns

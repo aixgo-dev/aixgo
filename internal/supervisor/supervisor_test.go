@@ -555,10 +555,10 @@ func TestMessage_Fields(t *testing.T) {
 // Mock types for testing
 type mockAgent struct{}
 
-func (m *mockAgent) Name() string                                                      { return "mock" }
-func (m *mockAgent) Role() string                                                      { return "test" }
-func (m *mockAgent) Ready() bool                                                       { return true }
-func (m *mockAgent) Stop(ctx context.Context) error                                    { return nil }
+func (m *mockAgent) Name() string                   { return "mock" }
+func (m *mockAgent) Role() string                   { return "test" }
+func (m *mockAgent) Ready() bool                    { return true }
+func (m *mockAgent) Stop(ctx context.Context) error { return nil }
 func (m *mockAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	return input, nil
 }

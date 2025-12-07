@@ -128,11 +128,11 @@ func NewMockClassifierAgent() *MockClassifierAgent {
 	return &MockClassifierAgent{}
 }
 
-func (m *MockClassifierAgent) Name() string                                             { return "complexity-classifier" }
-func (m *MockClassifierAgent) Role() string                                             { return "classifier" }
-func (m *MockClassifierAgent) Start(ctx context.Context) error                          { return nil }
-func (m *MockClassifierAgent) Stop(ctx context.Context) error                           { return nil }
-func (m *MockClassifierAgent) Ready() bool                                              { return true }
+func (m *MockClassifierAgent) Name() string                    { return "complexity-classifier" }
+func (m *MockClassifierAgent) Role() string                    { return "classifier" }
+func (m *MockClassifierAgent) Start(ctx context.Context) error { return nil }
+func (m *MockClassifierAgent) Stop(ctx context.Context) error  { return nil }
+func (m *MockClassifierAgent) Ready() bool                     { return true }
 
 func (m *MockClassifierAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	query := input.Payload
@@ -189,11 +189,11 @@ func NewMockLLMAgent(name, model string, cost float64) *MockLLMAgent {
 	}
 }
 
-func (m *MockLLMAgent) Name() string                                             { return m.name }
-func (m *MockLLMAgent) Role() string                                             { return "llm" }
-func (m *MockLLMAgent) Start(ctx context.Context) error                          { return nil }
-func (m *MockLLMAgent) Stop(ctx context.Context) error                           { return nil }
-func (m *MockLLMAgent) Ready() bool                                              { return true }
+func (m *MockLLMAgent) Name() string                    { return m.name }
+func (m *MockLLMAgent) Role() string                    { return "llm" }
+func (m *MockLLMAgent) Start(ctx context.Context) error { return nil }
+func (m *MockLLMAgent) Stop(ctx context.Context) error  { return nil }
+func (m *MockLLMAgent) Ready() bool                     { return true }
 
 func (m *MockLLMAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	response := map[string]interface{}{

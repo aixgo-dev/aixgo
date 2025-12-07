@@ -63,13 +63,13 @@ func (p *AnthropicProvider) Name() string {
 }
 
 type anthropicRequest struct {
-	Model       string              `json:"model"`
-	Messages    []anthropicMessage  `json:"messages"`
-	System      string              `json:"system,omitempty"`
-	MaxTokens   int                 `json:"max_tokens"`
-	Temperature float64             `json:"temperature,omitempty"`
-	Tools       []anthropicTool     `json:"tools,omitempty"`
-	Stream      bool                `json:"stream,omitempty"`
+	Model       string             `json:"model"`
+	Messages    []anthropicMessage `json:"messages"`
+	System      string             `json:"system,omitempty"`
+	MaxTokens   int                `json:"max_tokens"`
+	Temperature float64            `json:"temperature,omitempty"`
+	Tools       []anthropicTool    `json:"tools,omitempty"`
+	Stream      bool               `json:"stream,omitempty"`
 }
 
 type anthropicMessage struct {

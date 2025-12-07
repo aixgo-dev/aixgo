@@ -91,10 +91,10 @@ func initializeServices(ctx context.Context, cfg *Config) (embeddings.EmbeddingS
 	switch cfg.EmbeddingProvider {
 	case "huggingface":
 		embCfg.HuggingFace = &embeddings.HuggingFaceConfig{
-			Model:          "sentence-transformers/all-MiniLM-L6-v2",
-			APIKey:         cfg.HuggingFaceKey,
-			WaitForModel:   true,
-			UseCache:       true,
+			Model:        "sentence-transformers/all-MiniLM-L6-v2",
+			APIKey:       cfg.HuggingFaceKey,
+			WaitForModel: true,
+			UseCache:     true,
 		}
 	case "openai":
 		embCfg.OpenAI = &embeddings.OpenAIConfig{
@@ -227,9 +227,9 @@ func runIndexMode(ctx context.Context, embSvc embeddings.EmbeddingService, store
 			),
 			Tags: []string{"documentation", doc.category},
 			Metadata: map[string]any{
-				"source":      "aixgo-docs",
-				"category":    doc.category,
-				"indexed_at":  time.Now().Format(time.RFC3339),
+				"source":     "aixgo-docs",
+				"category":   doc.category,
+				"indexed_at": time.Now().Format(time.RFC3339),
 			},
 		}
 
@@ -437,4 +437,3 @@ func getEnv(key, defaultValue string) string {
 	}
 	return defaultValue
 }
-

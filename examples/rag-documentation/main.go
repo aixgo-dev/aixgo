@@ -123,11 +123,11 @@ func NewMockRetrieverAgent() *MockRetrieverAgent {
 	return &MockRetrieverAgent{docs: docs}
 }
 
-func (m *MockRetrieverAgent) Name() string                                             { return "doc-retriever" }
-func (m *MockRetrieverAgent) Role() string                                             { return "retriever" }
-func (m *MockRetrieverAgent) Start(ctx context.Context) error                          { return nil }
-func (m *MockRetrieverAgent) Stop(ctx context.Context) error                           { return nil }
-func (m *MockRetrieverAgent) Ready() bool                                              { return true }
+func (m *MockRetrieverAgent) Name() string                    { return "doc-retriever" }
+func (m *MockRetrieverAgent) Role() string                    { return "retriever" }
+func (m *MockRetrieverAgent) Start(ctx context.Context) error { return nil }
+func (m *MockRetrieverAgent) Stop(ctx context.Context) error  { return nil }
+func (m *MockRetrieverAgent) Ready() bool                     { return true }
 
 func (m *MockRetrieverAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	query := input.Payload
@@ -170,11 +170,11 @@ func NewMockGeneratorAgent() *MockGeneratorAgent {
 	return &MockGeneratorAgent{}
 }
 
-func (m *MockGeneratorAgent) Name() string                                             { return "answer-generator" }
-func (m *MockGeneratorAgent) Role() string                                             { return "generator" }
-func (m *MockGeneratorAgent) Start(ctx context.Context) error                          { return nil }
-func (m *MockGeneratorAgent) Stop(ctx context.Context) error                           { return nil }
-func (m *MockGeneratorAgent) Ready() bool                                              { return true }
+func (m *MockGeneratorAgent) Name() string                    { return "answer-generator" }
+func (m *MockGeneratorAgent) Role() string                    { return "generator" }
+func (m *MockGeneratorAgent) Start(ctx context.Context) error { return nil }
+func (m *MockGeneratorAgent) Stop(ctx context.Context) error  { return nil }
+func (m *MockGeneratorAgent) Ready() bool                     { return true }
 
 func (m *MockGeneratorAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	// In production, this would call an LLM with the retrieved context

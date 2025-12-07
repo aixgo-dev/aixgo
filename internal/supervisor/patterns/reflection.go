@@ -11,12 +11,12 @@ type QualityAssessor func(ctx context.Context, iteration int, output string) (sc
 
 // ReflectionConfig configures the reflection pattern
 type ReflectionConfig struct {
-	MaxIterations       int              // Maximum iterations
-	Timeout             time.Duration    // Timeout per iteration
-	QualityThreshold    float64          // Stop when quality reaches this level
-	ConvergenceWindow   int              // Number of iterations to check for convergence
-	ConvergenceEpsilon  float64          // Minimum improvement to not be considered converged
-	QualityAssessor     QualityAssessor  // Function to assess quality
+	MaxIterations      int             // Maximum iterations
+	Timeout            time.Duration   // Timeout per iteration
+	QualityThreshold   float64         // Stop when quality reaches this level
+	ConvergenceWindow  int             // Number of iterations to check for convergence
+	ConvergenceEpsilon float64         // Minimum improvement to not be considered converged
+	QualityAssessor    QualityAssessor // Function to assess quality
 }
 
 // ReflectionResult represents the result of a reflection iteration

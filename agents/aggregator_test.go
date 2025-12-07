@@ -65,8 +65,8 @@ func TestAggregatorStrategies(t *testing.T) {
 		},
 		provider: mockProvider,
 		config: AggregatorConfig{
-			Temperature:      0.5,
-			MaxTokens:       1500,
+			Temperature:        0.5,
+			MaxTokens:          1500,
 			SemanticSimilarity: 0.85,
 			ConsensusThreshold: 0.7,
 		},
@@ -229,11 +229,11 @@ func TestAggregatorSystemPrompts(t *testing.T) {
 
 	// Test different system prompts
 	prompts := map[string]func() string{
-		"aggregator": aggAgent.getAggregatorSystemPrompt,
-		"semantic":   aggAgent.getSemanticSystemPrompt,
-		"weighted":   aggAgent.getWeightedSystemPrompt,
+		"aggregator":   aggAgent.getAggregatorSystemPrompt,
+		"semantic":     aggAgent.getSemanticSystemPrompt,
+		"weighted":     aggAgent.getWeightedSystemPrompt,
 		"hierarchical": aggAgent.getHierarchicalSystemPrompt,
-		"rag":        aggAgent.getRAGSystemPrompt,
+		"rag":          aggAgent.getRAGSystemPrompt,
 	}
 
 	for name, getPrompt := range prompts {

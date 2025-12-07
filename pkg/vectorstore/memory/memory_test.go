@@ -169,8 +169,8 @@ func TestUpsert(t *testing.T) {
 	t.Run("invalid document", func(t *testing.T) {
 		coll3 := store.Collection("test3")
 		doc := &vectorstore.Document{
-			ID: "", // Invalid: empty ID
-			Content: vectorstore.NewTextContent("test"),
+			ID:        "", // Invalid: empty ID
+			Content:   vectorstore.NewTextContent("test"),
 			Embedding: vectorstore.NewEmbedding([]float32{1, 2, 3}, "test"),
 		}
 

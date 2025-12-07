@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/aixgo-dev/aixgo/internal/llm/provider"
@@ -252,18 +253,24 @@ func TestCreateStructured_TypeCoercion(t *testing.T) {
 		t.Errorf("Data.Count = %d, want 42", data.Count)
 	}
 
-	// Test with strict validation (should fail)
+	// Test with strict validation (should fail immediately, no retry)
 	mock.Reset()
 	mock.AddStructuredResponse(provider.MockStructuredResponse(responseData))
 
 	clientStrict := NewClient(mock, ClientConfig{
-		DefaultModel:     "test-model",
-		StrictValidation: true,
+		DefaultModel:           "test-model",
+		StrictValidation:       true,
+		DisableValidationRetry: true, // Disable retry for this type coercion test
 	})
 
 	_, err = CreateStructured[Data](ctx, clientStrict, "Create data", nil)
 	if err == nil {
 		t.Error("CreateStructured() with strict validation error = nil, want error for type mismatch")
+	}
+
+	// Verify provider was called only once (no retry)
+	if len(mock.StructuredCalls) != 1 {
+		t.Errorf("Provider calls = %d, want 1 (retry disabled)", len(mock.StructuredCalls))
 	}
 }
 
@@ -367,5 +374,297 @@ func TestCreateList_NotAnArray(t *testing.T) {
 	_, err := CreateList[Item](ctx, client, "Create items", nil)
 	if err == nil {
 		t.Fatal("CreateList() error = nil, want error for non-array response")
+	}
+}
+
+// ===== NEW VALIDATION RETRY TESTS =====
+
+func TestCreateStructured_ValidationRetry_Success(t *testing.T) {
+	type User struct {
+		Name  string `json:"name" validate:"required"`
+		Email string `json:"email" validate:"required,email"`
+		Age   int    `json:"age" validate:"gte=0"`
+	}
+
+	ctx := context.Background()
+
+	// Setup mock provider - first response invalid, second response valid
+	mock := provider.NewMockProvider("test")
+
+	// First attempt: missing email (invalid)
+	invalidData := map[string]any{
+		"name": "Alice",
+		"age":  30,
+	}
+	mock.AddStructuredResponse(provider.MockStructuredResponse(invalidData))
+
+	// Second attempt: valid
+	validData := map[string]any{
+		"name":  "Alice",
+		"email": "alice@example.com",
+		"age":   30,
+	}
+	mock.AddStructuredResponse(provider.MockStructuredResponse(validData))
+
+	client := NewClient(mock, ClientConfig{
+		DefaultModel: "test-model",
+		MaxRetries:   3,
+	})
+
+	// Test automatic retry on validation failure
+	user, err := CreateStructured[User](ctx, client, "Create a user", nil)
+	if err != nil {
+		t.Fatalf("CreateStructured() error = %v, want success after retry", err)
+	}
+
+	if user.Email != "alice@example.com" {
+		t.Errorf("User.Email = %s, want 'alice@example.com' (should be corrected after retry)", user.Email)
+	}
+
+	// Verify provider was called twice (initial + 1 retry)
+	if len(mock.StructuredCalls) != 2 {
+		t.Errorf("Provider calls = %d, want 2 (initial + 1 retry)", len(mock.StructuredCalls))
+	}
+
+	// Verify feedback message was included in second call
+	if len(mock.StructuredCalls) >= 2 {
+		secondCall := mock.StructuredCalls[1]
+		if len(secondCall.Messages) < 3 {
+			t.Error("Second call should have at least 3 messages (system, user, assistant, user feedback)")
+		}
+		// Check that feedback mentions validation error
+		lastMsg := secondCall.Messages[len(secondCall.Messages)-1]
+		if lastMsg.Role != "user" {
+			t.Errorf("Last message role = %s, want 'user' (feedback)", lastMsg.Role)
+		}
+	}
+}
+
+func TestCreateStructured_ValidationRetry_ExhaustedRetries(t *testing.T) {
+	type User struct {
+		Name  string `json:"name" validate:"required"`
+		Email string `json:"email" validate:"required,email"`
+	}
+
+	ctx := context.Background()
+
+	// Setup mock provider - always return invalid data
+	mock := provider.NewMockProvider("test")
+	invalidData := map[string]any{
+		"name": "Bob",
+		// Missing email - will fail validation
+	}
+
+	// Add 3 invalid responses (to exhaust retries)
+	for i := 0; i < 3; i++ {
+		mock.AddStructuredResponse(provider.MockStructuredResponse(invalidData))
+	}
+
+	client := NewClient(mock, ClientConfig{
+		DefaultModel: "test-model",
+		MaxRetries:   3,
+	})
+
+	// Test that error is returned after exhausting retries
+	_, err := CreateStructured[User](ctx, client, "Create a user", nil)
+	if err == nil {
+		t.Fatal("CreateStructured() error = nil, want validation error after exhausting retries")
+	}
+
+	// Error message should mention number of attempts
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "validation failed after 3 attempts") {
+		t.Errorf("Error message = %s, should mention '3 attempts'", errMsg)
+	}
+
+	// Verify provider was called 3 times (max retries)
+	if len(mock.StructuredCalls) != 3 {
+		t.Errorf("Provider calls = %d, want 3 (maxRetries)", len(mock.StructuredCalls))
+	}
+}
+
+func TestCreateStructured_ValidationRetry_SuccessFirstAttempt(t *testing.T) {
+	type User struct {
+		Name  string `json:"name" validate:"required"`
+		Email string `json:"email" validate:"required,email"`
+	}
+
+	ctx := context.Background()
+
+	// Setup mock provider with valid data on first attempt
+	mock := provider.NewMockProvider("test")
+	validData := map[string]any{
+		"name":  "Charlie",
+		"email": "charlie@example.com",
+	}
+	mock.AddStructuredResponse(provider.MockStructuredResponse(validData))
+
+	client := NewClient(mock, ClientConfig{
+		DefaultModel: "test-model",
+		MaxRetries:   3,
+	})
+
+	// Test no retry when first attempt succeeds
+	user, err := CreateStructured[User](ctx, client, "Create a user", nil)
+	if err != nil {
+		t.Fatalf("CreateStructured() error = %v", err)
+	}
+
+	if user.Name != "Charlie" {
+		t.Errorf("User.Name = %s, want 'Charlie'", user.Name)
+	}
+
+	// Verify provider was called only once (no retry needed)
+	if len(mock.StructuredCalls) != 1 {
+		t.Errorf("Provider calls = %d, want 1 (success on first attempt, no retry)", len(mock.StructuredCalls))
+	}
+}
+
+func TestCreateStructured_DisableValidationRetry(t *testing.T) {
+	type User struct {
+		Name  string `json:"name" validate:"required"`
+		Email string `json:"email" validate:"required,email"`
+	}
+
+	ctx := context.Background()
+
+	// Setup mock provider with invalid data
+	mock := provider.NewMockProvider("test")
+	invalidData := map[string]any{
+		"name": "Dave",
+		// Missing email
+	}
+	mock.AddStructuredResponse(provider.MockStructuredResponse(invalidData))
+
+	// Create client with retry disabled
+	client := NewClient(mock, ClientConfig{
+		DefaultModel:           "test-model",
+		DisableValidationRetry: true,
+		MaxRetries:             3, // Should be ignored when DisableValidationRetry is true
+	})
+
+	// Test immediate failure when retry is disabled
+	_, err := CreateStructured[User](ctx, client, "Create a user", nil)
+	if err == nil {
+		t.Fatal("CreateStructured() error = nil, want validation error (retry disabled)")
+	}
+
+	// Verify provider was called only once (no retry)
+	if len(mock.StructuredCalls) != 1 {
+		t.Errorf("Provider calls = %d, want 1 (retry disabled)", len(mock.StructuredCalls))
+	}
+}
+
+func TestCreateStructured_MaxRetriesSetToOne(t *testing.T) {
+	type User struct {
+		Name  string `json:"name" validate:"required"`
+		Email string `json:"email" validate:"required,email"`
+	}
+
+	ctx := context.Background()
+
+	// Setup mock provider with invalid data
+	mock := provider.NewMockProvider("test")
+	invalidData := map[string]any{
+		"name": "Eve",
+		// Missing email
+	}
+	mock.AddStructuredResponse(provider.MockStructuredResponse(invalidData))
+
+	// Create client with MaxRetries=1 (effectively disables retry)
+	client := NewClient(mock, ClientConfig{
+		DefaultModel: "test-model",
+		MaxRetries:   1,
+	})
+
+	// Test immediate failure when MaxRetries=1
+	_, err := CreateStructured[User](ctx, client, "Create a user", nil)
+	if err == nil {
+		t.Fatal("CreateStructured() error = nil, want validation error")
+	}
+
+	// Verify provider was called only once
+	if len(mock.StructuredCalls) != 1 {
+		t.Errorf("Provider calls = %d, want 1 (MaxRetries=1)", len(mock.StructuredCalls))
+	}
+}
+
+func TestCreateList_ValidationRetry_Success(t *testing.T) {
+	type Item struct {
+		Name string `json:"name" validate:"required"`
+		ID   int    `json:"id" validate:"gt=0"`
+	}
+
+	ctx := context.Background()
+
+	// Setup mock provider - first response invalid, second response valid
+	mock := provider.NewMockProvider("test")
+
+	// First attempt: item with invalid ID
+	invalidList := []map[string]any{
+		{"name": "Item1", "id": 1},
+		{"name": "Item2", "id": -5}, // Invalid
+	}
+	mock.AddStructuredResponse(provider.MockStructuredResponse(invalidList))
+
+	// Second attempt: all valid
+	validList := []map[string]any{
+		{"name": "Item1", "id": 1},
+		{"name": "Item2", "id": 2}, // Corrected
+	}
+	mock.AddStructuredResponse(provider.MockStructuredResponse(validList))
+
+	client := NewClient(mock, ClientConfig{
+		DefaultModel: "test-model",
+		MaxRetries:   3,
+	})
+
+	// Test automatic retry on list validation failure
+	items, err := CreateList[Item](ctx, client, "Create items", nil)
+	if err != nil {
+		t.Fatalf("CreateList() error = %v, want success after retry", err)
+	}
+
+	if len(items) != 2 {
+		t.Errorf("Items length = %d, want 2", len(items))
+	}
+
+	if items[1].ID != 2 {
+		t.Errorf("items[1].ID = %d, want 2 (should be corrected after retry)", items[1].ID)
+	}
+
+	// Verify provider was called twice
+	if len(mock.StructuredCalls) != 2 {
+		t.Errorf("Provider calls = %d, want 2 (initial + 1 retry)", len(mock.StructuredCalls))
+	}
+}
+
+func TestCreateStructured_DefaultMaxRetries(t *testing.T) {
+	type User struct {
+		Name string `json:"name" validate:"required"`
+	}
+
+	ctx := context.Background()
+
+	// Setup mock provider
+	mock := provider.NewMockProvider("test")
+	validData := map[string]any{
+		"name": "Test",
+	}
+	mock.AddStructuredResponse(provider.MockStructuredResponse(validData))
+
+	// Create client without specifying MaxRetries (should default to 3)
+	client := NewClient(mock, ClientConfig{
+		DefaultModel: "test-model",
+		// MaxRetries not specified - should default to 3
+	})
+
+	if client.config.MaxRetries != 3 {
+		t.Errorf("Client.config.MaxRetries = %d, want 3 (default Pydantic AI-style behavior)", client.config.MaxRetries)
+	}
+
+	_, err := CreateStructured[User](ctx, client, "Create a user", nil)
+	if err != nil {
+		t.Fatalf("CreateStructured() error = %v", err)
 	}
 }

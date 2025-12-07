@@ -63,20 +63,20 @@ func (p *OpenAIProvider) Name() string {
 
 // openaiRequest represents the OpenAI API request format
 type openaiRequest struct {
-	Model          string           `json:"model"`
-	Messages       []openaiMessage  `json:"messages"`
-	Temperature    float64          `json:"temperature,omitempty"`
-	MaxTokens      int              `json:"max_tokens,omitempty"`
-	Tools          []openaiTool     `json:"tools,omitempty"`
-	Stream         bool             `json:"stream,omitempty"`
-	ResponseFormat *openaiRespFmt   `json:"response_format,omitempty"`
+	Model          string          `json:"model"`
+	Messages       []openaiMessage `json:"messages"`
+	Temperature    float64         `json:"temperature,omitempty"`
+	MaxTokens      int             `json:"max_tokens,omitempty"`
+	Tools          []openaiTool    `json:"tools,omitempty"`
+	Stream         bool            `json:"stream,omitempty"`
+	ResponseFormat *openaiRespFmt  `json:"response_format,omitempty"`
 }
 
 type openaiMessage struct {
-	Role       string          `json:"role"`
-	Content    string          `json:"content,omitempty"`
+	Role       string           `json:"role"`
+	Content    string           `json:"content,omitempty"`
 	ToolCalls  []openaiToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string          `json:"tool_call_id,omitempty"`
+	ToolCallID string           `json:"tool_call_id,omitempty"`
 }
 
 type openaiTool struct {
@@ -100,7 +100,7 @@ type openaiToolCall struct {
 }
 
 type openaiRespFmt struct {
-	Type       string          `json:"type"`
+	Type       string            `json:"type"`
 	JSONSchema *openaiJSONSchema `json:"json_schema,omitempty"`
 }
 

@@ -22,9 +22,9 @@ import (
 // - Quality assurance
 type Reflection struct {
 	*BaseOrchestrator
-	generator      string
-	critic         string
-	maxIterations  int
+	generator            string
+	critic               string
+	maxIterations        int
 	improvementThreshold float64 // Minimum improvement required to continue
 }
 
@@ -51,7 +51,7 @@ func NewReflection(name string, runtime agent.Runtime, generator, critic string,
 		BaseOrchestrator:     NewBaseOrchestrator(name, "reflection", runtime),
 		generator:            generator,
 		critic:               critic,
-		maxIterations:        3, // Default 3 iterations
+		maxIterations:        3,   // Default 3 iterations
 		improvementThreshold: 0.1, // 10% improvement required
 	}
 

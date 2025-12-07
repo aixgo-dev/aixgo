@@ -28,6 +28,6 @@ const (
 type ErrorStrategy string
 
 const (
-	StopOnError    ErrorStrategy = "stop"     // Stop execution on first error
+	StopOnError     ErrorStrategy = "stop"     // Stop execution on first error
 	ContinueOnError ErrorStrategy = "continue" // Continue despite errors
 )

@@ -31,10 +31,10 @@ type Ensemble struct {
 type VotingStrategy string
 
 const (
-	VotingMajority   VotingStrategy = "majority"    // Simple majority vote
-	VotingUnanimous  VotingStrategy = "unanimous"   // All must agree
-	VotingWeighted   VotingStrategy = "weighted"    // Weighted by model confidence
-	VotingConfidence VotingStrategy = "confidence"  // Highest confidence wins
+	VotingMajority   VotingStrategy = "majority"   // Simple majority vote
+	VotingUnanimous  VotingStrategy = "unanimous"  // All must agree
+	VotingWeighted   VotingStrategy = "weighted"   // Weighted by model confidence
+	VotingConfidence VotingStrategy = "confidence" // Highest confidence wins
 )
 
 // EnsembleOption configures an Ensemble orchestrator
