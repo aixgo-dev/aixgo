@@ -94,10 +94,18 @@ func main() {
 		}
 
 		var response map[string]interface{}
-		_ = json.Unmarshal([]byte(result.Payload), &response)
+		if err := json.Unmarshal([]byte(result.Payload), &response); err != nil {
+			log.Fatalf("Failed to unmarshal result: %v", err)
+		}
 
-		modelUsed := response["model"].(string)
-		cost := response["cost"].(float64)
+		modelUsed, ok := response["model"].(string)
+		if !ok {
+			log.Fatal("Model field not found or invalid in response")
+		}
+		cost, ok := response["cost"].(float64)
+		if !ok {
+			log.Fatal("Cost field not found or invalid in response")
+		}
 
 		totalCost += cost
 		totalCostWithoutRouter += 0.03 // Always using expensive model
@@ -202,7 +210,10 @@ func (m *MockLLMAgent) Execute(ctx context.Context, input *agent.Message) (*agen
 		"cost":   m.cost,
 	}
 
-	resultJSON, _ := json.Marshal(response)
+	resultJSON, err := json.Marshal(response)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal response: %w", err)
+	}
 
 	return &agent.Message{
 		Message: &pb.Message{

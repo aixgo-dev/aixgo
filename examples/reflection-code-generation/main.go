@@ -207,9 +207,13 @@ func (m *MockCodeCriticAgent) Execute(ctx context.Context, input *agent.Message)
 
 	// Quality improves with each iteration
 	qualities := []float64{0.6, 0.8, 0.95}
-	quality := qualities[iteration-1]
-	if iteration > len(qualities) {
+	var quality float64
+	if iteration < 1 {
+		quality = qualities[0]
+	} else if iteration > len(qualities) {
 		quality = qualities[len(qualities)-1]
+	} else {
+		quality = qualities[iteration-1]
 	}
 
 	issues := []string{}

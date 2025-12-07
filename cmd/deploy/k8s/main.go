@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/aixgo-dev/aixgo/pkg/security"
 )
 
 const (
@@ -71,6 +73,27 @@ func main() {
 
 	if cfg.ProjectID == "" {
 		logError("Project ID is required. Set -project or GCP_PROJECT_ID environment variable")
+		os.Exit(1)
+	}
+
+	// Validate deployment inputs to prevent command injection
+	// For K8s deployment, we validate critical parameters that are passed to shell commands
+	imageName := "orchestrator" // Using a representative image name for validation
+	if err := security.ValidateDeploymentInputs(
+		cfg.ProjectID,
+		cfg.Region,
+		cfg.Cluster,      // Using cluster name as service name for validation
+		"aixgo",          // Repository name
+		imageName,        // Image name
+		cfg.Environment,
+	); err != nil {
+		logError("Invalid deployment configuration: %v", err)
+		os.Exit(1)
+	}
+
+	// Additional validation for K8s-specific fields
+	if err := security.ValidateRegion(cfg.Zone); err != nil {
+		logError("Invalid zone: %v", err)
 		os.Exit(1)
 	}
 

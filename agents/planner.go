@@ -187,7 +187,13 @@ func NewPlannerAgent(def agent.AgentDef, rt agent.Runtime) (agent.Agent, error) 
 		return nil, fmt.Errorf("failed to initialize LLM provider: %w", err)
 	}
 
+	baseAgent := NewBaseAgent(def)
+	if baseAgent == nil {
+		return nil, fmt.Errorf("failed to create BaseAgent")
+	}
+
 	return &PlannerAgent{
+		BaseAgent:      baseAgent,
 		def:            def,
 		provider:       prov,
 		config:         config,
@@ -214,11 +220,11 @@ func (p *PlannerAgent) Execute(ctx context.Context, input *agent.Message) (*agen
 	}
 
 	// Convert plan to message
-	return p.planToMessage(plan, input.Message)
+	return p.planToMessage(plan)
 }
 
 // planToMessage converts a ReasoningPlan to an agent.Message
-func (p *PlannerAgent) planToMessage(plan *ReasoningPlan, input *pb.Message) (*agent.Message, error) {
+func (p *PlannerAgent) planToMessage(plan *ReasoningPlan) (*agent.Message, error) {
 	// Marshal plan to JSON
 	planJSON, err := json.Marshal(plan)
 	if err != nil {
@@ -227,7 +233,7 @@ func (p *PlannerAgent) planToMessage(plan *ReasoningPlan, input *pb.Message) (*a
 
 	return &agent.Message{
 		Message: &pb.Message{
-			Type:    "plan",
+			Type:    "reasoning_plan",
 			Payload: string(planJSON),
 		},
 	}, nil

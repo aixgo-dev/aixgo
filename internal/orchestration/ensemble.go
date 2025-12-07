@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
+	"github.com/aixgo-dev/aixgo/internal/aggregation"
 	"github.com/aixgo-dev/aixgo/internal/observability"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -128,121 +129,68 @@ func (e *Ensemble) vote(results map[string]*agent.Message) (*agent.Message, floa
 		return nil, 0, fmt.Errorf("no results to vote on")
 	}
 
+	// Convert agent.Message to aggregation.VotingInput
+	inputs := make([]aggregation.VotingInput, 0, len(results))
+	for source, msg := range results {
+		if msg == nil || msg.Message == nil {
+			continue
+		}
+
+		// Extract confidence from metadata if available
+		confidence := 0.5 // Default confidence
+		if msg.Message.Metadata != nil {
+			if confVal, ok := msg.Message.Metadata["confidence"]; ok {
+				if confFloat, ok := confVal.(float64); ok {
+					confidence = confFloat
+				}
+			}
+		}
+
+		inputs = append(inputs, aggregation.VotingInput{
+			Source:     source,
+			Content:    msg.Payload,
+			Confidence: confidence,
+		})
+	}
+
+	if len(inputs) == 0 {
+		return nil, 0, fmt.Errorf("no valid results to vote on")
+	}
+
+	var result *aggregation.VotingResult
+	var err error
+
 	switch e.votingStrategy {
 	case VotingMajority:
-		return majorityVote(results)
-
+		result, err = aggregation.MajorityVote(inputs)
 	case VotingUnanimous:
-		return unanimousVote(results)
-
+		result, err = aggregation.UnanimousVote(inputs)
 	case VotingWeighted:
-		return weightedVote(results)
-
+		result, err = aggregation.WeightedVote(inputs)
 	case VotingConfidence:
-		return confidenceVote(results)
-
+		result, err = aggregation.ConfidenceVote(inputs)
 	default:
 		return nil, 0, fmt.Errorf("unknown voting strategy: %s", e.votingStrategy)
 	}
-}
 
-// majorityVote returns the most common result
-func majorityVote(results map[string]*agent.Message) (*agent.Message, float64, error) {
-	// Count occurrences of each result
-	counts := make(map[string]int)
-	messages := make(map[string]*agent.Message)
+	if err != nil {
+		return nil, 0, err
+	}
 
+	// Convert back to agent.Message
+	// Use the first result's message structure as template
+	var template *agent.Message
 	for _, msg := range results {
-		key := extractVotingKey(msg)
-		counts[key]++
-		messages[key] = msg
+		template = msg
+		break
 	}
 
-	// Find majority
-	var maxCount int
-	var maxKey string
-	for key, count := range counts {
-		if count > maxCount {
-			maxCount = count
-			maxKey = key
-		}
+	finalMsg := &agent.Message{
+		Message: template.Message,
 	}
+	finalMsg.Payload = result.SelectedContent
 
-	if maxKey == "" {
-		return nil, 0, fmt.Errorf("no majority found")
-	}
-
-	agreement := float64(maxCount) / float64(len(results))
-	return messages[maxKey], agreement, nil
-}
-
-// unanimousVote requires all models to agree
-func unanimousVote(results map[string]*agent.Message) (*agent.Message, float64, error) {
-	if len(results) == 0 {
-		return nil, 0, fmt.Errorf("no results")
-	}
-
-	// Check if all results are the same
-	var firstKey string
-	var firstMsg *agent.Message
-
-	for _, msg := range results {
-		key := extractVotingKey(msg)
-		if firstKey == "" {
-			firstKey = key
-			firstMsg = msg
-		} else if key != firstKey {
-			// Disagreement found
-			return nil, 0, fmt.Errorf("no unanimous agreement")
-		}
-	}
-
-	return firstMsg, 1.0, nil
-}
-
-// weightedVote uses model confidence weights
-func weightedVote(results map[string]*agent.Message) (*agent.Message, float64, error) {
-	// TODO: Implement confidence-weighted voting
-	// For now, fall back to majority vote
-	return majorityVote(results)
-}
-
-// confidenceVote returns the result with highest confidence
-func confidenceVote(results map[string]*agent.Message) (*agent.Message, float64, error) {
-	var maxConfidence float64
-	var bestResult *agent.Message
-
-	for _, msg := range results {
-		confidence := extractConfidence(msg)
-		if confidence > maxConfidence {
-			maxConfidence = confidence
-			bestResult = msg
-		}
-	}
-
-	if bestResult == nil {
-		return nil, 0, fmt.Errorf("no confident result")
-	}
-
-	return bestResult, maxConfidence, nil
-}
-
-// extractVotingKey extracts a comparable key from a message for voting
-func extractVotingKey(msg *agent.Message) string {
-	if msg == nil || msg.Message == nil {
-		return ""
-	}
-
-	// TODO: Implement proper key extraction based on Message structure
-	// Could hash the message content for comparison
-	return fmt.Sprintf("%v", msg.Message)
-}
-
-// extractConfidence extracts confidence score from a message
-func extractConfidence(msg *agent.Message) float64 {
-	// TODO: Implement confidence extraction
-	// Could be in metadata or structured format
-	return 0.5 // Placeholder
+	return finalMsg, result.Agreement, nil
 }
 
 // Ensemble variants

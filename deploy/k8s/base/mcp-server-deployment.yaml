@@ -23,9 +23,38 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: aixgo-sa
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      # Volumes for writable directories
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
       containers:
       - name: mcp-server
         image: REGION-docker.pkg.dev/PROJECT_ID/aixgo/mcp-server:latest
+        # Container-level security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+        # Mount writable volumes
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /var/cache
         ports:
         - containerPort: 8080
           name: http

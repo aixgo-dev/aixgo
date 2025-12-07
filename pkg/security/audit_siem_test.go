@@ -32,7 +32,7 @@ func TestElasticsearchBackend(t *testing.T) {
 		TLSVerify: false,
 	}
 
-	backend, err := NewElasticsearchBackend(config, 2, 100*time.Millisecond)
+	backend, err := newElasticsearchBackendUnsafe(config, 2, 100*time.Millisecond)
 	if err != nil {
 		t.Fatalf("failed to create backend: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestSplunkBackend(t *testing.T) {
 		TLSVerify: false,
 	}
 
-	backend, err := NewSplunkBackend(config, 1, 100*time.Millisecond)
+	backend, err := newSplunkBackendUnsafe(config, 1, 100*time.Millisecond)
 	if err != nil {
 		t.Fatalf("failed to create backend: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestWebhookBackend(t *testing.T) {
 		TLSVerify: false,
 	}
 
-	backend, err := NewWebhookBackend(config, 1, 100*time.Millisecond)
+	backend, err := newWebhookBackendUnsafe(config, 1, 100*time.Millisecond)
 	if err != nil {
 		t.Fatalf("failed to create backend: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestBatchFlushOnInterval(t *testing.T) {
 	}
 
 	// Large batch size, short flush interval
-	backend, err := NewWebhookBackend(config, 1000, 50*time.Millisecond)
+	backend, err := newWebhookBackendUnsafe(config, 1000, 50*time.Millisecond)
 	if err != nil {
 		t.Fatalf("failed to create backend: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestConnectionFailureGraceful(t *testing.T) {
 		TLSVerify: false,
 	}
 
-	backend, err := NewWebhookBackend(config, 1, 50*time.Millisecond)
+	backend, err := newWebhookBackendUnsafe(config, 1, 50*time.Millisecond)
 	if err != nil {
 		t.Fatalf("failed to create backend: %v", err)
 	}
@@ -333,7 +333,7 @@ func TestWriteAfterClose(t *testing.T) {
 		TLSVerify: false,
 	}
 
-	backend, err := NewWebhookBackend(config, 10, time.Second)
+	backend, err := newWebhookBackendUnsafe(config, 10, time.Second)
 	if err != nil {
 		t.Fatalf("failed to create backend: %v", err)
 	}

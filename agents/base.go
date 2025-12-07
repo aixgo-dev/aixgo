@@ -69,9 +69,13 @@ func (b *BaseAgent) InitContext(ctx context.Context) {
 }
 
 // GetContext returns the agent's context
+// If the context is not initialized, returns context.Background()
 func (b *BaseAgent) GetContext() context.Context {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+	if b.ctx == nil {
+		return context.Background()
+	}
 	return b.ctx
 }
 
@@ -91,7 +95,7 @@ func (b *BaseAgent) Stop(ctx context.Context) error {
 // Override this in your agent
 func (b *BaseAgent) DefaultExecute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
 	return nil, &agent.NotImplementedError{
-		AgentName: b.name,
+		AgentName: b.Name(),
 		Method:    "Execute",
 	}
 }
@@ -100,7 +104,7 @@ func (b *BaseAgent) DefaultExecute(ctx context.Context, input *agent.Message) (*
 // Override this in your agent
 func (b *BaseAgent) DefaultStart(ctx context.Context) error {
 	return &agent.NotImplementedError{
-		AgentName: b.name,
+		AgentName: b.Name(),
 		Method:    "Start",
 	}
 }

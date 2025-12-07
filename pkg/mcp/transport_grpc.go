@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aixgo-dev/aixgo/pkg/security"
 	pb "github.com/aixgo-dev/aixgo/proto/mcp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -155,6 +156,14 @@ func (t *GRPCTransport) buildTLSConfig() (*tls.Config, error) {
 
 	// Load client certificate if provided (for mTLS)
 	if tlsCfg.CertFile != "" && tlsCfg.KeyFile != "" {
+		// Validate certificate file paths to prevent path traversal attacks
+		if err := security.ValidateFilePath(tlsCfg.CertFile); err != nil {
+			return nil, fmt.Errorf("invalid cert file path: %w", err)
+		}
+		if err := security.ValidateFilePath(tlsCfg.KeyFile); err != nil {
+			return nil, fmt.Errorf("invalid key file path: %w", err)
+		}
+
 		cert, err := tls.LoadX509KeyPair(tlsCfg.CertFile, tlsCfg.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load client certificate: %w", err)
@@ -164,6 +173,11 @@ func (t *GRPCTransport) buildTLSConfig() (*tls.Config, error) {
 
 	// Load CA certificate if provided
 	if tlsCfg.CAFile != "" {
+		// Validate CA file path to prevent path traversal attacks
+		if err := security.ValidateFilePath(tlsCfg.CAFile); err != nil {
+			return nil, fmt.Errorf("invalid CA file path: %w", err)
+		}
+
 		caCert, err := os.ReadFile(tlsCfg.CAFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA file: %w", err)
@@ -767,6 +781,14 @@ func (s *GRPCServer) buildServerTLSConfig() (*tls.Config, error) {
 
 	// Load server certificate
 	if s.tlsConfig.CertFile != "" && s.tlsConfig.KeyFile != "" {
+		// Validate certificate file paths to prevent path traversal attacks
+		if err := security.ValidateFilePath(s.tlsConfig.CertFile); err != nil {
+			return nil, fmt.Errorf("invalid cert file path: %w", err)
+		}
+		if err := security.ValidateFilePath(s.tlsConfig.KeyFile); err != nil {
+			return nil, fmt.Errorf("invalid key file path: %w", err)
+		}
+
 		cert, err := tls.LoadX509KeyPair(s.tlsConfig.CertFile, s.tlsConfig.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load server certificate: %w", err)
@@ -776,6 +798,11 @@ func (s *GRPCServer) buildServerTLSConfig() (*tls.Config, error) {
 
 	// Load CA for client verification (mTLS)
 	if s.tlsConfig.CAFile != "" {
+		// Validate CA file path to prevent path traversal attacks
+		if err := security.ValidateFilePath(s.tlsConfig.CAFile); err != nil {
+			return nil, fmt.Errorf("invalid CA file path: %w", err)
+		}
+
 		caCert, err := os.ReadFile(s.tlsConfig.CAFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA file: %w", err)
