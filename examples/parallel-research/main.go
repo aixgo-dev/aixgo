@@ -95,7 +95,11 @@ func main() {
 	fmt.Println("✅ Research complete!")
 	fmt.Println()
 	fmt.Println("📊 Aggregated Results:")
-	fmt.Println(result.Payload)
+	if result.Payload != "" {
+		fmt.Println(result.Payload)
+	} else {
+		fmt.Println("(no payload returned)")
+	}
 	fmt.Println()
 	fmt.Println("💡 Benefits demonstrated:")
 	fmt.Println("  ✓ 4 research tasks completed concurrently")

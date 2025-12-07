@@ -107,6 +107,11 @@ type FileAuditBackend struct {
 
 // NewFileAuditBackend creates a file-based audit backend
 func NewFileAuditBackend(path string) (*FileAuditBackend, error) {
+	// Validate file path to prevent path traversal attacks
+	if err := ValidateFilePath(path); err != nil {
+		return nil, fmt.Errorf("invalid audit file path: %w", err)
+	}
+
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open audit file: %w", err)

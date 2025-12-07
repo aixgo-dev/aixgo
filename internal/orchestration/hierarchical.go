@@ -3,6 +3,7 @@ package orchestration
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
@@ -146,14 +147,22 @@ func extractTeamAssignments(msg *agent.Message) map[string]*agent.Message {
 	return make(map[string]*agent.Message)
 }
 
-// aggregateTeamResults combines results from team workers
+// aggregateTeamResults combines results from team workers (deterministic)
 func aggregateTeamResults(results map[string]*agent.Message) *agent.Message {
-	// TODO: Implement proper aggregation
-	// For now, return first result
-	for _, msg := range results {
-		return msg
+	if len(results) == 0 {
+		return &agent.Message{}
 	}
-	return &agent.Message{}
+
+	// Sort keys for deterministic iteration
+	var keys []string
+	for k := range results {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// Return first result by sorted key order
+	// TODO: Implement proper multi-result aggregation
+	return results[keys[0]]
 }
 
 // combineTeamResults prepares input for final synthesis

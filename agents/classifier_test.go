@@ -82,10 +82,11 @@ func (m *MockRuntime) Call(ctx context.Context, target string, input *agent.Mess
 
 func (m *MockRuntime) CallParallel(ctx context.Context, targets []string, input *agent.Message) (map[string]*agent.Message, map[string]error) {
 	results := make(map[string]*agent.Message)
+	errors := make(map[string]error)
 	for _, t := range targets {
 		results[t] = input
 	}
-	return results, nil
+	return results, errors
 }
 
 func (m *MockRuntime) Broadcast(msg *agent.Message) error {

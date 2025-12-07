@@ -138,6 +138,42 @@ func (v *FloatValidator) Validate(value any) error {
 	return nil
 }
 
+// ValidateFilePath validates a file path for safe file operations
+// It prevents path traversal attacks and ensures the path doesn't contain dangerous patterns
+// This is critical for TLS certificate loading and other file read operations
+func ValidateFilePath(path string) error {
+	if path == "" {
+		return fmt.Errorf("file path cannot be empty")
+	}
+
+	// Clean the path to resolve any . or .. components
+	cleaned := filepath.Clean(path)
+
+	// Check for path traversal attempts
+	if strings.Contains(cleaned, "..") {
+		return fmt.Errorf("path traversal detected in file path")
+	}
+
+	// Prevent null byte injection
+	if strings.Contains(path, "\x00") {
+		return fmt.Errorf("null byte detected in file path")
+	}
+
+	// Check for suspicious patterns that could be used for attacks
+	suspicious := []string{
+		"\n", "\r", // newlines
+		"|", "&", ";", "`", // command injection chars
+		"$", // variable expansion
+	}
+	for _, s := range suspicious {
+		if strings.Contains(path, s) {
+			return fmt.Errorf("suspicious character detected in file path")
+		}
+	}
+
+	return nil
+}
+
 // SanitizeFilePath prevents path traversal attacks
 func SanitizeFilePath(path string, baseDir string) (string, error) {
 	// Clean the path

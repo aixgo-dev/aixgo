@@ -7,10 +7,114 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
+
+// ValidateSIEMURL validates that a URL is safe for SIEM connections
+// and prevents SSRF attacks by blocking private IP ranges
+func ValidateSIEMURL(rawURL string) error {
+	// Parse the URL
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Only allow http and https schemes
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL scheme: %s (only http/https allowed)", parsedURL.Scheme)
+	}
+
+	// Extract hostname (may include port)
+	hostname := parsedURL.Hostname()
+	if hostname == "" {
+		return fmt.Errorf("URL must contain a hostname")
+	}
+
+	// Resolve hostname to IP addresses
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
+	}
+
+	// Check each resolved IP address
+	for _, ip := range ips {
+		if isPrivateIP(ip) {
+			return fmt.Errorf("URL resolves to private IP address %s (potential SSRF)", ip.String())
+		}
+	}
+
+	return nil
+}
+
+// isPrivateIP checks if an IP address is in a private range
+func isPrivateIP(ip net.IP) bool {
+	// Check for IPv4 private ranges
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() {
+		return true
+	}
+
+	// Additional checks for special ranges
+	if ip.To4() != nil {
+		// 0.0.0.0/8
+		if ip[0] == 0 {
+			return true
+		}
+		// 169.254.0.0/16 (link-local)
+		if ip[0] == 169 && ip[1] == 254 {
+			return true
+		}
+		// 127.0.0.0/8 (loopback)
+		if ip[0] == 127 {
+			return true
+		}
+		// 10.0.0.0/8
+		if ip[0] == 10 {
+			return true
+		}
+		// 172.16.0.0/12
+		if ip[0] == 172 && ip[1] >= 16 && ip[1] <= 31 {
+			return true
+		}
+		// 192.168.0.0/16
+		if ip[0] == 192 && ip[1] == 168 {
+			return true
+		}
+		// 224.0.0.0/4 (multicast)
+		if ip[0] >= 224 && ip[0] <= 239 {
+			return true
+		}
+		// 240.0.0.0/4 (reserved)
+		if ip[0] >= 240 {
+			return true
+		}
+	}
+
+	// Check for IPv6 private ranges
+	if len(ip) == net.IPv6len {
+		// ::1/128 (loopback)
+		if ip.IsLoopback() {
+			return true
+		}
+		// fe80::/10 (link-local)
+		if len(ip) >= 2 && ip[0] == 0xfe && (ip[1]&0xc0) == 0x80 {
+			return true
+		}
+		// fc00::/7 (unique local)
+		if len(ip) >= 1 && (ip[0]&0xfe) == 0xfc {
+			return true
+		}
+		// ff00::/8 (multicast)
+		if len(ip) >= 1 && ip[0] == 0xff {
+			return true
+		}
+	}
+
+	return false
+}
 
 // SIEMConfig holds configuration for SIEM backends
 type SIEMConfig struct {
@@ -181,11 +285,30 @@ type ElasticsearchBackend struct {
 
 // NewElasticsearchBackend creates a new Elasticsearch audit backend
 func NewElasticsearchBackend(config *ElasticsearchConfig, batchSize int, flushInterval time.Duration) (*ElasticsearchBackend, error) {
+	return newElasticsearchBackend(config, batchSize, flushInterval, true)
+}
+
+// newElasticsearchBackendUnsafe creates an Elasticsearch backend without URL validation (for testing only)
+func newElasticsearchBackendUnsafe(config *ElasticsearchConfig, batchSize int, flushInterval time.Duration) (*ElasticsearchBackend, error) {
+	return newElasticsearchBackend(config, batchSize, flushInterval, false)
+}
+
+// newElasticsearchBackend is the internal constructor with optional validation
+func newElasticsearchBackend(config *ElasticsearchConfig, batchSize int, flushInterval time.Duration, validateURLs bool) (*ElasticsearchBackend, error) {
 	if config == nil || len(config.URLs) == 0 {
 		return nil, fmt.Errorf("elasticsearch configuration with at least one URL is required")
 	}
 	if config.Index == "" {
 		config.Index = "audit-logs"
+	}
+
+	// Validate each Elasticsearch URL to prevent SSRF (unless disabled for testing)
+	if validateURLs {
+		for _, esURL := range config.URLs {
+			if err := ValidateSIEMURL(esURL); err != nil {
+				return nil, fmt.Errorf("invalid Elasticsearch URL %s: %w", esURL, err)
+			}
+		}
 	}
 
 	transport := &http.Transport{
@@ -276,11 +399,28 @@ type SplunkBackend struct {
 
 // NewSplunkBackend creates a new Splunk HEC audit backend
 func NewSplunkBackend(config *SplunkConfig, batchSize int, flushInterval time.Duration) (*SplunkBackend, error) {
+	return newSplunkBackend(config, batchSize, flushInterval, true)
+}
+
+// newSplunkBackendUnsafe creates a Splunk backend without URL validation (for testing only)
+func newSplunkBackendUnsafe(config *SplunkConfig, batchSize int, flushInterval time.Duration) (*SplunkBackend, error) {
+	return newSplunkBackend(config, batchSize, flushInterval, false)
+}
+
+// newSplunkBackend is the internal constructor with optional validation
+func newSplunkBackend(config *SplunkConfig, batchSize int, flushInterval time.Duration, validateURL bool) (*SplunkBackend, error) {
 	if config == nil || config.URL == "" {
 		return nil, fmt.Errorf("splunk configuration with URL is required")
 	}
 	if config.Token == "" {
 		return nil, fmt.Errorf("splunk HEC token is required")
+	}
+
+	// Validate Splunk URL to prevent SSRF (unless disabled for testing)
+	if validateURL {
+		if err := ValidateSIEMURL(config.URL); err != nil {
+			return nil, fmt.Errorf("invalid Splunk URL: %w", err)
+		}
 	}
 
 	transport := &http.Transport{
@@ -368,11 +508,28 @@ type WebhookBackend struct {
 
 // NewWebhookBackend creates a new generic webhook audit backend
 func NewWebhookBackend(config *WebhookConfig, batchSize int, flushInterval time.Duration) (*WebhookBackend, error) {
+	return newWebhookBackend(config, batchSize, flushInterval, true)
+}
+
+// newWebhookBackendUnsafe creates a webhook backend without URL validation (for testing only)
+func newWebhookBackendUnsafe(config *WebhookConfig, batchSize int, flushInterval time.Duration) (*WebhookBackend, error) {
+	return newWebhookBackend(config, batchSize, flushInterval, false)
+}
+
+// newWebhookBackend is the internal constructor with optional validation
+func newWebhookBackend(config *WebhookConfig, batchSize int, flushInterval time.Duration, validateURL bool) (*WebhookBackend, error) {
 	if config == nil || config.URL == "" {
 		return nil, fmt.Errorf("webhook configuration with URL is required")
 	}
 	if config.Method == "" {
 		config.Method = "POST"
+	}
+
+	// Validate webhook URL to prevent SSRF (unless disabled for testing)
+	if validateURL {
+		if err := ValidateSIEMURL(config.URL); err != nil {
+			return nil, fmt.Errorf("invalid webhook URL: %w", err)
+		}
 	}
 
 	transport := &http.Transport{

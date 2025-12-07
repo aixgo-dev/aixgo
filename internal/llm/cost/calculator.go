@@ -102,6 +102,9 @@ func (c *Calculator) loadDefaultPricing() {
 
 // AddPricing adds or updates pricing for a model
 func (c *Calculator) AddPricing(pricing *ModelPricing) {
+	if pricing == nil {
+		return
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.pricing[pricing.Model] = pricing
@@ -186,7 +189,10 @@ func (c *Calculator) CalculateMultiple(usages []*Usage) (*Cost, error) {
 		Currency: "USD",
 	}
 
-	for _, usage := range usages {
+	for i, usage := range usages {
+		if usage == nil {
+			return nil, fmt.Errorf("usage at index %d is nil", i)
+		}
 		cost, err := c.Calculate(usage)
 		if err != nil {
 			return nil, err

@@ -1,0 +1,46 @@
+# Deterministic Aggregation Example Configuration
+# Policy Analysis Scenario: Climate Change Mitigation Strategy
+
+scenario: "Climate Change Mitigation Strategy - Expert Panel Recommendations"
+
+# Expert agents with different recommendations
+experts:
+  - name: "environmental-scientist"
+    role: "Environmental Scientist"
+    recommendation: "Implement carbon tax and renewable energy incentives"
+    confidence: 0.9
+    rationale: "Scientific consensus supports immediate action on emissions reduction"
+
+  - name: "economist"
+    role: "Economic Policy Expert"
+    recommendation: "Implement carbon tax and renewable energy incentives"
+    confidence: 0.85
+    rationale: "Carbon pricing mechanisms are economically efficient and market-based"
+
+  - name: "industry-representative"
+    role: "Industry Representative"
+    recommendation: "Focus on voluntary industry commitments and technology innovation"
+    confidence: 0.75
+    rationale: "Gradual transition protects jobs while encouraging green technology adoption"
+
+  - name: "social-policy-expert"
+    role: "Social Policy Expert"
+    recommendation: "Implement carbon tax and renewable energy incentives"
+    confidence: 0.8
+    rationale: "Revenue from carbon tax can fund social programs for affected communities"
+
+  - name: "energy-analyst"
+    role: "Energy Systems Analyst"
+    recommendation: "Implement carbon tax and renewable energy incentives"
+    confidence: 0.95
+    rationale: "Data shows renewable energy with carbon pricing achieves fastest decarbonization"
+
+# Voting strategies to test
+voting_strategies:
+  - "voting_majority"     # Will select "carbon tax" (4 out of 5 agree)
+  - "voting_unanimous"    # Will fail due to disagreement from industry rep
+  - "voting_weighted"     # Will weight by confidence scores
+  - "voting_confidence"   # Will select energy analyst's view (highest confidence)
+
+# Output configuration
+output_format: "detailed"

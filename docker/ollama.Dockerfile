@@ -7,6 +7,9 @@ FROM ollama/ollama:0.5.4
 #     for model in $MODELS; do ollama pull $model; done && \
 #     pkill ollama
 
+# Run as non-root user for security (UID 1000)
+USER 1000
+
 EXPOSE 11434
 
 CMD ["serve"]

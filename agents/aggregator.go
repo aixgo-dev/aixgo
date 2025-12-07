@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
+	"github.com/aixgo-dev/aixgo/internal/aggregation"
 	"github.com/aixgo-dev/aixgo/internal/llm/provider"
 	"github.com/aixgo-dev/aixgo/internal/observability"
 	"github.com/aixgo-dev/aixgo/pkg/security"
@@ -97,11 +98,18 @@ type AggregationStats struct {
 
 // Aggregation strategies
 const (
+	// LLM-powered strategies
 	StrategyConsensus    = "consensus"
 	StrategyWeighted     = "weighted"
 	StrategySemantic     = "semantic"
 	StrategyHierarchical = "hierarchical"
 	StrategyRAG          = "rag_based"
+
+	// Deterministic strategies (non-LLM)
+	StrategyVotingMajority   = "voting_majority"
+	StrategyVotingUnanimous  = "voting_unanimous"
+	StrategyVotingWeighted   = "voting_weighted"
+	StrategyVotingConfidence = "voting_confidence"
 )
 
 func init() {
@@ -309,7 +317,14 @@ func (a *AggregatorAgent) processAggregation(ctx context.Context) {
 
 // aggregate performs the actual AI-powered aggregation
 func (a *AggregatorAgent) aggregate(ctx context.Context, inputs []*AgentInput) (*AggregationResult, error) {
-	switch a.config.AggregationStrategy {
+	strategy := a.config.AggregationStrategy
+	// Default to consensus if strategy is empty
+	if strategy == "" {
+		strategy = StrategyConsensus
+	}
+
+	switch strategy {
+	// LLM-powered strategies
 	case StrategyConsensus:
 		return a.aggregateByConsensus(ctx, inputs)
 	case StrategyWeighted:
@@ -320,8 +335,19 @@ func (a *AggregatorAgent) aggregate(ctx context.Context, inputs []*AgentInput) (
 		return a.aggregateHierarchical(ctx, inputs)
 	case StrategyRAG:
 		return a.aggregateWithRAG(ctx, inputs)
+
+	// Deterministic strategies (non-LLM)
+	case StrategyVotingMajority:
+		return a.aggregateByVotingMajority(inputs)
+	case StrategyVotingUnanimous:
+		return a.aggregateByVotingUnanimous(inputs)
+	case StrategyVotingWeighted:
+		return a.aggregateByVotingWeighted(inputs)
+	case StrategyVotingConfidence:
+		return a.aggregateByVotingConfidence(inputs)
+
 	default:
-		return a.aggregateByConsensus(ctx, inputs)
+		return nil, fmt.Errorf("unknown aggregation strategy: %s", a.config.AggregationStrategy)
 	}
 }
 
@@ -509,6 +535,94 @@ Task: Create a unified, coherent response that incorporates insights from all so
 		Sources:           a.extractSources(inputs),
 		ConsensusLevel:    0.85, // RAG typically produces high consensus
 	}, nil
+}
+
+// Deterministic aggregation methods (non-LLM)
+
+// aggregateByVotingMajority uses simple majority voting
+func (a *AggregatorAgent) aggregateByVotingMajority(inputs []*AgentInput) (*AggregationResult, error) {
+	votingInputs := a.convertToVotingInputs(inputs)
+	result, err := aggregation.MajorityVote(votingInputs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AggregationResult{
+		AggregatedContent: result.SelectedContent,
+		Strategy:          StrategyVotingMajority,
+		ConsensusLevel:    result.Agreement,
+		Sources:           a.extractSources(inputs),
+		TokensUsed:        0, // No LLM calls
+		SummaryInsights:   result.Explanation,
+	}, nil
+}
+
+// aggregateByVotingUnanimous requires all inputs to agree
+func (a *AggregatorAgent) aggregateByVotingUnanimous(inputs []*AgentInput) (*AggregationResult, error) {
+	votingInputs := a.convertToVotingInputs(inputs)
+	result, err := aggregation.UnanimousVote(votingInputs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AggregationResult{
+		AggregatedContent: result.SelectedContent,
+		Strategy:          StrategyVotingUnanimous,
+		ConsensusLevel:    result.Agreement,
+		Sources:           a.extractSources(inputs),
+		TokensUsed:        0, // No LLM calls
+		SummaryInsights:   result.Explanation,
+	}, nil
+}
+
+// aggregateByVotingWeighted uses confidence-weighted voting
+func (a *AggregatorAgent) aggregateByVotingWeighted(inputs []*AgentInput) (*AggregationResult, error) {
+	votingInputs := a.convertToVotingInputs(inputs)
+	result, err := aggregation.WeightedVote(votingInputs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AggregationResult{
+		AggregatedContent: result.SelectedContent,
+		Strategy:          StrategyVotingWeighted,
+		ConsensusLevel:    result.Agreement,
+		Sources:           a.extractSources(inputs),
+		TokensUsed:        0, // No LLM calls
+		SummaryInsights:   result.Explanation,
+	}, nil
+}
+
+// aggregateByVotingConfidence selects input with highest confidence
+func (a *AggregatorAgent) aggregateByVotingConfidence(inputs []*AgentInput) (*AggregationResult, error) {
+	votingInputs := a.convertToVotingInputs(inputs)
+	result, err := aggregation.ConfidenceVote(votingInputs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AggregationResult{
+		AggregatedContent: result.SelectedContent,
+		Strategy:          StrategyVotingConfidence,
+		ConsensusLevel:    result.Agreement,
+		Sources:           a.extractSources(inputs),
+		TokensUsed:        0, // No LLM calls
+		SummaryInsights:   result.Explanation,
+	}, nil
+}
+
+// convertToVotingInputs converts AgentInput to aggregation.VotingInput
+func (a *AggregatorAgent) convertToVotingInputs(inputs []*AgentInput) []aggregation.VotingInput {
+	result := make([]aggregation.VotingInput, len(inputs))
+	for i, input := range inputs {
+		result[i] = aggregation.VotingInput{
+			Source:     input.AgentName,
+			Content:    input.Content,
+			Confidence: input.Confidence,
+			Metadata:   input.Metadata,
+		}
+	}
+	return result
 }
 
 // Helper methods for prompt building

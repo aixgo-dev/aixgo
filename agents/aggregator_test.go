@@ -11,6 +11,7 @@ import (
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewAggregatorAgent(t *testing.T) {
@@ -382,4 +383,623 @@ func TestAggregatorHierarchicalGrouping(t *testing.T) {
 	assert.Equal(t, 2, len(groups)) // 5 inputs, group size 3 = 2 groups
 	assert.Equal(t, 3, len(groups[0]))
 	assert.Equal(t, 2, len(groups[1]))
+}
+
+// TestAggregator_VotingMajority tests the voting_majority deterministic strategy
+func TestAggregator_VotingMajority(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	aggAgent := &AggregatorAgent{
+		def: agent.AgentDef{
+			Model: "gpt-4",
+		},
+		provider: mockProvider,
+		config: AggregatorConfig{
+			AggregationStrategy: "voting_majority",
+			Temperature:         0.5,
+			MaxTokens:           1500,
+		},
+		rt:          rt,
+		inputBuffer: make(map[string]*AgentInput),
+	}
+
+	t.Run("clear_majority", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Solution A", Confidence: 0.8},
+			{AgentName: "agent2", Content: "Solution A", Confidence: 0.9},
+			{AgentName: "agent3", Content: "Solution A", Confidence: 0.7},
+			{AgentName: "agent4", Content: "Solution B", Confidence: 0.85},
+			{AgentName: "agent5", Content: "Solution C", Confidence: 0.75},
+		}
+
+		// No LLM calls should be made for deterministic voting
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "voting_majority", result.Strategy)
+		assert.Equal(t, "Solution A", result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed, "Deterministic strategy should use zero tokens")
+		assert.Equal(t, 5, len(result.Sources))
+
+		// Verify no LLM calls were made
+		mockProvider.AssertNotCalled(t, "CreateCompletion")
+		mockProvider.AssertNotCalled(t, "CreateStructured")
+	})
+
+	t.Run("tie_broken_by_confidence", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Option X", Confidence: 0.7},
+			{AgentName: "agent2", Content: "Option X", Confidence: 0.8},
+			{AgentName: "agent3", Content: "Option Y", Confidence: 0.95},
+			{AgentName: "agent4", Content: "Option Y", Confidence: 0.9},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Option Y", result.AggregatedContent, "Higher average confidence should win tie")
+		assert.Equal(t, 0, result.TokensUsed)
+	})
+
+	t.Run("single_input", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Only option", Confidence: 0.8},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Only option", result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed)
+	})
+}
+
+// TestAggregator_VotingUnanimous tests the voting_unanimous deterministic strategy
+func TestAggregator_VotingUnanimous(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	aggAgent := &AggregatorAgent{
+		def: agent.AgentDef{
+			Model: "gpt-4",
+		},
+		provider: mockProvider,
+		config: AggregatorConfig{
+			AggregationStrategy: "voting_unanimous",
+			Temperature:         0.5,
+			MaxTokens:           1500,
+		},
+		rt:          rt,
+		inputBuffer: make(map[string]*AgentInput),
+	}
+
+	t.Run("all_agents_agree", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Unanimous decision", Confidence: 0.8},
+			{AgentName: "agent2", Content: "Unanimous decision", Confidence: 0.9},
+			{AgentName: "agent3", Content: "Unanimous decision", Confidence: 0.85},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "voting_unanimous", result.Strategy)
+		assert.Equal(t, "Unanimous decision", result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed)
+		assert.Equal(t, 1.0, result.ConsensusLevel, "Unanimous vote should have perfect consensus")
+
+		mockProvider.AssertNotCalled(t, "CreateCompletion")
+		mockProvider.AssertNotCalled(t, "CreateStructured")
+	})
+
+	t.Run("one_agent_disagrees", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Option A", Confidence: 0.8},
+			{AgentName: "agent2", Content: "Option A", Confidence: 0.9},
+			{AgentName: "agent3", Content: "Option B", Confidence: 0.85},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		assert.Error(t, err, "Unanimous voting should fail when agents disagree")
+		assert.Nil(t, result)
+
+		mockProvider.AssertNotCalled(t, "CreateCompletion")
+		mockProvider.AssertNotCalled(t, "CreateStructured")
+	})
+
+	t.Run("single_input_unanimous", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Single vote", Confidence: 0.9},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Single vote", result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed)
+	})
+}
+
+// TestAggregator_VotingWeighted tests the voting_weighted deterministic strategy
+func TestAggregator_VotingWeighted(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	aggAgent := &AggregatorAgent{
+		def: agent.AgentDef{
+			Model: "gpt-4",
+		},
+		provider: mockProvider,
+		config: AggregatorConfig{
+			AggregationStrategy: "voting_weighted",
+			Temperature:         0.5,
+			MaxTokens:           1500,
+		},
+		rt:          rt,
+		inputBuffer: make(map[string]*AgentInput),
+	}
+
+	t.Run("weighted_by_confidence", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Option A", Confidence: 0.9},
+			{AgentName: "agent2", Content: "Option A", Confidence: 0.8},
+			{AgentName: "agent3", Content: "Option B", Confidence: 0.5},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "voting_weighted", result.Strategy)
+		assert.Equal(t, "Option A", result.AggregatedContent, "Higher weighted option should win")
+		assert.Equal(t, 0, result.TokensUsed)
+
+		mockProvider.AssertNotCalled(t, "CreateCompletion")
+		mockProvider.AssertNotCalled(t, "CreateStructured")
+	})
+
+	t.Run("high_confidence_single_vote", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Option A", Confidence: 0.6},
+			{AgentName: "agent2", Content: "Option A", Confidence: 0.6},
+			{AgentName: "agent3", Content: "Option B", Confidence: 0.99},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		// Option A has total weight 1.2, Option B has 0.99
+		assert.Equal(t, "Option A", result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed)
+	})
+
+	t.Run("zero_confidence_ignored", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Option A", Confidence: 0.0},
+			{AgentName: "agent2", Content: "Option B", Confidence: 0.8},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Option B", result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed)
+	})
+}
+
+// TestAggregator_VotingConfidence tests the voting_confidence deterministic strategy
+func TestAggregator_VotingConfidence(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	aggAgent := &AggregatorAgent{
+		def: agent.AgentDef{
+			Model: "gpt-4",
+		},
+		provider: mockProvider,
+		config: AggregatorConfig{
+			AggregationStrategy: "voting_confidence",
+			Temperature:         0.5,
+			MaxTokens:           1500,
+		},
+		rt:          rt,
+		inputBuffer: make(map[string]*AgentInput),
+	}
+
+	t.Run("highest_confidence_wins", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Option A", Confidence: 0.7},
+			{AgentName: "agent2", Content: "Option B", Confidence: 0.95},
+			{AgentName: "agent3", Content: "Option C", Confidence: 0.6},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "voting_confidence", result.Strategy)
+		assert.Equal(t, "Option B", result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed)
+
+		mockProvider.AssertNotCalled(t, "CreateCompletion")
+		mockProvider.AssertNotCalled(t, "CreateStructured")
+	})
+
+	t.Run("ignore_content_only_confidence", func(t *testing.T) {
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Very long detailed comprehensive answer", Confidence: 0.6},
+			{AgentName: "agent2", Content: "Short", Confidence: 0.99},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Short", result.AggregatedContent, "Content length should not matter")
+		assert.Equal(t, 0, result.TokensUsed)
+	})
+}
+
+// TestAggregator_NoLLMCallsForDeterministic verifies zero LLM usage
+func TestAggregator_NoLLMCallsForDeterministic(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	inputs := []*AgentInput{
+		{AgentName: "agent1", Content: "Option A", Confidence: 0.8},
+		{AgentName: "agent2", Content: "Option A", Confidence: 0.9},
+		{AgentName: "agent3", Content: "Option B", Confidence: 0.7},
+	}
+
+	deterministicStrategies := []string{
+		"voting_majority",
+		"voting_unanimous",
+		"voting_weighted",
+		"voting_confidence",
+	}
+
+	for _, strategy := range deterministicStrategies {
+		t.Run(strategy, func(t *testing.T) {
+			aggAgent := &AggregatorAgent{
+				def: agent.AgentDef{
+					Model: "gpt-4",
+				},
+				provider: mockProvider,
+				config: AggregatorConfig{
+					AggregationStrategy: strategy,
+					Temperature:         0.5,
+					MaxTokens:           1500,
+				},
+				rt:          rt,
+				inputBuffer: make(map[string]*AgentInput),
+			}
+
+			// Use unanimous inputs to avoid errors for voting_unanimous
+			unanimousInputs := []*AgentInput{
+				{AgentName: "agent1", Content: "Same", Confidence: 0.8},
+				{AgentName: "agent2", Content: "Same", Confidence: 0.9},
+				{AgentName: "agent3", Content: "Same", Confidence: 0.7},
+			}
+
+			inputsToUse := inputs
+			if strategy == "voting_unanimous" {
+				inputsToUse = unanimousInputs
+			}
+
+			result, err := aggAgent.aggregate(ctx, inputsToUse)
+
+			require.NoError(t, err)
+			assert.Equal(t, 0, result.TokensUsed, "%s should use zero tokens", strategy)
+			assert.NotEmpty(t, result.AggregatedContent)
+
+			// Verify mock was never called
+			mockProvider.AssertNotCalled(t, "CreateCompletion")
+			mockProvider.AssertNotCalled(t, "CreateStructured")
+		})
+	}
+}
+
+// TestAggregator_DeterministicReproducibility tests reproducibility
+func TestAggregator_DeterministicReproducibility(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	inputs := []*AgentInput{
+		{AgentName: "agent1", Content: "Answer A", Confidence: 0.8},
+		{AgentName: "agent2", Content: "Answer A", Confidence: 0.7},
+		{AgentName: "agent3", Content: "Answer B", Confidence: 0.9},
+		{AgentName: "agent4", Content: "Answer C", Confidence: 0.6},
+	}
+
+	deterministicStrategies := []string{
+		"voting_majority",
+		"voting_weighted",
+		"voting_confidence",
+	}
+
+	for _, strategy := range deterministicStrategies {
+		t.Run(strategy+"_50_iterations", func(t *testing.T) {
+			aggAgent := &AggregatorAgent{
+				def: agent.AgentDef{
+					Model: "gpt-4",
+				},
+				provider: mockProvider,
+				config: AggregatorConfig{
+					AggregationStrategy: strategy,
+					Temperature:         0.5,
+					MaxTokens:           1500,
+				},
+				rt:          rt,
+				inputBuffer: make(map[string]*AgentInput),
+			}
+
+			var firstResult string
+			for i := 0; i < 50; i++ {
+				result, err := aggAgent.aggregate(ctx, inputs)
+				require.NoError(t, err)
+
+				if i == 0 {
+					firstResult = result.AggregatedContent
+				} else {
+					assert.Equal(t, firstResult, result.AggregatedContent,
+						"%s should produce identical results on iteration %d", strategy, i)
+				}
+
+				// Verify zero token usage every iteration
+				assert.Equal(t, 0, result.TokensUsed)
+			}
+		})
+	}
+}
+
+// TestAggregator_DeterministicEdgeCases tests edge cases for deterministic strategies
+func TestAggregator_DeterministicEdgeCases(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	t.Run("empty_input_buffer", func(t *testing.T) {
+		aggAgent := &AggregatorAgent{
+			def: agent.AgentDef{
+				Model: "gpt-4",
+			},
+			provider: mockProvider,
+			config: AggregatorConfig{
+				AggregationStrategy: "voting_majority",
+			},
+			rt:          rt,
+			inputBuffer: make(map[string]*AgentInput),
+		}
+
+		inputs := []*AgentInput{}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		assert.Error(t, err, "Empty inputs should return error")
+		assert.Nil(t, result)
+	})
+
+	t.Run("all_same_content", func(t *testing.T) {
+		aggAgent := &AggregatorAgent{
+			def: agent.AgentDef{
+				Model: "gpt-4",
+			},
+			provider: mockProvider,
+			config: AggregatorConfig{
+				AggregationStrategy: "voting_majority",
+			},
+			rt:          rt,
+			inputBuffer: make(map[string]*AgentInput),
+		}
+
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Same", Confidence: 0.8},
+			{AgentName: "agent2", Content: "Same", Confidence: 0.9},
+			{AgentName: "agent3", Content: "Same", Confidence: 0.7},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Same", result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed)
+		assert.Equal(t, 1.0, result.ConsensusLevel, "All same should have perfect consensus")
+	})
+
+	t.Run("all_different_content", func(t *testing.T) {
+		aggAgent := &AggregatorAgent{
+			def: agent.AgentDef{
+				Model: "gpt-4",
+			},
+			provider: mockProvider,
+			config: AggregatorConfig{
+				AggregationStrategy: "voting_majority",
+			},
+			rt:          rt,
+			inputBuffer: make(map[string]*AgentInput),
+		}
+
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Option A", Confidence: 0.8},
+			{AgentName: "agent2", Content: "Option B", Confidence: 0.9},
+			{AgentName: "agent3", Content: "Option C", Confidence: 0.7},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, result.AggregatedContent, "Should pick one option")
+		assert.Equal(t, 0, result.TokensUsed)
+	})
+
+	t.Run("missing_confidence", func(t *testing.T) {
+		aggAgent := &AggregatorAgent{
+			def: agent.AgentDef{
+				Model: "gpt-4",
+			},
+			provider: mockProvider,
+			config: AggregatorConfig{
+				AggregationStrategy: "voting_confidence",
+			},
+			rt:          rt,
+			inputBuffer: make(map[string]*AgentInput),
+		}
+
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: "Option A"}, // No confidence
+			{AgentName: "agent2", Content: "Option B", Confidence: 0.8},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Option B", result.AggregatedContent, "Should pick option with confidence")
+	})
+
+	t.Run("extremely_long_content", func(t *testing.T) {
+		aggAgent := &AggregatorAgent{
+			def: agent.AgentDef{
+				Model: "gpt-4",
+			},
+			provider: mockProvider,
+			config: AggregatorConfig{
+				AggregationStrategy: "voting_majority",
+			},
+			rt:          rt,
+			inputBuffer: make(map[string]*AgentInput),
+		}
+
+		longContent := string(make([]byte, 100000)) // 100KB
+		inputs := []*AgentInput{
+			{AgentName: "agent1", Content: longContent, Confidence: 0.8},
+			{AgentName: "agent2", Content: longContent, Confidence: 0.9},
+			{AgentName: "agent3", Content: "Short", Confidence: 0.7},
+		}
+
+		result, err := aggAgent.aggregate(ctx, inputs)
+
+		require.NoError(t, err)
+		assert.Equal(t, longContent, result.AggregatedContent)
+		assert.Equal(t, 0, result.TokensUsed)
+	})
+}
+
+// TestAggregator_ExistingStrategiesUnchanged tests backwards compatibility
+func TestAggregator_ExistingStrategiesUnchanged(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	inputs := []*AgentInput{
+		{AgentName: "agent1", Content: "Analysis A", Confidence: 0.8},
+		{AgentName: "agent2", Content: "Analysis B", Confidence: 0.9},
+	}
+
+	existingStrategies := []string{
+		StrategyConsensus,
+		StrategyWeighted,
+		StrategySemantic,
+		StrategyHierarchical,
+		StrategyRAG,
+	}
+
+	for _, strategy := range existingStrategies {
+		t.Run(strategy+"_still_calls_llm", func(t *testing.T) {
+			aggAgent := &AggregatorAgent{
+				def: agent.AgentDef{
+					Model: "gpt-4",
+				},
+				provider: mockProvider,
+				config: AggregatorConfig{
+					AggregationStrategy: strategy,
+					Temperature:         0.5,
+					MaxTokens:           1500,
+					SemanticSimilarity:  0.85,
+					ConsensusThreshold:  0.7,
+				},
+				rt:          rt,
+				inputBuffer: make(map[string]*AgentInput),
+			}
+
+			// Mock LLM responses
+			if strategy == StrategyConsensus {
+				mockResult := AggregationResult{
+					AggregatedContent: "Consensus result",
+				}
+				resultJSON, _ := json.Marshal(mockResult)
+
+				mockProvider.On("CreateStructured", ctx, mock.Anything).Return(&provider.StructuredResponse{
+					Data: resultJSON,
+					CompletionResponse: provider.CompletionResponse{
+						Usage: provider.Usage{TotalTokens: 200},
+					},
+				}, nil).Once()
+			} else {
+				mockProvider.On("CreateCompletion", ctx, mock.Anything).Return(&provider.CompletionResponse{
+					Content: "LLM aggregated result",
+					Usage:   provider.Usage{TotalTokens: 200},
+				}, nil).Maybe()
+			}
+
+			result, err := aggAgent.aggregate(ctx, inputs)
+
+			require.NoError(t, err)
+			assert.Greater(t, result.TokensUsed, 0, "%s should use LLM tokens", strategy)
+
+			// Verify LLM was called
+			if strategy == StrategyConsensus {
+				mockProvider.AssertCalled(t, "CreateStructured", ctx, mock.Anything)
+			}
+		})
+	}
+}
+
+// TestAggregator_DefaultStrategy tests that default strategy is still consensus
+func TestAggregator_DefaultStrategy(t *testing.T) {
+	ctx := context.Background()
+	mockProvider := new(MockProvider)
+	rt := NewMockRuntime()
+
+	aggAgent := &AggregatorAgent{
+		def: agent.AgentDef{
+			Model: "gpt-4",
+		},
+		provider: mockProvider,
+		config: AggregatorConfig{
+			// No strategy specified - should default to consensus
+			Temperature: 0.5,
+			MaxTokens:   1500,
+		},
+		rt:          rt,
+		inputBuffer: make(map[string]*AgentInput),
+	}
+
+	inputs := []*AgentInput{
+		{AgentName: "agent1", Content: "Content A", Confidence: 0.8},
+		{AgentName: "agent2", Content: "Content B", Confidence: 0.9},
+	}
+
+	mockResult := AggregationResult{
+		AggregatedContent: "Default consensus result",
+	}
+	resultJSON, _ := json.Marshal(mockResult)
+
+	mockProvider.On("CreateStructured", ctx, mock.Anything).Return(&provider.StructuredResponse{
+		Data: resultJSON,
+		CompletionResponse: provider.CompletionResponse{
+			Usage: provider.Usage{TotalTokens: 200},
+		},
+	}, nil).Once()
+
+	// aggregate() should use the config's strategy, which should be empty and default to consensus
+	// This test assumes the aggregate() function handles empty strategy
+	result, err := aggAgent.aggregate(ctx, inputs)
+
+	require.NoError(t, err)
+	assert.Greater(t, result.TokensUsed, 0, "Default strategy should use LLM")
 }

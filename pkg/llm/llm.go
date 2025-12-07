@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // Client provides a unified interface for LLM providers
@@ -114,10 +115,18 @@ func NewOpenAIClient(apiKey string) (*OpenAIClient, error) {
 }
 
 func (c *OpenAIClient) Complete(ctx context.Context, prompt string, opts ...Option) (*Response, error) {
-	return nil, fmt.Errorf("not implemented: use Chat instead")
+	// Wrap prompt into a Chat-style call for compatibility
+	messages := []Message{
+		{Role: "user", Content: prompt},
+	}
+	return c.Chat(ctx, messages, opts...)
 }
 
 func (c *OpenAIClient) Chat(ctx context.Context, messages []Message, opts ...Option) (*Response, error) {
+	if len(messages) == 0 {
+		return nil, fmt.Errorf("messages cannot be empty")
+	}
+
 	// Stub implementation - would integrate with OpenAI API
 	return &Response{
 		Content:      "Mock response from OpenAI",
@@ -172,7 +181,20 @@ func (c *AnthropicClient) Complete(ctx context.Context, prompt string, opts ...O
 }
 
 func (c *AnthropicClient) Chat(ctx context.Context, messages []Message, opts ...Option) (*Response, error) {
-	return c.Complete(ctx, messages[len(messages)-1].Content, opts...)
+	if len(messages) == 0 {
+		return nil, fmt.Errorf("messages cannot be empty")
+	}
+
+	// Build a single prompt that preserves the full conversation
+	var prompt strings.Builder
+	for i, msg := range messages {
+		if i > 0 {
+			prompt.WriteString("\n\n")
+		}
+		prompt.WriteString(fmt.Sprintf("%s: %s", msg.Role, msg.Content))
+	}
+
+	return c.Complete(ctx, prompt.String(), opts...)
 }
 
 func (c *AnthropicClient) Embed(ctx context.Context, texts []string) ([][]float64, error) {
