@@ -339,7 +339,11 @@ func setupHuggingFaceProvider(a agent.Agent, model string, modelServices map[str
 			if addr, ok := modelServiceDef.Config["address"].(string); ok && addr != "" {
 				address = addr
 			}
-			inf = inference.NewOllamaService(address)
+			ollamaInf, err := inference.NewOllamaService(address)
+			if err != nil {
+				return fmt.Errorf("failed to create Ollama service for model %s: %w", model, err)
+			}
+			inf = ollamaInf
 			log.Printf("Created Ollama inference service for model: %s (address: %s)", model, address)
 
 		case "vllm":

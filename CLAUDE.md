@@ -1,7 +1,7 @@
 # CLAUDE.md - Project Guide for AI Assistants
 
 **Version**: 0.1.2
-**Last Updated**: 2025-12-13
+**Last Updated**: 2025-12-14
 **Target**: AI assistants (Claude Code, GitHub Copilot, Cursor, etc.)
 
 This document helps AI assistants understand and work effectively with the Aixgo project.
@@ -9,6 +9,7 @@ This document helps AI assistants understand and work effectively with the Aixgo
 ## Table of Contents
 
 - [Project Overview](#project-overview)
+- [Core Features Reference](#core-features-reference)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Development Workflow](#development-workflow)
@@ -57,6 +58,46 @@ scalable multi-agent systems without Python dependencies. It provides:
 - **Maturity**: Production-ready for core features
 - **Go Version**: 1.24.0+
 - **License**: MIT
+
+---
+
+## Core Features Reference
+
+> **MANDATORY**: The comprehensive features reference is located at
+> **[docs/FEATURES.md](docs/FEATURES.md)**. This file contains 200+ searchable
+> features organized by category.
+
+### Update Requirement
+
+**IMPORTANT**: Whenever changes are made to the project, you **MUST** review and update
+`docs/FEATURES.md` to reflect any:
+
+- New features added
+- Features modified or enhanced
+- Features deprecated or removed
+- Status changes (e.g., from roadmap to implemented)
+- New configuration options
+- New examples or use cases
+
+### What FEATURES.md Contains
+
+- **Agent Types**: All 6 agent implementations with capabilities
+- **LLM Providers**: 7 providers + inference services
+- **Orchestration Patterns**: All 13 patterns with status and metrics
+- **Security Features**: 40+ security capabilities
+- **Observability**: Tracing, metrics, health checks
+- **Integration**: MCP, vector stores, embeddings
+- **Deployment**: Docker, Kubernetes, Cloud Run options
+- **Roadmap**: Planned features with status indicators
+
+### Feature Status Indicators
+
+When updating FEATURES.md, use these status indicators:
+
+- ✅ **Implemented** - Feature is complete and production-ready
+- 🚧 **In Progress** - Feature is being actively developed
+- 🔮 **Roadmap** - Feature is planned for future implementation
+- ❌ **Not Available** - Feature is not supported
 
 ---
 
@@ -219,7 +260,7 @@ scalable multi-agent systems without Python dependencies. It provides:
 
 #### Examples & Documentation
 
-- **`examples/`**: 29+ production-ready examples
+- **`examples/`**: 15+ production-ready examples
 - **`docs/`**: Comprehensive documentation
   - `PATTERNS.md`: 13 orchestration patterns
   - `SECURITY_BEST_PRACTICES.md`: Security guidelines
@@ -1418,16 +1459,17 @@ See [docs/OBSERVABILITY.md](~/go/src/github.com/aixgo-dev/aixgo/docs/OBSERVABILI
 ### Documentation
 
 - **[README.md](~/go/src/github.com/aixgo-dev/aixgo/README.md)**: Project overview and quick start
-- **[docs/PATTERNS.md](~/go/src/github.com/aixgo-dev/aixgo/docs/PATTERNS.md)**: 13 orchestration patterns
-- **[docs/SECURITY_BEST_PRACTICES.md](~/go/src/github.com/aixgo-dev/aixgo/docs/SECURITY_BEST_PRACTICES.md)**: Security guidelines
-- **[docs/DEPLOYMENT.md](~/go/src/github.com/aixgo-dev/aixgo/docs/DEPLOYMENT.md)**: Deployment guide
-- **[docs/OBSERVABILITY.md](~/go/src/github.com/aixgo-dev/aixgo/docs/OBSERVABILITY.md)**: Observability guide
-- **[docs/TESTING_GUIDE.md](~/go/src/github.com/aixgo-dev/aixgo/docs/TESTING_GUIDE.md)**: Testing strategies
+- **[docs/FEATURES.md](~/go/src/github.com/aixgo-dev/aixgo/docs/FEATURES.md)**: **Complete authoritative feature catalog** (single source of truth for ALL features)
+- **[docs/PATTERNS.md](~/go/src/github.com/aixgo-dev/aixgo/docs/PATTERNS.md)**: 13 orchestration patterns with deep-dive guides
+- **[docs/SECURITY_BEST_PRACTICES.md](~/go/src/github.com/aixgo-dev/aixgo/docs/SECURITY_BEST_PRACTICES.md)**: Security guidelines and best practices
+- **[docs/DEPLOYMENT.md](~/go/src/github.com/aixgo-dev/aixgo/docs/DEPLOYMENT.md)**: Deployment guide (Cloud Run, Kubernetes, Docker)
+- **[docs/OBSERVABILITY.md](~/go/src/github.com/aixgo-dev/aixgo/docs/OBSERVABILITY.md)**: Observability setup and configuration
+- **[docs/TESTING_GUIDE.md](~/go/src/github.com/aixgo-dev/aixgo/docs/TESTING_GUIDE.md)**: Testing strategies and utilities
 - **[docs/CONTRIBUTING.md](~/go/src/github.com/aixgo-dev/aixgo/docs/CONTRIBUTING.md)**: How to contribute
 
 ### Examples
 
-Browse **29+ production-ready examples** in `~/go/src/github.com/aixgo-dev/aixgo/examples/`:
+Browse **15+ production-ready examples** in `~/go/src/github.com/aixgo-dev/aixgo/examples/`:
 
 - Agent types (ReAct, Classifier, Aggregator, Planner)
 - LLM providers (OpenAI, Anthropic, Gemini, xAI, HuggingFace)

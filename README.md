@@ -5,44 +5,30 @@
 
 Production-grade AI agent framework for Go. Build secure, scalable multi-agent systems without Python dependencies.
 
-**[Documentation](https://aixgo.dev)** | **[Quick Start](#quick-start)** | **[Examples](examples/)** | **[Contributing](docs/CONTRIBUTING.md)**
+**[Documentation](https://aixgo.dev)** | **[Quick Start](#quick-start)** | **[Features](docs/FEATURES.md)** | **[Examples](examples/)** | **[Contributing](docs/CONTRIBUTING.md)**
 
-## Features
+## Why Aixgo?
 
-### Core Architecture
-- **Single Binary Deployment**: Ship AI agents in <10MB binaries with zero runtime dependencies
-- **Type-Safe Agent Architecture**: Compile-time error detection with Go's type system
-- **Seamless Scaling**: Start local with Go channels, scale to distributed with gRPC—no code changes
-- **Runtime Systems**: Local (in-process) and Distributed (gRPC) runtimes with identical APIs
+Python AI frameworks excel at prototyping but struggle in production. Aixgo is built for systems that ship, scale, and stay running.
 
-### Agent Orchestration
-- **Multi-Pattern Orchestration**: 13 production-proven patterns (Supervisor, Sequential, Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier, Aggregation, Planning, MapReduce)
-- **Intelligent Routing**: Router pattern for cost optimization (25-50% savings)
-- **Parallel Execution**: 3-4× speedup for independent tasks
-- **RAG Pattern**: Retrieval-Augmented Generation with vector store integration
-- **Quality Improvement**: Reflection and Ensemble patterns for higher accuracy
+| Dimension       | Python Frameworks      | Aixgo                    |
+| --------------- | ---------------------- | ------------------------ |
+| **Deployment**  | 1GB+ containers        | <10MB binary             |
+| **Cold Start**  | 10-45 seconds          | <100ms                   |
+| **Type Safety** | Runtime errors         | Compile-time checks      |
+| **Concurrency** | GIL limitations        | True parallelism         |
+| **Scaling**     | Manual queues/services | Built-in channels → gRPC |
 
-### Agent Types
-- **ReAct Agents**: Reasoning and acting with LLM integration and tool calling
-- **Classifier Agents**: AI-powered content classification with confidence scoring
-- **Aggregator Agents**: Multi-agent synthesis with consensus, weighted, semantic, and hierarchical strategies
-- **Planner Agents**: Task decomposition and planning
-- **Producer/Logger Agents**: Data generation and logging
+### Key Features
 
-### LLM & AI Integration
-- **Multi-Provider Support**: OpenAI, Anthropic (Claude), xAI (Grok), Google (Gemini), HuggingFace
-- **Pydantic AI-Style Validation Retry**: Automatic retry with validation errors for 40-70% improved structured output reliability
-- **MCP Integration**: Model Context Protocol for tool calling (local, gRPC, multi-server)
-- **Vector Stores**: Firestore, in-memory (Qdrant, pgvector, ChromaDB planned)
-- **Embeddings**: OpenAI, HuggingFace models for semantic memory
-- **Semantic Memory**: Long-term knowledge storage with vector search
+- **6 Agent Types** - ReAct, Classifier, Aggregator, Planner, Producer, Logger
+- **13 Orchestration Patterns** - All production-proven patterns implemented
+- **6+ LLM Providers** - OpenAI, Anthropic, Gemini, xAI, Vertex AI, HuggingFace, plus local inference
+- **Enterprise Security** - 4 auth modes, RBAC, rate limiting, SSRF protection
+- **Full Observability** - OpenTelemetry, Prometheus, Langfuse, cost tracking
+- **Cost Optimization** - 25-50% savings with Router pattern, 70% token reduction with RAG
 
-### Observability & Production
-- **Automatic Cost Tracking**: Every LLM call tracked with token and cost metrics
-- **OpenTelemetry Integration**: Distributed tracing and monitoring
-- **Langfuse Support**: LLM-specific observability and analytics
-- **Health Checks**: Liveness, readiness, and detailed health endpoints
-- **Prometheus Metrics**: HTTP, gRPC, agent, and system metrics
+> 📖 **Complete Feature Catalog**: See [docs/FEATURES.md](docs/FEATURES.md) for all features with code references and technical details.
 
 ## Quick Start
 
@@ -135,369 +121,82 @@ go run main.go
 
 That's it! You now have a running multi-agent system with producer, analyzer, and logger agents orchestrated by a supervisor.
 
-## Documentation & Resources
+## Use Cases
 
-Comprehensive documentation, guides, and examples are available at **[aixgo.dev](https://aixgo.dev)**:
-
-### 📚 Guides
-
-- **[Core Concepts](https://aixgo.dev/guides/core-concepts)** - Agent types, orchestration patterns, and architecture
-- **[Multi-Agent Orchestration](https://aixgo.dev/guides/multi-agent-orchestration)** - Supervisor patterns and workflows
-- **[Security Best Practices](https://aixgo.dev/guides/security)** - Production security configurations
-- **[Production Deployment](https://aixgo.dev/guides/deployment)** - Docker, Kubernetes, and Cloud Run
-
-### 🎯 Examples
-
-Browse **29+ complete, production-ready configuration examples**:
-
-- **[Agent Types](https://aixgo.dev/examples/agents)** - Producer, ReAct, Logger, Classifier, Aggregator, Planner
-  - [Classifier Workflow](examples/classifier-workflow/) - AI-powered ticket classification with confidence scoring
-  - [Aggregator Workflow](examples/aggregator-workflow/) - Multi-agent synthesis with consensus and semantic strategies
-- **[LLM Providers](https://aixgo.dev/examples/llm-providers)** - OpenAI, Anthropic, Gemini, Vertex AI, xAI, HuggingFace
-- **[Structured Output](https://aixgo.dev/examples/structured-output)** - Type-safe LLM responses with validation
-  - [Pydantic-Style Validation](examples/pydantic-style-validation/) - Automatic retry with validation errors for reliable structured data extraction
-- **[MCP Integration](https://aixgo.dev/examples/mcp)** - Local transport, gRPC, multi-server setups
-- **[Security](https://aixgo.dev/examples/security)** - Authentication, authorization, TLS configurations
-- **[Orchestration](https://aixgo.dev/examples/orchestration)** - MapReduce, parallel, sequential, reflection patterns
-- **[Use Cases](https://aixgo.dev/examples/use-cases)** - Complete end-to-end applications
-
-### 🚀 Quick Links
-
-- **[API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo)** - Full Go package documentation
-- **[Release Notes](https://aixgo.dev/releases)** - Track feature development and roadmap
-- **[GitHub Discussions](https://github.com/orgs/aixgo-dev/discussions)** - Ask questions and share ideas
-
-## Why Aixgo?
-
-### Production-First Design
-
-Python AI frameworks excel at prototyping but struggle in production. Aixgo is built for systems that ship, scale, and stay running.
-
-| Dimension       | Python Frameworks      | Aixgo                    |
-| --------------- | ---------------------- | ------------------------ |
-| **Deployment**  | 1GB+ containers        | <10MB binary             |
-| **Cold Start**  | 10-45 seconds          | <100ms                   |
-| **Type Safety** | Runtime errors         | Compile-time checks      |
-| **Concurrency** | GIL limitations        | True parallelism         |
-| **Scaling**     | Manual queues/services | Built-in channels → gRPC |
-
-### Use Cases
-
-- **Data Pipelines**: Add AI enrichment to high-throughput ETL workflows
-- **API Services**: Production AI endpoints with Go's performance characteristics
-- **Edge Deployment**: Run AI agents on resource-constrained devices
-- **Multi-Agent Systems**: Coordinate complex workflows with supervisor patterns
-- **Distributed Systems**: Scale from single instance to multi-region with zero refactoring
+- **Data Pipelines** - Add AI enrichment to high-throughput ETL workflows
+- **API Services** - Production AI endpoints with Go's performance
+- **Edge Deployment** - Run AI agents on resource-constrained devices
+- **Multi-Agent Systems** - Coordinate complex workflows with supervisor patterns
 
 ## Architecture
 
-Aixgo implements a unified orchestration architecture supporting multiple patterns for building production AI agent systems.
+Aixgo provides a flexible, layered architecture:
 
-### Orchestration Patterns
+- **Agent Layer** - 6 specialized agent types
+- **Orchestration Layer** - 13 production-proven patterns
+- **Runtime Layer** - Local (Go channels) or Distributed (gRPC)
+- **Integration Layer** - 6+ LLM providers, MCP tool calling, vector stores
+- **Observability Layer** - OpenTelemetry, Prometheus, cost tracking
 
-13 production-proven patterns for different use cases:
-
-- **Supervisor**: Centralized orchestration with specialized agent routing
-- **Sequential**: Ordered pipeline execution (extract → transform → load)
-- **Parallel**: Concurrent execution with 3-4× speedup
-- **Router**: Intelligent routing for 25-50% cost optimization
-- **Swarm**: Decentralized agent handoffs (inspired by OpenAI Swarm)
-- **Hierarchical**: Multi-level delegation for complex workflows
-- **RAG**: Retrieval-Augmented Generation with vector stores
-- **Reflection**: Iterative refinement for quality improvement
-- **Ensemble**: Multi-model voting for high-accuracy decisions
-
-See [docs/PATTERNS.md](docs/PATTERNS.md) for detailed pattern catalog.
-
-### Agent Types
-
-- **ReAct**: Reasoning + Acting agents powered by LLMs with tool calling
-- **Classifier**: LLM-powered content classification with confidence scoring
-- **Aggregator**: Multi-agent output synthesis using consensus, weighted, semantic, or hierarchical strategies
-- **Planner**: Task decomposition and strategic planning
-- **Producer**: Generates messages at configured intervals
-- **Logger**: Consumes and logs messages from other agents
-
-### Runtime Systems
-
-Agents communicate through a runtime abstraction layer:
-
-- **Local Runtime**: Go channels for in-process communication (single binary deployment)
-- **Distributed Runtime**: gRPC for multi-node orchestration (distributed deployment)
-- **Deployment Flexibility**: Same code runs on both - deployment is just configuration
-
-## Agent Roles
-
-### Producer Agent
-
-Generates periodic messages for downstream agents:
-
-```yaml
-agents:
-  - name: event-generator
-    role: producer
-    interval: 500ms
-    outputs:
-      - target: processor
-```
-
-### ReAct Agent
-
-LLM-powered agent with reasoning and tool calling:
-
-```yaml
-agents:
-  - name: analyst
-    role: react
-    model: gpt-4-turbo
-    prompt: 'You are an expert data analyst.'
-    tools:
-      - name: query_database
-        description: 'Query the database'
-        input_schema:
-          type: object
-          properties:
-            query: { type: string }
-          required: [query]
-    inputs:
-      - source: event-generator
-    outputs:
-      - target: logger
-```
-
-### Logger Agent
-
-Consumes and logs messages:
-
-```yaml
-agents:
-  - name: audit-log
-    role: logger
-    inputs:
-      - source: analyst
-```
-
-### Classifier Agent
-
-LLM-powered content classification with structured outputs and confidence scoring:
-
-```yaml
-agents:
-  - name: ticket-classifier
-    role: classifier
-    model: gpt-4-turbo
-    inputs:
-      - source: support-tickets
-    outputs:
-      - target: classified-tickets
-    classifier_config:
-      categories:
-        - name: technical_issue
-          description: "Issues requiring technical troubleshooting"
-          keywords: ["error", "bug", "crash"]
-        - name: billing_inquiry
-          description: "Questions about payments or invoices"
-          keywords: ["payment", "charge", "refund"]
-      confidence_threshold: 0.7
-      temperature: 0.3
-```
-
-### Aggregator Agent
-
-Synthesizes outputs from multiple agents using intelligent strategies:
-
-```yaml
-agents:
-  - name: research-synthesizer
-    role: aggregator
-    model: gpt-4-turbo
-    inputs:
-      - source: expert-1
-      - source: expert-2
-      - source: expert-3
-    outputs:
-      - target: final-report
-    aggregator_config:
-      aggregation_strategy: consensus  # or weighted, semantic, hierarchical, rag_based
-      consensus_threshold: 0.75
-      conflict_resolution: llm_mediated
-      timeout_ms: 5000
-```
-
-## Configuration
-
-Aixgo uses YAML-based declarative configuration:
-
-```yaml
-supervisor:
-  name: string # Supervisor identifier
-  model: string # LLM model to use
-  max_rounds: int # Maximum execution rounds
-
-agents:
-  - name: string # Unique agent name
-    role: string # producer | react | logger
-    interval: duration # For producer agents
-    model: string # For react agents
-    prompt: string # System prompt for react agents
-    tools: [] # Tool definitions for react agents
-    inputs: [] # Input sources
-    outputs: [] # Output targets
-```
-
-## Observability
-
-Aixgo includes built-in OpenTelemetry support for production observability:
-
-- **Distributed Tracing**: Track messages across multi-agent workflows
-- **Structured Logging**: Context-aware logs with trace correlation
-- **Metrics Export**: Agent performance and health metrics
-- **Integration Ready**: Works with Grafana, Datadog, Langfuse, and more
-
-## Development
-
-### Building from Source
-
-```bash
-git clone https://github.com/aixgo-dev/aixgo.git
-cd aixgo
-go build ./...
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-go test ./...
-
-# With race detection
-go test -race ./...
-
-# With coverage
-go test -cover ./...
-```
-
-### Project Structure
-
-```text
-aixgo/
-├── agents/           # Agent implementations (Producer, ReAct, Logger)
-├── config/           # Example configurations
-├── docs/             # Documentation
-├── examples/         # Example applications
-├── internal/
-│   ├── agent/        # Agent core types and factory
-│   ├── llm/          # LLM integration and validation
-│   ├── observability/# OpenTelemetry integration
-│   └── supervisor/   # Supervisor implementation
-├── proto/            # Message protocol definitions
-├── aixgo.go          # Main entry point and config loader
-└── runtime.go        # Message runtime and communication layer
-```
-
-## Roadmap
-
-See our [GitHub Project Board](https://github.com/orgs/aixgo-dev/projects/1) for the latest roadmap, feature development, and priorities.
+> 🔗 **Deep Dive**: For detailed architecture and pattern documentation, see [docs/PATTERNS.md](docs/PATTERNS.md).
 
 ## Documentation
 
-For comprehensive documentation, visit **[https://aixgo.dev](https://aixgo.dev)**.
+**Comprehensive guides and examples available at [aixgo.dev](https://aixgo.dev)**
 
-**Repository Documentation:**
+### Core Documentation
 
-- [Pattern Catalog](docs/PATTERNS.md) - 13 orchestration patterns with examples
-- [Deployment Guide](docs/DEPLOYMENT.md) - Deploy to Cloud Run, Kubernetes, or local
-- [Observability Guide](docs/OBSERVABILITY.md) - OpenTelemetry and cost tracking
-- [Testing Guide](docs/TESTING_GUIDE.md) - Testing strategies
-- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
-- [API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo) - GoDoc documentation
+- **[FEATURES.md](docs/FEATURES.md)** - Complete feature catalog with code references
+- **[PATTERNS.md](docs/PATTERNS.md)** - 13 orchestration patterns with examples
+- **[SECURITY_BEST_PRACTICES.md](docs/SECURITY_BEST_PRACTICES.md)** - Security guidelines
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Cloud Run, Kubernetes, Docker
+- **[OBSERVABILITY.md](docs/OBSERVABILITY.md)** - OpenTelemetry and cost tracking
+- **[API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo)** - GoDoc documentation
 
-### Security
+### Examples
 
-- [Authentication Guide](docs/AUTHENTICATION.md) - Configure auth modes for different deployments
-- [Security Best Practices](SECURITY_BEST_PRACTICES.md) - Secure development guidelines
-- [Production Security Checklist](PRODUCTION_SECURITY_CHECKLIST.md) - Pre-deployment requirements
+Browse **15+ production-ready examples** in [examples/](examples/):
 
-## Authentication Configuration
+- Agent types: ReAct, Classifier, Aggregator, Planner
+- LLM providers: OpenAI, Anthropic, Gemini, xAI, HuggingFace
+- Orchestration: MapReduce, parallel, sequential, reflection
+- Security: Authentication, authorization, TLS
+- Complete use cases: End-to-end applications
 
-Aixgo supports flexible authentication modes for different deployment scenarios:
+## Development
 
-| Mode        | Use Case          | Description                            |
-| ----------- | ----------------- | -------------------------------------- |
-| `disabled`  | Local development | No authentication (NOT for production) |
-| `delegated` | Cloud Run + IAP   | Infrastructure handles auth            |
-| `builtin`   | Self-hosted       | Application validates API keys         |
-| `hybrid`    | Mixed auth        | Both infrastructure and API keys       |
+```bash
+# Build
+git clone https://github.com/aixgo-dev/aixgo.git
+cd aixgo
+go build ./...
 
-### Quick Examples
+# Test
+go test ./...
+go test -race ./...
 
-**Local Development** (no auth):
-
-```yaml
-environment: development
-auth_mode: disabled
+# Coverage
+go test -cover ./...
 ```
 
-**Cloud Run with IAP**:
-
-```yaml
-environment: production
-auth_mode: delegated
-delegated_auth:
-  identity_header: X-Goog-Authenticated-User-Email
-  iap:
-    enabled: true
-```
-
-**Self-hosted with API Keys**:
-
-```yaml
-environment: production
-auth_mode: builtin
-builtin_auth:
-  method: api_key
-  api_keys:
-    source: environment
-    env_prefix: AIXGO_API_KEY_
-```
-
-See [Authentication Guide](docs/AUTHENTICATION.md) for complete documentation and [examples/](examples/) for full configuration files.
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for contribution guidelines.
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details.
+We welcome contributions! See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 
-Key areas we're looking for help:
+## Community
 
-- Additional agent implementations
-- LLM provider integrations
-- Documentation improvements
-- Example applications
-- Performance optimizations
+- **[GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions)** - Ask questions, share ideas
+- **[Issues](https://github.com/aixgo-dev/aixgo/issues)** - Report bugs, request features
+- **[Roadmap](https://github.com/orgs/aixgo-dev/projects/1)** - Track feature development
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Community
-
-- [GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions) - Ask questions, share ideas
-- [Issues](https://github.com/aixgo-dev/aixgo/issues) - Report bugs, request features
-
-## Why Go for AI Agents?
-
-**"Where Python prototypes go to die in production, Go agents ship and scale."**
-
-Python excels at AI research and prototyping. Go excels at production systems. Aixgo bridges the gap:
-
-- **Performance**: Compiled binaries with true concurrency, no GIL
-- **Simplicity**: Single binary deployment, no dependency management
-- **Security**: Minimal attack surface, static linking, memory safety
-- **Scalability**: Native support for distributed systems
-- **Maintainability**: Type safety catches errors before production
-
-Build AI agents that ship with the same performance, security, and operational simplicity as the rest of your Go stack.
-
 ---
 
 **Production-grade AI agents in pure Go.**
+
+Build AI agents that ship with the same performance, security, and operational simplicity as the rest of your Go stack.
