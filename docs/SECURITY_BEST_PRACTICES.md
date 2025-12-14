@@ -290,7 +290,94 @@ func NewSecureClient(serverAddr string, pinnedCert []byte) (*grpc.ClientConn, er
 
 ---
 
-## 5. Secrets Management
+## 5. SSRF (Server-Side Request Forgery) Protection
+
+### Use SSRF Validator for External URLs
+
+When making HTTP requests to user-provided URLs (e.g., for Ollama or other services), always use the SSRF validator:
+
+```go
+import "github.com/aixgo-dev/aixgo/pkg/security"
+
+// Create SSRF validator with custom config
+config := security.SSRFConfig{
+    AllowedHosts:    []string{"ollama", "localhost"},
+    AllowedSchemes:  []string{"http", "https"},
+    AllowLocalhost:  true,
+    BlockPrivateIPs: true,
+    BlockMetadata:   true,
+}
+validator := security.NewSSRFValidator(config)
+
+// Validate URL before making requests
+if err := validator.ValidateURL(userProvidedURL); err != nil {
+    return fmt.Errorf("invalid URL: %w", err)
+}
+
+// Use secure transport to prevent DNS rebinding
+httpClient := &http.Client{
+    Transport: validator.CreateSecureTransport(),
+}
+```
+
+### For Ollama Integration
+
+Use the purpose-built Ollama SSRF validator:
+
+```go
+import "github.com/aixgo-dev/aixgo/internal/llm/inference"
+
+// NewOllamaService validates URL and creates secure transport
+service, err := inference.NewOllamaService(baseURL)
+if err != nil {
+    return fmt.Errorf("failed to create Ollama service: %w", err)
+}
+```
+
+### Configure Production Allowlists
+
+For Kubernetes deployments, extend the default allowlist via environment variables:
+
+```bash
+# Allow internal Kubernetes service
+export OLLAMA_ALLOWED_HOSTS="ollama-service.production.svc.cluster.local"
+```
+
+### Protection Features
+
+The SSRF validator provides:
+
+- **Private IP Blocking**: Blocks RFC1918 ranges (10.x, 172.16-31.x, 192.168.x)
+- **Metadata Service Blocking**: Prevents access to cloud metadata endpoints (169.254.169.254)
+- **Link-Local Blocking**: Blocks link-local and multicast addresses
+- **DNS Rebinding Prevention**: Validates resolved IPs in DialContext
+- **Scheme Validation**: Only allows HTTP/HTTPS (blocks file://, ftp://, gopher://, etc.)
+- **Redirect Prevention**: Disables HTTP redirects to prevent SSRF via redirect
+
+### Never Trust User-Provided URLs
+
+```go
+// BAD - Direct usage of user URL
+resp, err := http.Get(userURL)
+
+// GOOD - Validate first
+validator := security.NewOllamaSSRFValidator()
+if err := validator.ValidateURL(userURL); err != nil {
+    return fmt.Errorf("URL validation failed: %w", err)
+}
+
+httpClient := &http.Client{
+    Transport: validator.CreateSecureTransport(),
+    CheckRedirect: func(req *http.Request, via []*http.Request) error {
+        return http.ErrUseLastResponse  // Disable redirects
+    },
+}
+resp, err := httpClient.Get(userURL)
+```
+
+---
+
+## 6. Secrets Management
 
 ### Use Environment Variables Correctly
 
@@ -389,7 +476,7 @@ func (p *VaultSecretProvider) GetAPIKey(ctx context.Context) (string, error) {
 
 ---
 
-## 6. Rate Limiting and Resource Control
+## 7. Rate Limiting and Resource Control
 
 ### Implement Per-Client Rate Limiting
 
@@ -491,7 +578,7 @@ func (p *ProtectedTool) Execute(ctx context.Context, args Args) (any, error) {
 
 ---
 
-## 7. Error Handling
+## 8. Error Handling
 
 ### Don't Expose Internal Errors
 
@@ -529,7 +616,7 @@ func (e *APIError) Error() string {
 
 ---
 
-## 8. Docker Security
+## 9. Docker Security
 
 ### Use Non-Root User
 
@@ -592,7 +679,7 @@ docker scout cves myapp:latest
 
 ---
 
-## 9. Configuration Security
+## 10. Configuration Security
 
 ### Validate Configuration Files
 
@@ -634,7 +721,7 @@ func NewDefaultConfig() *Config {
 
 ---
 
-## 10. Testing Security
+## 11. Testing Security
 
 ### Write Security-Focused Tests
 
@@ -684,7 +771,7 @@ func TestPromptInjection(t *testing.T) {
 
 ---
 
-## 11. Security Checklist
+## 12. Security Checklist
 
 Before deploying to production, verify:
 
@@ -699,6 +786,8 @@ Before deploying to production, verify:
 - [ ] File paths sanitized to prevent traversal
 - [ ] Tool arguments validated with allowlists
 - [ ] Regex patterns properly escaped
+- [ ] SSRF protection enabled for all external URLs
+- [ ] Private IPs and metadata services blocked
 
 ### Cryptography
 - [ ] TLS 1.3+ used for all connections
@@ -732,7 +821,7 @@ Before deploying to production, verify:
 
 ---
 
-## 12. Security Resources
+## 13. Security Resources
 
 ### Tools
 - **Static Analysis**: gosec, staticcheck

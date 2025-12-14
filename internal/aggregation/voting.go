@@ -236,7 +236,7 @@ func WeightedVote(inputs []VotingInput) (*VotingResult, error) {
 		maxScore, totalWeight, agreement*100, strings.Join(sources[winner], ", "))
 
 	if tieCount > 1 {
-		explanation += fmt.Sprintf(" (broke tie deterministically)")
+		explanation += " (broke tie deterministically)"
 	}
 
 	// Convert weighted scores to vote counts for the result

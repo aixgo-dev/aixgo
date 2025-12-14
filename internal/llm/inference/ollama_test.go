@@ -33,7 +33,10 @@ func TestOllamaService_Generate(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := NewOllamaService(server.URL)
+	svc, err := NewOllamaService(server.URL)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
 	resp, err := svc.Generate(context.Background(), GenerateRequest{
 		Model:  "llama2",
 		Prompt: "Say hello",
@@ -68,7 +71,10 @@ func TestOllamaService_Chat(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := NewOllamaService(server.URL)
+	svc, err := NewOllamaService(server.URL)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
 	resp, err := svc.Chat(context.Background(), "llama2", []ChatMessage{
 		{Role: "user", Content: "How are you?"},
 	})
@@ -96,7 +102,10 @@ func TestOllamaService_ListModels(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := NewOllamaService(server.URL)
+	svc, err := NewOllamaService(server.URL)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
 	models, err := svc.ListModels(context.Background())
 
 	if err != nil {
@@ -116,12 +125,18 @@ func TestOllamaService_Available(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := NewOllamaService(server.URL)
+	svc, err := NewOllamaService(server.URL)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
 	if !svc.Available() {
 		t.Error("expected service to be available")
 	}
 
-	svc2 := NewOllamaService("http://localhost:99999")
+	svc2, err := NewOllamaService("http://localhost:99999")
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
 	if svc2.Available() {
 		t.Error("expected service to be unavailable")
 	}

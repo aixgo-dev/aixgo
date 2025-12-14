@@ -7,26 +7,54 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
+
+	"github.com/aixgo-dev/aixgo/pkg/security"
 )
 
 // OllamaService implements InferenceService for Ollama
 type OllamaService struct {
 	baseURL    string
 	httpClient *http.Client
+	validator  *security.SSRFValidator
 }
 
-// NewOllamaService creates a new Ollama inference service
-func NewOllamaService(baseURL string) *OllamaService {
+// NewOllamaService creates a new Ollama inference service with SSRF protection
+func NewOllamaService(baseURL string) (*OllamaService, error) {
 	if baseURL == "" {
 		baseURL = "http://localhost:11434"
 	}
-	return &OllamaService{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 5 * time.Minute,
+
+	// Parse and validate URL
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %w", err)
+	}
+
+	// Create SSRF validator
+	validator := security.NewOllamaSSRFValidator()
+
+	// Validate URL
+	if err := validator.ValidateURL(baseURL); err != nil {
+		return nil, fmt.Errorf("URL validation failed: %w", err)
+	}
+
+	// Create secure HTTP client with SSRF-protected transport
+	httpClient := &http.Client{
+		Timeout:   5 * time.Minute,
+		Transport: validator.CreateSecureTransport(),
+		// Disable following redirects to prevent SSRF via redirect
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
 		},
 	}
+
+	return &OllamaService{
+		baseURL:    parsedURL.String(),
+		httpClient: httpClient,
+		validator:  validator,
+	}, nil
 }
 
 // Generate performs inference using Ollama

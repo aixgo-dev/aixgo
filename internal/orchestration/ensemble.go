@@ -138,8 +138,8 @@ func (e *Ensemble) vote(results map[string]*agent.Message) (*agent.Message, floa
 
 		// Extract confidence from metadata if available
 		confidence := 0.5 // Default confidence
-		if msg.Message.Metadata != nil {
-			if confVal, ok := msg.Message.Metadata["confidence"]; ok {
+		if msg.Metadata != nil {
+			if confVal, ok := msg.Metadata["confidence"]; ok {
 				if confFloat, ok := confVal.(float64); ok {
 					confidence = confFloat
 				}
