@@ -28,22 +28,32 @@ This document helps AI assistants understand and work effectively with the Aixgo
 ### What is Aixgo?
 
 Aixgo is a **production-grade AI agent framework for Go** that enables building secure,
-scalable multi-agent systems without Python dependencies. It provides:
+scalable multi-agent systems without Python dependencies. **Integrate via `go get` and
+compile to <10MB binaries** - 100x smaller than Python framework containers.
 
-- **Single Binary Deployment**: <10MB binaries with zero runtime dependencies
+Key capabilities:
+
+- **Framework + Lightweight Binaries**: Import into your Go app, deploy as <10MB binaries
+  with zero runtime dependencies (vs 1GB+ Python containers)
 - **Type-Safe Architecture**: Compile-time error detection with Go's type system
 - **Seamless Scaling**: Start local with Go channels, scale to distributed with gRPC
 - **Multi-Pattern Orchestration**: 13 production-proven patterns (Supervisor, Sequential,
   Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier,
   Aggregation, Planning, MapReduce)
 
+### Installation
+
+```bash
+go get github.com/aixgo-dev/aixgo
+```
+
 ### Core Value Proposition
 
 - **Production-First**: Built for systems that ship, scale, and stay running
 - **Performance**: <100ms cold start vs 10-45s for Python frameworks
-- **Deployment**: <10MB binaries vs 1GB+ containers
-- **Concurrency**: True parallelism (no GIL) vs Python's threading limitations
-- **Type Safety**: Compile-time checks vs runtime errors
+- **Deployment**: <10MB binaries vs 1GB+ Python containers (zero runtime dependencies)
+- **Concurrency**: True parallelism (no GIL) with native Go channels and goroutines
+- **Type Safety**: Compile-time error detection vs runtime failures
 
 ### Target Users
 
