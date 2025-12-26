@@ -1,22 +1,25 @@
 package provider
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
-	"net/http"
+	"log"
+	"math/rand"
 	"os"
+	"strings"
 	"time"
 
-	"golang.org/x/oauth2/google"
+	"google.golang.org/genai"
 )
 
 const (
-	vertexAIMaxRetries = 3
+	vertexAIMaxRetries   = 5
+	vertexAIBaseDelay    = 1 * time.Second
+	vertexAIMaxDelay     = 32 * time.Second
+	vertexAIJitterFactor = 0.3
+	vertexAIClientTimeout = 30 * time.Second
 )
 
 func init() {
@@ -47,34 +50,42 @@ func init() {
 	})
 }
 
-// VertexAIProvider implements Provider for Google Vertex AI API
+// VertexAIProvider implements Provider for Google Vertex AI using the Gen AI SDK
 type VertexAIProvider struct {
-	projectID       string
-	location        string
-	client          *http.Client
-	tokenFunc       func(context.Context) (string, error)
-	baseURLOverride string // for testing
+	projectID string
+	location  string
+	client    *genai.Client
 }
 
-// NewVertexAIProvider creates a new Vertex AI provider using Application Default Credentials
+// NewVertexAIProvider creates a new Vertex AI provider using the Google Gen AI SDK.
+// It uses Application Default Credentials (ADC) for authentication.
+//
+// Security: All API calls respect the context deadline. Callers should set
+// appropriate timeouts (recommended: 60-120s for completion, 180s for streaming).
 func NewVertexAIProvider(projectID, location string) (*VertexAIProvider, error) {
-	tokenFunc := func(ctx context.Context) (string, error) {
-		creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
-		if err != nil {
-			return "", fmt.Errorf("failed to find default credentials: %w", err)
-		}
-		token, err := creds.TokenSource.Token()
-		if err != nil {
-			return "", fmt.Errorf("failed to get token: %w", err)
-		}
-		return token.AccessToken, nil
+	// Add timeout for client creation to prevent hanging
+	ctx, cancel := context.WithTimeout(context.Background(), vertexAIClientTimeout)
+	defer cancel()
+
+	// Create client configured for Vertex AI backend
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		Project:  projectID,
+		Location: location,
+		Backend:  genai.BackendVertexAI,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Vertex AI client: %w", err)
+	}
+
+	// Only log in debug mode to avoid leaking project info
+	if os.Getenv("AIXGO_DEBUG") == "true" {
+		log.Printf("[VertexAI] Initialized client (project=%s, location=%s)", projectID, location)
 	}
 
 	return &VertexAIProvider{
 		projectID: projectID,
 		location:  location,
-		client:    &http.Client{Timeout: 120 * time.Second},
-		tokenFunc: tokenFunc,
+		client:    client,
 	}, nil
 }
 
@@ -83,66 +94,129 @@ func (p *VertexAIProvider) Name() string {
 	return "vertexai"
 }
 
-func (p *VertexAIProvider) endpoint(model string) string {
-	if p.baseURLOverride != "" {
-		return p.baseURLOverride
-	}
-	return fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent",
-		p.location, p.projectID, p.location, model)
-}
-
-func (p *VertexAIProvider) streamEndpoint(model string) string {
-	if p.baseURLOverride != "" {
-		return p.baseURLOverride
-	}
-	return fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:streamGenerateContent?alt=sse",
-		p.location, p.projectID, p.location, model)
-}
-
-// CreateCompletion creates a completion
+// CreateCompletion creates a completion using the Gen AI SDK
 func (p *VertexAIProvider) CreateCompletion(ctx context.Context, req CompletionRequest) (*CompletionResponse, error) {
 	model := req.Model
 	if model == "" {
 		model = "gemini-1.5-flash"
 	}
 
-	geminiReq := p.buildRequest(req)
-
-	var resp geminiResponse
-	if err := p.doRequestWithRetry(ctx, p.endpoint(model), geminiReq, &resp); err != nil {
-		return nil, err
+	// Build generation config
+	config := &genai.GenerateContentConfig{}
+	// Always set temperature - 0 is a valid value for deterministic output
+	// Use -1 as sentinel for "not set" if needed, but typically callers set explicit values
+	config.Temperature = genai.Ptr(float32(req.Temperature))
+	if req.MaxTokens != 0 {
+		config.MaxOutputTokens = genai.Ptr(int32(req.MaxTokens))
 	}
 
-	return p.parseResponse(&resp)
+	// Build contents from messages
+	contents, systemInstruction := p.buildContents(req.Messages)
+
+	// Set system instruction if present
+	if systemInstruction != nil {
+		config.SystemInstruction = systemInstruction
+	}
+
+	// Add tools if provided
+	if len(req.Tools) > 0 {
+		config.Tools = p.buildTools(req.Tools)
+	}
+
+	var resp *genai.GenerateContentResponse
+	var err error
+
+	// Retry logic with exponential backoff and jitter
+	for attempt := 0; attempt < vertexAIMaxRetries; attempt++ {
+		if attempt > 0 {
+			delay := p.calculateBackoff(attempt)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(delay):
+			}
+		}
+
+		resp, err = p.client.Models.GenerateContent(ctx, model, contents, config)
+		if err == nil {
+			break
+		}
+
+		// Check if error is retryable
+		if !isRetryableGenAIError(err) {
+			return nil, p.wrapError(err)
+		}
+	}
+
+	if err != nil {
+		return nil, p.wrapError(err)
+	}
+
+	return p.parseResponse(resp)
 }
 
-// CreateStructured creates a structured response
+// CreateStructured creates a structured response with JSON schema
 func (p *VertexAIProvider) CreateStructured(ctx context.Context, req StructuredRequest) (*StructuredResponse, error) {
 	model := req.Model
 	if model == "" {
 		model = "gemini-1.5-flash"
 	}
 
-	geminiReq := p.buildRequest(req.CompletionRequest)
-
-	if geminiReq.GenerationConfig == nil {
-		geminiReq.GenerationConfig = &geminiGenConfig{}
+	// Build generation config
+	config := &genai.GenerateContentConfig{
+		ResponseMIMEType: "application/json",
 	}
-	geminiReq.GenerationConfig.ResponseMimeType = "application/json"
+	// Always set temperature - 0 is a valid value for deterministic output
+	config.Temperature = genai.Ptr(float32(req.Temperature))
+	if req.MaxTokens != 0 {
+		config.MaxOutputTokens = genai.Ptr(int32(req.MaxTokens))
+	}
 
+	// Add response schema if provided
 	if len(req.ResponseSchema) > 0 {
-		var schema any
+		var schema *genai.Schema
 		if err := json.Unmarshal(req.ResponseSchema, &schema); err == nil {
-			geminiReq.GenerationConfig.ResponseSchema = schema
+			config.ResponseSchema = schema
 		}
 	}
 
-	var resp geminiResponse
-	if err := p.doRequestWithRetry(ctx, p.endpoint(model), geminiReq, &resp); err != nil {
-		return nil, err
+	// Build contents from messages
+	contents, systemInstruction := p.buildContents(req.Messages)
+
+	// Set system instruction if present
+	if systemInstruction != nil {
+		config.SystemInstruction = systemInstruction
 	}
 
-	compResp, err := p.parseResponse(&resp)
+	var resp *genai.GenerateContentResponse
+	var err error
+
+	// Retry logic with exponential backoff and jitter
+	for attempt := 0; attempt < vertexAIMaxRetries; attempt++ {
+		if attempt > 0 {
+			delay := p.calculateBackoff(attempt)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(delay):
+			}
+		}
+
+		resp, err = p.client.Models.GenerateContent(ctx, model, contents, config)
+		if err == nil {
+			break
+		}
+
+		if !isRetryableGenAIError(err) {
+			return nil, p.wrapError(err)
+		}
+	}
+
+	if err != nil {
+		return nil, p.wrapError(err)
+	}
+
+	compResp, err := p.parseResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -160,49 +234,69 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 		model = "gemini-1.5-flash"
 	}
 
-	geminiReq := p.buildRequest(req)
-
-	body, err := json.Marshal(geminiReq)
-	if err != nil {
-		return nil, err
+	// Build generation config
+	config := &genai.GenerateContentConfig{}
+	// Always set temperature - 0 is a valid value for deterministic output
+	config.Temperature = genai.Ptr(float32(req.Temperature))
+	if req.MaxTokens != 0 {
+		config.MaxOutputTokens = genai.Ptr(int32(req.MaxTokens))
 	}
 
-	token, err := p.tokenFunc(ctx)
-	if err != nil {
-		return nil, NewProviderError("vertexai", ErrorCodeAuthentication, err.Error(), err)
+	// Build contents from messages
+	contents, systemInstruction := p.buildContents(req.Messages)
+
+	// Set system instruction if present
+	if systemInstruction != nil {
+		config.SystemInstruction = systemInstruction
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", p.streamEndpoint(model), bytes.NewReader(body))
-	if err != nil {
-		return nil, err
+	// Add tools if provided
+	if len(req.Tools) > 0 {
+		config.Tools = p.buildTools(req.Tools)
 	}
 
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+token)
+	// Create streaming response using Go 1.23 iter.Seq2 pattern
+	// We need to collect responses into a channel for the Stream interface
+	respChan := make(chan *genai.GenerateContentResponse, 10)
+	errChan := make(chan error, 1)
 
-	resp, err := p.client.Do(httpReq)
-	if err != nil {
-		return nil, NewProviderError("vertexai", ErrorCodeTimeout, err.Error(), err)
-	}
+	// Use a separate context for the goroutine to allow cleanup
+	go func() {
+		defer close(respChan)
+		defer close(errChan)
 
-	if resp.StatusCode != http.StatusOK {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-		return nil, p.handleErrorResponse(resp)
-	}
+		for resp, err := range p.client.Models.GenerateContentStream(ctx, model, contents, config) {
+			if err != nil {
+				select {
+				case errChan <- err:
+				case <-ctx.Done():
+				}
+				return
+			}
+			select {
+			case respChan <- resp:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
-	return &vertexAIStream{reader: bufio.NewReader(resp.Body), closer: resp.Body}, nil
+	return &vertexAIStream{
+		respChan: respChan,
+		errChan:  errChan,
+		ctx:      ctx,
+	}, nil
 }
 
-func (p *VertexAIProvider) buildRequest(req CompletionRequest) geminiRequest {
-	var systemContent *geminiContent
-	contents := make([]geminiContent, 0, len(req.Messages))
+// buildContents converts messages to Gen AI content format
+func (p *VertexAIProvider) buildContents(messages []Message) ([]*genai.Content, *genai.Content) {
+	var systemInstruction *genai.Content
+	contents := make([]*genai.Content, 0, len(messages))
 
-	for _, m := range req.Messages {
+	for _, m := range messages {
 		if m.Role == "system" {
-			systemContent = &geminiContent{
-				Parts: []geminiPart{{Text: m.Content}},
+			systemInstruction = &genai.Content{
+				Parts: []*genai.Part{{Text: m.Content}},
 			}
 			continue
 		}
@@ -212,132 +306,58 @@ func (p *VertexAIProvider) buildRequest(req CompletionRequest) geminiRequest {
 			role = "model"
 		}
 
-		contents = append(contents, geminiContent{
+		// Handle tool/function response messages for ReAct agent loop
+		if m.Role == "tool" || m.Role == "function" {
+			// Parse tool response from content (expected format: JSON with name and response)
+			var toolResp struct {
+				Name     string         `json:"name"`
+				Response map[string]any `json:"response"`
+			}
+			if err := json.Unmarshal([]byte(m.Content), &toolResp); err == nil && toolResp.Name != "" {
+				contents = append(contents, &genai.Content{
+					Role: "function",
+					Parts: []*genai.Part{{
+						FunctionResponse: &genai.FunctionResponse{
+							Name:     toolResp.Name,
+							Response: toolResp.Response,
+						},
+					}},
+				})
+				continue
+			}
+			// If parsing fails, treat as regular user message with tool context
+			role = "user"
+		}
+
+		contents = append(contents, &genai.Content{
 			Role:  role,
-			Parts: []geminiPart{{Text: m.Content}},
+			Parts: []*genai.Part{{Text: m.Content}},
 		})
 	}
 
-	gReq := geminiRequest{
-		Contents:          contents,
-		SystemInstruction: systemContent,
-	}
-
-	if req.Temperature != 0 || req.MaxTokens != 0 {
-		gReq.GenerationConfig = &geminiGenConfig{
-			Temperature:     req.Temperature,
-			MaxOutputTokens: req.MaxTokens,
-		}
-	}
-
-	if len(req.Tools) > 0 {
-		funcDecls := make([]geminiFuncDecl, len(req.Tools))
-		for i, t := range req.Tools {
-			var params any
-			if len(t.Parameters) > 0 {
-				_ = json.Unmarshal(t.Parameters, &params)
-			}
-			funcDecls[i] = geminiFuncDecl{
-				Name:        t.Name,
-				Description: t.Description,
-				Parameters:  params,
-			}
-		}
-		gReq.Tools = []geminiTool{{FunctionDeclarations: funcDecls}}
-	}
-
-	return gReq
+	return contents, systemInstruction
 }
 
-func (p *VertexAIProvider) doRequestWithRetry(ctx context.Context, endpoint string, reqBody any, result any) error {
-	body, err := json.Marshal(reqBody)
-	if err != nil {
-		return err
+// buildTools converts tools to Gen AI tool format
+func (p *VertexAIProvider) buildTools(tools []Tool) []*genai.Tool {
+	funcDecls := make([]*genai.FunctionDeclaration, len(tools))
+	for i, t := range tools {
+		var params *genai.Schema
+		if len(t.Parameters) > 0 {
+			_ = json.Unmarshal(t.Parameters, &params)
+		}
+		funcDecls[i] = &genai.FunctionDeclaration{
+			Name:        t.Name,
+			Description: t.Description,
+			Parameters:  params,
+		}
 	}
-
-	var lastErr error
-	for attempt := 0; attempt < vertexAIMaxRetries; attempt++ {
-		if attempt > 0 {
-			delay := time.Duration(math.Pow(2, float64(attempt))) * time.Second
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(delay):
-			}
-		}
-
-		token, err := p.tokenFunc(ctx)
-		if err != nil {
-			return NewProviderError("vertexai", ErrorCodeAuthentication, err.Error(), err)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewReader(body))
-		if err != nil {
-			return err
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token)
-
-		resp, err := p.client.Do(req)
-		if err != nil {
-			lastErr = NewProviderError("vertexai", ErrorCodeTimeout, err.Error(), err)
-			continue
-		}
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-
-		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
-			lastErr = p.handleErrorResponse(resp)
-			continue
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return p.handleErrorResponse(resp)
-		}
-
-		return json.NewDecoder(resp.Body).Decode(result)
-	}
-
-	return lastErr
+	return []*genai.Tool{{FunctionDeclarations: funcDecls}}
 }
 
-func (p *VertexAIProvider) handleErrorResponse(resp *http.Response) error {
-	body, _ := io.ReadAll(resp.Body)
-
-	var errResp geminiResponse
-	if err := json.Unmarshal(body, &errResp); err == nil && errResp.Error != nil {
-		code := ErrorCodeUnknown
-		switch resp.StatusCode {
-		case 401, 403:
-			code = ErrorCodeAuthentication
-		case 429:
-			code = ErrorCodeRateLimit
-		case 400:
-			code = ErrorCodeInvalidRequest
-		case 404:
-			code = ErrorCodeModelNotFound
-		default:
-			if resp.StatusCode >= 500 {
-				code = ErrorCodeServerError
-			}
-		}
-		return &ProviderError{
-			Provider:    "vertexai",
-			Code:        code,
-			Message:     errResp.Error.Message,
-			Type:        errResp.Error.Status,
-			StatusCode:  resp.StatusCode,
-			IsRetryable: code == ErrorCodeRateLimit || code == ErrorCodeServerError,
-		}
-	}
-
-	return NewProviderError("vertexai", ErrorCodeUnknown, string(body), nil)
-}
-
-func (p *VertexAIProvider) parseResponse(resp *geminiResponse) (*CompletionResponse, error) {
-	if len(resp.Candidates) == 0 {
+// parseResponse parses the Gen AI response into CompletionResponse
+func (p *VertexAIProvider) parseResponse(resp *genai.GenerateContentResponse) (*CompletionResponse, error) {
+	if resp == nil || len(resp.Candidates) == 0 {
 		return nil, NewProviderError("vertexai", ErrorCodeUnknown, "no candidates in response", nil)
 	}
 
@@ -345,95 +365,194 @@ func (p *VertexAIProvider) parseResponse(resp *geminiResponse) (*CompletionRespo
 	var content string
 	var toolCalls []ToolCall
 
-	for _, part := range candidate.Content.Parts {
-		if part.Text != "" {
-			content += part.Text
-		}
-		if part.FunctionCall != nil {
-			args, _ := json.Marshal(part.FunctionCall.Args)
-			toolCalls = append(toolCalls, ToolCall{
-				ID:   part.FunctionCall.Name,
-				Type: "function",
-				Function: FunctionCall{
-					Name:      part.FunctionCall.Name,
-					Arguments: args,
-				},
-			})
+	if candidate.Content != nil {
+		for _, part := range candidate.Content.Parts {
+			if part.Text != "" {
+				content += part.Text
+			}
+			if part.FunctionCall != nil {
+				args, _ := json.Marshal(part.FunctionCall.Args)
+				toolCalls = append(toolCalls, ToolCall{
+					ID:   part.FunctionCall.Name,
+					Type: "function",
+					Function: FunctionCall{
+						Name:      part.FunctionCall.Name,
+						Arguments: args,
+					},
+				})
+			}
 		}
 	}
 
-	finishReason := candidate.FinishReason
-	if finishReason == "STOP" {
+	// Convert finish reason
+	finishReason := string(candidate.FinishReason)
+	if finishReason == "STOP" || finishReason == "" {
 		finishReason = "stop"
+	}
+
+	// Get usage stats
+	var usage Usage
+	if resp.UsageMetadata != nil {
+		if resp.UsageMetadata.PromptTokenCount != nil {
+			usage.PromptTokens = int(*resp.UsageMetadata.PromptTokenCount)
+		}
+		if resp.UsageMetadata.CandidatesTokenCount != nil {
+			usage.CompletionTokens = int(*resp.UsageMetadata.CandidatesTokenCount)
+		}
+		usage.TotalTokens = int(resp.UsageMetadata.TotalTokenCount)
 	}
 
 	return &CompletionResponse{
 		Content:      content,
 		FinishReason: finishReason,
 		ToolCalls:    toolCalls,
-		Usage: Usage{
-			PromptTokens:     resp.UsageMetadata.PromptTokenCount,
-			CompletionTokens: resp.UsageMetadata.CandidatesTokenCount,
-			TotalTokens:      resp.UsageMetadata.TotalTokenCount,
-		},
-		Raw: resp,
+		Usage:        usage,
+		Raw:          resp,
 	}, nil
 }
 
-// vertexAIStream implements Stream for Vertex AI
+// wrapError converts Gen AI errors to ProviderError
+func (p *VertexAIProvider) wrapError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Determine error code based on error message (case-insensitive)
+	code := ErrorCodeUnknown
+	errMsg := strings.ToLower(err.Error())
+
+	switch {
+	case strings.Contains(errMsg, "authentication") || strings.Contains(errMsg, "credential") || strings.Contains(errMsg, "403") || strings.Contains(errMsg, "401"):
+		code = ErrorCodeAuthentication
+	case strings.Contains(errMsg, "rate limit") || strings.Contains(errMsg, "429") || strings.Contains(errMsg, "quota"):
+		code = ErrorCodeRateLimit
+	case strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "404"):
+		code = ErrorCodeModelNotFound
+	case strings.Contains(errMsg, "invalid") || strings.Contains(errMsg, "400"):
+		code = ErrorCodeInvalidRequest
+	case strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "deadline"):
+		code = ErrorCodeTimeout
+	case strings.Contains(errMsg, "500") || strings.Contains(errMsg, "503") || strings.Contains(errMsg, "server"):
+		code = ErrorCodeServerError
+	}
+
+	return &ProviderError{
+		Provider:      "vertexai",
+		Code:          code,
+		Message:       err.Error(), // Keep original case for display
+		IsRetryable:   code == ErrorCodeRateLimit || code == ErrorCodeServerError || code == ErrorCodeTimeout,
+		OriginalError: err,
+	}
+}
+
+// isRetryableGenAIError checks if a Gen AI error is retryable
+func isRetryableGenAIError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "rate limit") ||
+		strings.Contains(errMsg, "429") ||
+		strings.Contains(errMsg, "500") ||
+		strings.Contains(errMsg, "503") ||
+		strings.Contains(errMsg, "timeout") ||
+		strings.Contains(errMsg, "deadline") ||
+		strings.Contains(errMsg, "unavailable")
+}
+
+// calculateBackoff returns the backoff duration with jitter for a given attempt
+func (p *VertexAIProvider) calculateBackoff(attempt int) time.Duration {
+	// Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at maxDelay)
+	delay := time.Duration(1<<uint(attempt-1)) * vertexAIBaseDelay
+	if delay > vertexAIMaxDelay {
+		delay = vertexAIMaxDelay
+	}
+	// Add jitter: delay ± 30%
+	jitter := time.Duration(float64(delay) * vertexAIJitterFactor * (rand.Float64()*2 - 1))
+	return delay + jitter
+}
+
+// vertexAIStream implements Stream for Vertex AI using Gen AI SDK
 type vertexAIStream struct {
-	reader *bufio.Reader
-	closer io.Closer
+	respChan <-chan *genai.GenerateContentResponse
+	errChan  <-chan error
+	ctx      context.Context
+	done     bool
 }
 
 func (s *vertexAIStream) Recv() (*StreamChunk, error) {
-	for {
-		line, err := s.reader.ReadBytes('\n')
+	if s.done {
+		return &StreamChunk{FinishReason: "stop"}, io.EOF
+	}
+
+	// Use select to properly handle both response and error channels
+	// This fixes the race condition where errors could be missed
+	select {
+	case <-s.ctx.Done():
+		s.done = true
+		return nil, s.ctx.Err()
+	case err := <-s.errChan:
+		s.done = true
 		if err != nil {
-			if err == io.EOF {
-				return &StreamChunk{FinishReason: "stop"}, io.EOF
-			}
 			return nil, err
 		}
-
-		line = bytes.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-
-		if !bytes.HasPrefix(line, []byte("data: ")) {
-			continue
-		}
-
-		data := bytes.TrimPrefix(line, []byte("data: "))
-
-		var resp geminiResponse
-		if err := json.Unmarshal(data, &resp); err != nil {
-			continue
+		return &StreamChunk{FinishReason: "stop"}, io.EOF
+	case resp, ok := <-s.respChan:
+		if !ok {
+			s.done = true
+			return &StreamChunk{FinishReason: "stop"}, io.EOF
 		}
 
 		if len(resp.Candidates) == 0 {
-			continue
+			return &StreamChunk{}, nil
 		}
 
 		candidate := resp.Candidates[0]
 		var text string
-		for _, part := range candidate.Content.Parts {
-			text += part.Text
+		var toolCallDeltas []ToolCallDelta
+
+		if candidate.Content != nil {
+			for i, part := range candidate.Content.Parts {
+				if part.Text != "" {
+					text += part.Text
+				}
+				if part.FunctionCall != nil {
+					args, _ := json.Marshal(part.FunctionCall.Args)
+					toolCallDeltas = append(toolCallDeltas, ToolCallDelta{
+						Index:         i,
+						ID:            part.FunctionCall.Name,
+						Type:          "function",
+						FunctionName:  part.FunctionCall.Name,
+						ArgumentDelta: string(args),
+					})
+				}
+			}
 		}
 
 		finishReason := ""
-		if candidate.FinishReason == "STOP" {
+		if string(candidate.FinishReason) == "STOP" {
 			finishReason = "stop"
 		}
 
 		return &StreamChunk{
-			Delta:        text,
-			FinishReason: finishReason,
+			Delta:          text,
+			FinishReason:   finishReason,
+			ToolCallDeltas: toolCallDeltas,
 		}, nil
 	}
 }
 
 func (s *vertexAIStream) Close() error {
-	return s.closer.Close()
+	s.done = true
+	// Drain channels to allow goroutine to exit
+	go func() {
+		for range s.respChan {
+		}
+	}()
+	return nil
+}
+
+// Close provides a hook for client cleanup (currently no-op as SDK handles this)
+func (p *VertexAIProvider) Close() error {
+	return nil
 }
