@@ -1,6 +1,6 @@
 # Aixgo Features Reference
 
-**Version**: 0.1.2
+**Version**: 0.2.2
 **Last Updated**: 2025-12-14
 
 ---

@@ -1,6 +1,6 @@
 # CLAUDE.md - Project Guide for AI Assistants
 
-**Version**: 0.2.0
+**Version**: 0.2.2
 **Last Updated**: 2025-12-14
 **Target**: AI assistants (Claude Code, GitHub Copilot, Cursor, etc.)
 
@@ -64,7 +64,7 @@ go get github.com/aixgo-dev/aixgo
 
 ### Current Status
 
-- **Version**: 0.2.0
+- **Version**: 0.2.2
 - **Maturity**: Production-ready for core features
 - **Go Version**: 1.24.0+
 - **License**: MIT
