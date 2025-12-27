@@ -14,6 +14,10 @@ import (
 	"google.golang.org/genai"
 )
 
+// Note: As of Go 1.20+, math/rand is automatically seeded with a random value.
+// No explicit rand.Seed() call is needed. For cryptographically secure random
+// numbers, use crypto/rand instead.
+
 const (
 	vertexAIMaxRetries   = 5
 	vertexAIBaseDelay    = 1 * time.Second
@@ -260,22 +264,24 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 	respChan := make(chan *genai.GenerateContentResponse, 10)
 	errChan := make(chan error, 1)
 
-	// Use a separate context for the goroutine to allow cleanup
+	// Use cancellable context to allow cleanup via Close()
+	streamCtx, cancel := context.WithCancel(ctx)
+
 	go func() {
 		defer close(respChan)
 		defer close(errChan)
 
-		for resp, err := range p.client.Models.GenerateContentStream(ctx, model, contents, config) {
+		for resp, err := range p.client.Models.GenerateContentStream(streamCtx, model, contents, config) {
 			if err != nil {
 				select {
 				case errChan <- err:
-				case <-ctx.Done():
+				case <-streamCtx.Done():
 				}
 				return
 			}
 			select {
 			case respChan <- resp:
-			case <-ctx.Done():
+			case <-streamCtx.Done():
 				return
 			}
 		}
@@ -284,7 +290,8 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 	return &vertexAIStream{
 		respChan: respChan,
 		errChan:  errChan,
-		ctx:      ctx,
+		ctx:      streamCtx,
+		cancel:   cancel,
 	}, nil
 }
 
@@ -477,6 +484,7 @@ type vertexAIStream struct {
 	respChan <-chan *genai.GenerateContentResponse
 	errChan  <-chan error
 	ctx      context.Context
+	cancel   context.CancelFunc
 	done     bool
 }
 
@@ -485,8 +493,19 @@ func (s *vertexAIStream) Recv() (*StreamChunk, error) {
 		return &StreamChunk{FinishReason: "stop"}, io.EOF
 	}
 
+	// Check for errors first (non-blocking) to prioritize error handling
+	select {
+	case err := <-s.errChan:
+		s.done = true
+		if err != nil {
+			return nil, err
+		}
+		return &StreamChunk{FinishReason: "stop"}, io.EOF
+	default:
+		// Continue to main select
+	}
+
 	// Use select to properly handle both response and error channels
-	// This fixes the race condition where errors could be missed
 	select {
 	case <-s.ctx.Done():
 		s.done = true
@@ -543,16 +562,41 @@ func (s *vertexAIStream) Recv() (*StreamChunk, error) {
 }
 
 func (s *vertexAIStream) Close() error {
+	if s.done {
+		return nil
+	}
 	s.done = true
-	// Drain channels to allow goroutine to exit
+
+	// Cancel the streaming context to signal the goroutine to stop
+	if s.cancel != nil {
+		s.cancel()
+	}
+
+	// Drain channels with timeout to prevent goroutine leaks
+	// This ensures the streaming goroutine can exit cleanly
+	timeout := time.NewTimer(time.Second)
+	defer timeout.Stop()
+
 	go func() {
 		for range s.respChan {
+			// Drain response channel
 		}
 	}()
+
+	select {
+	case <-timeout.C:
+		// Timeout - goroutine should exit due to context cancellation
+	case <-s.ctx.Done():
+		// Context cancelled successfully
+	}
+
 	return nil
 }
 
-// Close provides a hook for client cleanup (currently no-op as SDK handles this)
+// Close implements the Provider interface. The genai.Client does not provide
+// a Close() method as of v0.5.0, so this is a no-op. The underlying HTTP client
+// and resources are managed by the SDK and will be released when the Client
+// is garbage collected.
 func (p *VertexAIProvider) Close() error {
 	return nil
 }
