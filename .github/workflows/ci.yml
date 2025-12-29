@@ -89,7 +89,7 @@ jobs:
         CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -v -o bin/aixgo-windows-amd64.exe .
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: binaries
         path: bin/
