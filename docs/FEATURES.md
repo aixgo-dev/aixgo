@@ -87,8 +87,34 @@ This catalog contains:
 | **Runtime Migration** | ✅ Implemented | Seamless migration from local to distributed with zero code changes | `runtime.go`, `internal/runtime/` |
 | **Message Protocol** | ✅ Implemented | Protocol buffer-based message passing between agents | `proto/message.proto` |
 | **State Persistence** | ✅ Implemented | Workflow state checkpointing and resumption | `internal/workflow/persistence.go` |
+| **Phased Agent Startup** | ✅ Implemented | Dependency-aware startup ordering using topological sort | `internal/graph/`, `runtime.go` |
 
-**Keywords**: runtime, local runtime, distributed runtime, gRPC, channels, message passing, state management
+**Phased Startup Features** (v0.2.3+):
+- **DependsOn Field**: Declare agent startup dependencies in AgentDef
+- **Topological Sort**: Kahn's algorithm ensures correct startup order
+- **Phase-Based Execution**: Agents grouped into levels (Phase 0: no deps, Phase N: deps on < N)
+- **Concurrent Phase Startup**: Agents within each phase start concurrently for performance
+- **Ready() Polling**: Waits for agents to be Ready() before starting next phase
+- **AgentStartTimeout**: Configurable timeout (30s default) for startup
+
+**Configuration Example**:
+```yaml
+agents:
+  - name: database
+    role: producer
+
+  - name: cache
+    role: producer
+    depends_on: [database]
+
+  - name: api
+    role: react
+    depends_on: [database, cache]
+```
+
+**Supported Runtimes**: LocalRuntime, SimpleRuntime, DistributedRuntime
+
+**Keywords**: runtime, local runtime, distributed runtime, gRPC, channels, message passing, state management, phased startup, dependency ordering, topological sort
 
 ### Deployment Characteristics
 
@@ -1286,6 +1312,7 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 **Deployment**: Docker, Kubernetes, Cloud Run, Single Binary
 **Integration**: MCP, gRPC, REST API, Tools, Function Calling
 **Performance**: Cold Start, Binary Size, Cost Optimization, Caching, Circuit Breaker
+**Runtime**: Phased Startup, Dependency Ordering, Topological Sort, Agent Lifecycle
 
 ---
 
@@ -1293,7 +1320,12 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 0.1.2 | 2025-12-14 | Initial comprehensive features document |
+| 0.2.3 | 2026-01-02 | Added phased agent startup with dependency ordering, lint fixes |
+| 0.2.2 | 2025-12-27 | Public agent package, VertexAI streaming improvements |
+| 0.2.1 | 2025-12-26 | Security hardening, SSRF protection enhancements |
+| 0.2.0 | 2025-12-26 | VertexAI Gen AI SDK migration, production hardening |
+| 0.1.3 | 2025-12-14 | Pydantic AI-style validation retry, security audit fixes |
+| 0.1.2 | 2025-12-07 | Initial comprehensive features document |
 
 ---
 
