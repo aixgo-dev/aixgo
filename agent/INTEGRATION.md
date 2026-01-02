@@ -187,6 +187,8 @@ func NewProcessingService(processor DataProcessor) *ProcessingService {
 }
 
 func (s *ProcessingService) Start(ctx context.Context) error {
+    // Start() blocks until all agents are started and ready
+    // Returns error if any agent fails to start
     return s.runtime.Start(ctx)
 }
 
@@ -332,6 +334,69 @@ for name, err := range errors {
 }
 ```
 
+## Runtime Lifecycle Management
+
+The `LocalRuntime` provides strong guarantees for agent lifecycle:
+
+### Startup Behavior
+
+```go
+rt := agent.NewLocalRuntime()
+rt.Register(agent1)
+rt.Register(agent2)
+rt.Register(agent3)
+
+// Start() performs these steps:
+// 1. Starts all agents concurrently (in parallel)
+// 2. Waits for all Start() calls to complete
+// 3. Verifies all agents report Ready() == true
+// 4. Returns error if any agent fails or isn't ready
+if err := rt.Start(ctx); err != nil {
+    log.Fatalf("Startup failed: %v", err)
+}
+
+// At this point, all agents are guaranteed to be ready
+```
+
+### Error Handling During Startup
+
+```go
+type DatabaseAgent struct {
+    db *sql.DB
+    ready bool
+}
+
+func (a *DatabaseAgent) Start(ctx context.Context) error {
+    db, err := sql.Open("postgres", connectionString)
+    if err != nil {
+        return fmt.Errorf("failed to connect to database: %w", err)
+    }
+    a.db = db
+    a.ready = true
+    return nil
+}
+
+// If database connection fails, runtime.Start() returns:
+// "agent database failed to start: failed to connect to database: ..."
+```
+
+### Shutdown Behavior
+
+```go
+// Stop() gracefully shuts down all agents concurrently
+if err := rt.Stop(ctx); err != nil {
+    log.Printf("Shutdown error: %v", err)
+}
+```
+
+### Key Guarantees
+
+1. **Deterministic Startup**: `Start()` blocks until all agents are ready
+2. **Parallel Performance**: Agents start concurrently for fast initialization
+3. **Error Propagation**: Any startup failure is immediately reported
+4. **Ready State**: All agents guaranteed to be `Ready() == true` after `Start()`
+5. **No Race Conditions**: Safe to call agents immediately after `Start()` returns
+
 ## Benefits of Agent-Based Architecture
 
 1. **Testability**: Each agent can be tested in isolation
@@ -340,6 +405,7 @@ for name, err := range errors {
 4. **Clear Contracts**: Message-based communication with explicit types
 5. **Tracing**: Built-in metadata for correlation and tracing
 6. **Flexibility**: Easy to add new agents without changing existing code
+7. **Lifecycle Management**: Strong startup and shutdown guarantees
 
 ## Next Steps
 

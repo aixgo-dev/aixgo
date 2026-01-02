@@ -130,7 +130,50 @@ Returns a human-readable representation of the message.
 
 ## LocalRuntime Methods
 
-All methods of the Runtime interface are implemented by LocalRuntime. See the Runtime interface documentation above for details.
+All methods of the Runtime interface are implemented by LocalRuntime.
+
+### Start Behavior
+
+```go
+func (r *LocalRuntime) Start(ctx context.Context) error
+```
+
+The `Start()` method initializes all registered agents with the following guarantees:
+
+1. **Concurrent Startup**: All agents are started in parallel for optimal performance
+2. **Blocking**: The method blocks until all agent `Start()` calls complete
+3. **Ready Verification**: Verifies all agents report `Ready() == true` before returning
+4. **Error Handling**: Returns an error if any agent fails to start or doesn't become ready
+5. **Idempotency**: Returns an error if called on an already-started runtime
+
+**Example:**
+
+```go
+rt := agent.NewLocalRuntime()
+rt.Register(agent1)
+rt.Register(agent2)
+
+// Blocks here until all agents are ready
+if err := rt.Start(ctx); err != nil {
+    log.Fatalf("Failed to start: %v", err)
+}
+
+// All agents guaranteed to be ready at this point
+```
+
+**Error Cases:**
+
+- Agent's `Start()` method returns an error
+- Agent's `Start()` completes but `Ready()` returns false
+- Runtime is already started
+
+### Stop Behavior
+
+```go
+func (r *LocalRuntime) Stop(ctx context.Context) error
+```
+
+The `Stop()` method gracefully shuts down all registered agents concurrently. Returns the first error encountered, if any.
 
 ## Import Path
 
@@ -178,7 +221,11 @@ func main() {
     rt.Register(&MyAgent{name: "myagent"})
 
     ctx := context.Background()
-    rt.Start(ctx)
+
+    // Start blocks until all agents are ready
+    if err := rt.Start(ctx); err != nil {
+        panic(err)
+    }
 
     input := agent.NewMessage("request", map[string]string{"action": "process"})
     response, _ := rt.Call(ctx, "myagent", input)
@@ -189,7 +236,8 @@ func main() {
 
 ## Version Compatibility
 
-This package is designed to be stable and maintain backward compatibility. Breaking changes will only be introduced in major version updates.
+This package is designed to be stable and maintain backward compatibility.
+Breaking changes will only be introduced in major version updates.
 
 ## See Also
 

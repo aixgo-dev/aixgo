@@ -3,7 +3,12 @@ package agent
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
+	"time"
+
+	"github.com/aixgo-dev/aixgo/internal/graph"
+	"golang.org/x/sync/errgroup"
 )
 
 // LocalRuntime is a single-process runtime for agent coordination.
@@ -188,7 +193,10 @@ func (r *LocalRuntime) Broadcast(msg *Message) error {
 	return firstErr
 }
 
-// Start starts all registered agents in registration order.
+// Start starts all registered agents concurrently and waits for them to be ready.
+// It returns an error if any agent fails to start or doesn't become ready within
+// a reasonable time. All agents are started in parallel for performance, but
+// Start() blocks until all agents report Ready() == true.
 func (r *LocalRuntime) Start(ctx context.Context) error {
 	r.mu.Lock()
 	if r.started {
@@ -200,24 +208,51 @@ func (r *LocalRuntime) Start(ctx context.Context) error {
 	copy(agentOrder, r.order)
 	r.mu.Unlock()
 
-	// Start agents in order
+	// Collect agents to start
+	agents := make([]Agent, 0, len(agentOrder))
 	for _, name := range agentOrder {
 		r.mu.RLock()
 		agent := r.agents[name]
 		r.mu.RUnlock()
 
-		if agent == nil {
-			continue
+		if agent != nil {
+			agents = append(agents, agent)
 		}
+	}
 
-		// Start each agent in a goroutine
+	// Start all agents concurrently
+	var wg sync.WaitGroup
+	startErrors := make(map[string]error)
+	var errMu sync.Mutex
+
+	for _, agent := range agents {
+		wg.Add(1)
 		go func(a Agent) {
+			defer wg.Done()
 			if err := a.Start(ctx); err != nil {
-				// Log error but don't stop other agents
-				// In production, you might want to use a proper logger here
-				fmt.Printf("agent %s start error: %v\n", a.Name(), err)
+				errMu.Lock()
+				startErrors[a.Name()] = err
+				errMu.Unlock()
 			}
 		}(agent)
+	}
+
+	// Wait for all Start() calls to complete
+	wg.Wait()
+
+	// Check for start errors
+	if len(startErrors) > 0 {
+		// Return first error (could enhance to return all errors)
+		for name, err := range startErrors {
+			return fmt.Errorf("agent %s failed to start: %w", name, err)
+		}
+	}
+
+	// Verify all agents are ready
+	for _, agent := range agents {
+		if !agent.Ready() {
+			return fmt.Errorf("agent %s started but not ready", agent.Name())
+		}
 	}
 
 	return nil
@@ -258,4 +293,100 @@ func (r *LocalRuntime) Stop(ctx context.Context) error {
 
 	wg.Wait()
 	return firstErr
+}
+
+// StartAgentsPhased starts all registered agents in dependency order.
+// The dependencies map specifies which agents each agent depends on (agent name -> dependency names).
+// Agents are started in phases based on their dependencies:
+//   - Phase 0: Agents with no dependencies
+//   - Phase N: Agents whose dependencies are all in phases < N
+//
+// Within each phase, agents are started concurrently and the method waits
+// for all of them to report Ready() before proceeding to the next phase.
+//
+// This method should be called after all agents are registered and after
+// Start() has been called to initialize the runtime.
+func (r *LocalRuntime) StartAgentsPhased(ctx context.Context, dependencies map[string][]string) error {
+	r.mu.RLock()
+	started := r.started
+	r.mu.RUnlock()
+
+	if !started {
+		return fmt.Errorf("runtime not started")
+	}
+
+	// Build dependency graph
+	depGraph := graph.NewDependencyGraph()
+	for name, deps := range dependencies {
+		depGraph.AddNode(name, deps)
+	}
+
+	// Get topological levels
+	levels, err := depGraph.TopologicalLevels()
+	if err != nil {
+		return fmt.Errorf("dependency graph error: %w", err)
+	}
+
+	// Start each level in parallel, wait for Ready() before next level
+	for levelIdx, level := range levels {
+		log.Printf("[Runtime] Starting agent phase %d: %v", levelIdx, level)
+
+		g, gctx := errgroup.WithContext(ctx)
+
+		for _, name := range level {
+			name := name // capture for goroutine
+
+			g.Go(func() error {
+				a, err := r.Get(name)
+				if err != nil {
+					return fmt.Errorf("agent %s not registered: %w", name, err)
+				}
+
+				// Start agent in goroutine (non-blocking)
+				go func() {
+					if err := a.Start(gctx); err != nil {
+						log.Printf("[Runtime] Agent %s error: %v", name, err)
+					}
+				}()
+
+				// Wait for agent to be Ready
+				if err := r.waitForReady(gctx, a, 30*time.Second); err != nil {
+					return fmt.Errorf("agent %s failed to become ready: %w", name, err)
+				}
+
+				log.Printf("[Runtime] Agent %s is ready", name)
+				return nil
+			})
+		}
+
+		// Wait for all agents in this level to be ready
+		if err := g.Wait(); err != nil {
+			return fmt.Errorf("phase %d startup failed: %w", levelIdx, err)
+		}
+
+		log.Printf("[Runtime] Phase %d complete, all agents ready", levelIdx)
+	}
+
+	return nil
+}
+
+// waitForReady polls until the agent is Ready() or the context/timeout expires.
+func (r *LocalRuntime) waitForReady(ctx context.Context, a Agent, timeout time.Duration) error {
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
+	timeoutCh := time.After(timeout)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timeoutCh:
+			return fmt.Errorf("timeout after %v waiting for agent %s to be ready", timeout, a.Name())
+		case <-ticker.C:
+			if a.Ready() {
+				return nil
+			}
+		}
+	}
 }

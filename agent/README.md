@@ -71,9 +71,11 @@ func main() {
     rt.Register(NewMyAgent("agent1"))
     rt.Register(NewMyAgent("agent2"))
 
-    // Start the runtime
+    // Start the runtime - blocks until all agents are started and ready
     ctx := context.Background()
-    rt.Start(ctx)
+    if err := rt.Start(ctx); err != nil {
+        panic(err)
+    }
 
     // Call an agent synchronously
     input := agent.NewMessage("request", map[string]string{"action": "analyze"})
@@ -96,24 +98,9 @@ func main() {
 
 ## Core Interfaces
 
-### Agent
-
-The `Agent` interface must be implemented by all agents:
-
-```go
-type Agent interface {
-    Name() string
-    Role() string
-    Start(ctx context.Context) error
-    Execute(ctx context.Context, input *Message) (*Message, error)
-    Stop(ctx context.Context) error
-    Ready() bool
-}
-```
-
 ### Runtime
 
-The `Runtime` interface provides agent coordination:
+The `Runtime` interface provides agent coordination and lifecycle management:
 
 ```go
 type Runtime interface {
@@ -128,6 +115,69 @@ type Runtime interface {
     Broadcast(msg *Message) error
     Start(ctx context.Context) error
     Stop(ctx context.Context) error
+}
+```
+
+#### LocalRuntime Behavior
+
+The `LocalRuntime` implementation provides important guarantees for agent startup:
+
+**Start() Method:**
+
+- Starts all registered agents concurrently (in parallel for performance)
+- Blocks until all agent `Start()` calls complete
+- Verifies all agents report `Ready() == true` before returning
+- Returns an error if any agent fails to start or doesn't become ready
+- Ensures the runtime is in a fully-initialized state before accepting calls
+
+**Example:**
+
+```go
+rt := agent.NewLocalRuntime()
+rt.Register(agent1)
+rt.Register(agent2)
+
+// Start() blocks here until both agents are ready
+if err := rt.Start(ctx); err != nil {
+    log.Fatalf("Failed to start runtime: %v", err)
+}
+
+// At this point, all agents are guaranteed to be ready
+response, err := rt.Call(ctx, "agent1", input)
+```
+
+**Error Handling:**
+
+```go
+// Agent fails to start
+type FailingAgent struct{ /* ... */ }
+
+func (a *FailingAgent) Start(ctx context.Context) error {
+    return fmt.Errorf("database connection failed")
+}
+
+rt.Register(&FailingAgent{})
+
+// Returns: "agent failing-agent failed to start: database connection failed"
+err := rt.Start(ctx)
+```
+
+**Performance Note:** While agents are started concurrently for performance, the
+`Start()` method itself blocks. This ensures deterministic behavior and prevents
+race conditions when calling agents immediately after startup.
+
+### Agent
+
+The `Agent` interface must be implemented by all agents:
+
+```go
+type Agent interface {
+    Name() string
+    Role() string
+    Start(ctx context.Context) error
+    Execute(ctx context.Context, input *Message) (*Message, error)
+    Stop(ctx context.Context) error
+    Ready() bool
 }
 ```
 

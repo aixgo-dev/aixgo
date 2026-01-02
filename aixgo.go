@@ -187,24 +187,59 @@ func RunWithConfigAndRuntime(config *Config, rt agent.Runtime) error {
 		log.Printf("Created agent: %s (role: %s)", def.Name, def.Role)
 	}
 
-	return StartAgents(agents, rt)
+	return StartAgents(agents, config.Agents, rt)
 }
 
-// StartAgents starts all agents with the given runtime
-func StartAgents(agents map[string]agent.Agent, rt agent.Runtime) error {
-	// Start agents
+// PhasedStarter is implemented by runtimes that support phased agent startup.
+// This enables dependency-aware startup ordering.
+type PhasedStarter interface {
+	StartAgentsPhased(ctx context.Context, agentDefs map[string]agent.AgentDef) error
+}
+
+// StartAgents starts all agents with the given runtime using dependency-aware phased startup.
+// If the runtime supports PhasedStarter interface, agents are started in topological order
+// based on their depends_on declarations. Otherwise, agents are started concurrently.
+func StartAgents(agents map[string]agent.Agent, agentDefs []agent.AgentDef, rt agent.Runtime) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Add runtime to context
 	ctx = context.WithValue(ctx, agent.RuntimeKey{}, rt)
 
+	// Register all agents with the runtime first
 	for name, a := range agents {
-		go func(n string, ag agent.Agent) {
-			if err := ag.Start(ctx); err != nil {
-				log.Printf("Agent %s error: %v", n, err)
-			}
-		}(name, a)
+		if err := rt.Register(a); err != nil {
+			return fmt.Errorf("failed to register agent %s: %w", name, err)
+		}
+	}
+
+	// Start the runtime
+	if err := rt.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start runtime: %w", err)
+	}
+
+	// Build agent defs map for phased startup
+	defsMap := make(map[string]agent.AgentDef)
+	for _, def := range agentDefs {
+		defsMap[def.Name] = def
+	}
+
+	// Check if runtime supports phased startup
+	if ps, ok := rt.(PhasedStarter); ok {
+		log.Println("Using phased agent startup (dependency-aware)")
+		if err := ps.StartAgentsPhased(ctx, defsMap); err != nil {
+			return fmt.Errorf("phased startup failed: %w", err)
+		}
+	} else {
+		// Fallback to concurrent startup for runtimes that don't support phased
+		log.Println("Using concurrent agent startup (no dependency ordering)")
+		for name, a := range agents {
+			go func(n string, ag agent.Agent) {
+				if err := ag.Start(ctx); err != nil {
+					log.Printf("Agent %s error: %v", n, err)
+				}
+			}(name, a)
+		}
 	}
 
 	log.Println("All agents started. Press Ctrl+C to stop.")
