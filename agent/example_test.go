@@ -64,7 +64,7 @@ func Example() {
 
 	// Register custom agents
 	analyzer := NewAnalyzerAgent("document-analyzer")
-	rt.Register(analyzer)
+	_ = rt.Register(analyzer)
 
 	// Start the runtime
 	ctx := context.Background()
@@ -113,9 +113,9 @@ func Example_parallelAnalysis() {
 	rt := agent.NewLocalRuntime()
 
 	// Register multiple analyzers
-	rt.Register(NewAnalyzerAgent("syntax-analyzer"))
-	rt.Register(NewAnalyzerAgent("risk-analyzer"))
-	rt.Register(NewAnalyzerAgent("compliance-analyzer"))
+	_ = rt.Register(NewAnalyzerAgent("syntax-analyzer"))
+	_ = rt.Register(NewAnalyzerAgent("risk-analyzer"))
+	_ = rt.Register(NewAnalyzerAgent("compliance-analyzer"))
 
 	ctx := context.Background()
 
@@ -180,7 +180,7 @@ func Example_asyncCommunication() {
 
 	agent1 := NewAnalyzerAgent("agent1")
 	agent1.ready = true
-	rt.Register(agent1)
+	_ = rt.Register(agent1)
 
 	// Get a channel to receive messages
 	recvCh, _ := rt.Recv("agent1")
@@ -189,7 +189,7 @@ func Example_asyncCommunication() {
 	msg := agent.NewMessage("notification", map[string]string{
 		"event": "document_updated",
 	})
-	rt.Send("agent1", msg)
+	_ = rt.Send("agent1", msg)
 
 	// Receive and process
 	received := <-recvCh

@@ -1,7 +1,7 @@
 # CLAUDE.md - Project Guide for AI Assistants
 
-**Version**: 0.2.2
-**Last Updated**: 2025-12-14
+**Version**: 0.2.3
+**Last Updated**: 2026-01-02
 **Target**: AI assistants (Claude Code, GitHub Copilot, Cursor, etc.)
 
 This document helps AI assistants understand and work effectively with the Aixgo project.

@@ -32,7 +32,6 @@ func (a *MockAgent) Ready() bool  { return a.ready }
 
 func (a *MockAgent) Start(ctx context.Context) error {
 	a.ready = true
-	<-ctx.Done()
 	return nil
 }
 
@@ -220,9 +219,9 @@ func TestLocalRuntime(t *testing.T) {
 
 	t.Run("List returns all agents", func(t *testing.T) {
 		rt := NewLocalRuntime()
-		rt.Register(NewMockAgent("agent1", "test"))
-		rt.Register(NewMockAgent("agent2", "test"))
-		rt.Register(NewMockAgent("agent3", "test"))
+		_ = rt.Register(NewMockAgent("agent1", "test"))
+		_ = rt.Register(NewMockAgent("agent2", "test"))
+		_ = rt.Register(NewMockAgent("agent3", "test"))
 
 		names := rt.List()
 		if len(names) != 3 {
@@ -233,7 +232,7 @@ func TestLocalRuntime(t *testing.T) {
 	t.Run("Unregister removes agent", func(t *testing.T) {
 		rt := NewLocalRuntime()
 		agent := NewMockAgent("agent1", "test")
-		rt.Register(agent)
+		_ = rt.Register(agent)
 
 		if err := rt.Unregister("agent1"); err != nil {
 			t.Fatalf("Unregister failed: %v", err)
@@ -253,7 +252,7 @@ func TestLocalRuntime(t *testing.T) {
 		rt := NewLocalRuntime()
 		agent := NewMockAgent("agent1", "test")
 		agent.ready = true // Mark as ready
-		rt.Register(agent)
+		_ = rt.Register(agent)
 
 		ctx := context.Background()
 		input := NewMessage("request", map[string]string{"data": "test"})
@@ -286,7 +285,7 @@ func TestLocalRuntime(t *testing.T) {
 		rt := NewLocalRuntime()
 		agent := NewMockAgent("agent1", "test")
 		agent.ready = false // Not ready
-		rt.Register(agent)
+		_ = rt.Register(agent)
 
 		ctx := context.Background()
 		input := NewMessage("request", nil)
@@ -311,8 +310,8 @@ func TestLocalRuntime(t *testing.T) {
 			return NewMessage("response", map[string]string{"agent": "2"}), nil
 		}
 
-		rt.Register(agent1)
-		rt.Register(agent2)
+		_ = rt.Register(agent1)
+		_ = rt.Register(agent2)
 
 		ctx := context.Background()
 		input := NewMessage("request", nil)
@@ -346,7 +345,7 @@ func TestLocalRuntime(t *testing.T) {
 	t.Run("Send and Recv for async communication", func(t *testing.T) {
 		rt := NewLocalRuntime()
 		agent := NewMockAgent("agent1", "test")
-		rt.Register(agent)
+		_ = rt.Register(agent)
 
 		// Get receive channel
 		recvCh, err := rt.Recv("agent1")
@@ -373,8 +372,8 @@ func TestLocalRuntime(t *testing.T) {
 
 	t.Run("Broadcast sends to all agents", func(t *testing.T) {
 		rt := NewLocalRuntime()
-		rt.Register(NewMockAgent("agent1", "test"))
-		rt.Register(NewMockAgent("agent2", "test"))
+		_ = rt.Register(NewMockAgent("agent1", "test"))
+		_ = rt.Register(NewMockAgent("agent2", "test"))
 
 		ch1, _ := rt.Recv("agent1")
 		ch2, _ := rt.Recv("agent2")
@@ -403,7 +402,7 @@ func TestLocalRuntime(t *testing.T) {
 	t.Run("Start and Stop runtime", func(t *testing.T) {
 		rt := NewLocalRuntime()
 		agent := NewMockAgent("agent1", "test")
-		rt.Register(agent)
+		_ = rt.Register(agent)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -455,7 +454,7 @@ func BenchmarkMessageUnmarshal(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var p Payload
-		msg.UnmarshalPayload(&p)
+		_ = msg.UnmarshalPayload(&p)
 	}
 }
 
@@ -463,14 +462,14 @@ func BenchmarkRuntimeCall(b *testing.B) {
 	rt := NewLocalRuntime()
 	agent := NewMockAgent("agent1", "test")
 	agent.ready = true
-	rt.Register(agent)
+	_ = rt.Register(agent)
 
 	ctx := context.Background()
 	input := NewMessage("request", map[string]string{"data": "test"})
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rt.Call(ctx, "agent1", input)
+		_, _ = rt.Call(ctx, "agent1", input)
 	}
 }
 
@@ -479,7 +478,7 @@ func BenchmarkRuntimeCallParallel(b *testing.B) {
 	for i := 0; i < 5; i++ {
 		agent := NewMockAgent(string(rune('a'+i)), "test")
 		agent.ready = true
-		rt.Register(agent)
+		_ = rt.Register(agent)
 	}
 
 	ctx := context.Background()
@@ -522,7 +521,7 @@ func ExampleLocalRuntime() {
 	rt := NewLocalRuntime()
 
 	agent := NewMockAgent("analyzer", "analysis")
-	rt.Register(agent)
+	_ = rt.Register(agent)
 	agent.ready = true
 
 	// Call an agent synchronously
