@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"testing"
 	"time"
 )
@@ -12,6 +13,7 @@ type MockAgent struct {
 	name   string
 	role   string
 	ready  bool
+	mu     sync.RWMutex
 	execFn func(ctx context.Context, input *Message) (*Message, error)
 }
 
@@ -28,10 +30,17 @@ func NewMockAgent(name, role string) *MockAgent {
 
 func (a *MockAgent) Name() string { return a.name }
 func (a *MockAgent) Role() string { return a.role }
-func (a *MockAgent) Ready() bool  { return a.ready }
+
+func (a *MockAgent) Ready() bool {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.ready
+}
 
 func (a *MockAgent) Start(ctx context.Context) error {
+	a.mu.Lock()
 	a.ready = true
+	a.mu.Unlock()
 	return nil
 }
 
@@ -40,7 +49,9 @@ func (a *MockAgent) Execute(ctx context.Context, input *Message) (*Message, erro
 }
 
 func (a *MockAgent) Stop(ctx context.Context) error {
+	a.mu.Lock()
 	a.ready = false
+	a.mu.Unlock()
 	return nil
 }
 

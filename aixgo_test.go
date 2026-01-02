@@ -251,7 +251,7 @@ func TestRun_AgentError(t *testing.T) {
 
 	// Register agent that returns error
 	agent.Register("error-role", func(def agent.AgentDef, rt agent.Runtime) (agent.Agent, error) {
-		return &errorAgent{}, nil
+		return &errorAgent{def: def}, nil
 	})
 
 	tmpDir := t.TempDir()
@@ -405,10 +405,12 @@ func (a *testAgent) Start(ctx context.Context) error {
 	return nil
 }
 
-type errorAgent struct{}
+type errorAgent struct {
+	def agent.AgentDef
+}
 
-func (e *errorAgent) Name() string                   { return "error" }
-func (e *errorAgent) Role() string                   { return "error" }
+func (e *errorAgent) Name() string                   { return e.def.Name }
+func (e *errorAgent) Role() string                   { return e.def.Role }
 func (e *errorAgent) Ready() bool                    { return true }
 func (e *errorAgent) Stop(ctx context.Context) error { return nil }
 func (e *errorAgent) Execute(ctx context.Context, input *agent.Message) (*agent.Message, error) {
