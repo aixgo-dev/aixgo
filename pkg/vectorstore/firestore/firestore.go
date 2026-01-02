@@ -68,7 +68,7 @@ func New(ctx context.Context, opts ...Option) (vectorstore.VectorStore, error) {
 
 	var clientOpts []option.ClientOption
 	if config.CredentialsFile != "" {
-		clientOpts = append(clientOpts, option.WithCredentialsFile(config.CredentialsFile))
+		clientOpts = append(clientOpts, option.WithAuthCredentialsFile(option.ServiceAccount, config.CredentialsFile))
 	}
 
 	client, err := firestore.NewClient(ctx, config.ProjectID, clientOpts...)
