@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"errors"
+	"time"
 )
 
 var (
@@ -34,6 +35,10 @@ type RuntimeConfig struct {
 	// EnableMetrics enables runtime performance metrics collection
 	// Default: true
 	EnableMetrics bool
+
+	// AgentStartTimeout is the maximum time to wait for an agent to become ready
+	// Default: 30 seconds
+	AgentStartTimeout time.Duration
 }
 
 // DefaultConfig returns a RuntimeConfig with sensible defaults
@@ -42,6 +47,7 @@ func DefaultConfig() *RuntimeConfig {
 		ChannelBufferSize:  100,
 		MaxConcurrentCalls: 0,
 		EnableMetrics:      true,
+		AgentStartTimeout:  30 * time.Second,
 	}
 }
 
@@ -66,5 +72,12 @@ func WithMaxConcurrentCalls(max int) Option {
 func WithMetrics(enabled bool) Option {
 	return func(cfg *RuntimeConfig) {
 		cfg.EnableMetrics = enabled
+	}
+}
+
+// WithAgentStartTimeout sets the timeout for waiting for agents to become ready
+func WithAgentStartTimeout(timeout time.Duration) Option {
+	return func(cfg *RuntimeConfig) {
+		cfg.AgentStartTimeout = timeout
 	}
 }

@@ -42,6 +42,7 @@ type AgentDef struct {
 	Listen     string         `yaml:"listen,omitempty"`
 	Inputs     []Input        `yaml:"inputs,omitempty"`
 	Outputs    []Output       `yaml:"outputs,omitempty"`
+	DependsOn  []string       `yaml:"depends_on,omitempty"` // Startup dependencies
 	Model      string         `yaml:"model,omitempty"`
 	Prompt     string         `yaml:"prompt,omitempty"`
 	Tools      []Tool         `yaml:"tools,omitempty"`       // Deprecated: use MCPServers

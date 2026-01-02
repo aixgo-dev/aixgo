@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"sync"
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
+	"github.com/aixgo-dev/aixgo/internal/graph"
 	"github.com/aixgo-dev/aixgo/internal/observability"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -519,4 +522,109 @@ func isValidAgentNameGRPC(name string) bool {
 	// Only allow lowercase alphanumeric, hyphens, underscores, max 64 chars
 	matched, _ := regexp.MatchString(`^[a-z][a-z0-9_-]{0,63}$`, name)
 	return matched
+}
+
+// StartAgentsPhased starts all registered LOCAL agents in dependency order.
+// Remote agents are assumed to be already running on their respective nodes.
+//
+// Agents are started in phases based on their dependencies:
+//   - Phase 0: Agents with no dependencies
+//   - Phase N: Agents whose dependencies are all in phases < N
+//
+// Within each phase, agents are started concurrently and the method waits
+// for all of them to report Ready() before proceeding to the next phase.
+//
+// This method should be called after all agents are registered and after
+// Start() has been called to initialize the runtime.
+func (r *DistributedRuntime) StartAgentsPhased(ctx context.Context, agentDefs map[string]agent.AgentDef) error {
+	if !r.started {
+		return ErrRuntimeNotStarted
+	}
+
+	// Build dependency graph for LOCAL agents only
+	// Remote agents are not started by this runtime
+	depGraph := graph.NewDependencyGraph()
+	for name, def := range agentDefs {
+		// Only add local agents to the graph
+		r.mu.RLock()
+		_, isLocal := r.localAgents[name]
+		r.mu.RUnlock()
+
+		if isLocal {
+			depGraph.AddNode(name, def.DependsOn)
+		}
+	}
+
+	// Get topological levels
+	levels, err := depGraph.TopologicalLevels()
+	if err != nil {
+		return fmt.Errorf("dependency graph error: %w", err)
+	}
+
+	// Start each level in parallel, wait for Ready() before next level
+	for levelIdx, level := range levels {
+		log.Printf("[Runtime] Starting agent phase %d: %v", levelIdx, level)
+
+		g, gctx := errgroup.WithContext(ctx)
+
+		for _, name := range level {
+			name := name // capture for goroutine
+
+			g.Go(func() error {
+				a, err := r.Get(name)
+				if err != nil {
+					return fmt.Errorf("agent %s not registered: %w", name, err)
+				}
+
+				// Start agent in goroutine (non-blocking)
+				go func() {
+					if err := a.Start(gctx); err != nil {
+						log.Printf("[Runtime] Agent %s error: %v", name, err)
+					}
+				}()
+
+				// Wait for agent to be Ready
+				if err := r.waitForReady(gctx, a, r.config.AgentStartTimeout); err != nil {
+					return fmt.Errorf("agent %s failed to become ready: %w", name, err)
+				}
+
+				log.Printf("[Runtime] Agent %s is ready", name)
+				return nil
+			})
+		}
+
+		// Wait for all agents in this level to be ready
+		if err := g.Wait(); err != nil {
+			return fmt.Errorf("phase %d startup failed: %w", levelIdx, err)
+		}
+
+		log.Printf("[Runtime] Phase %d complete, all agents ready", levelIdx)
+	}
+
+	return nil
+}
+
+// waitForReady polls until the agent is Ready() or the context/timeout expires.
+func (r *DistributedRuntime) waitForReady(ctx context.Context, a agent.Agent, timeout time.Duration) error {
+	if timeout == 0 {
+		timeout = 30 * time.Second // Default timeout
+	}
+
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
+	timeoutCh := time.After(timeout)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timeoutCh:
+			return fmt.Errorf("timeout after %v waiting for agent %s to be ready", timeout, a.Name())
+		case <-ticker.C:
+			if a.Ready() {
+				return nil
+			}
+		}
+	}
 }
