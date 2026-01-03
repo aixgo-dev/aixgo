@@ -1,0 +1,120 @@
+# Semantic Cache: Intelligent response caching using vector similarity
+# This example demonstrates using vector databases to cache LLM responses
+# and retrieve them for semantically similar queries, reducing costs and latency.
+
+# Supervisor coordinates caching operations
+supervisor:
+  name: cache-coordinator
+  model: gpt-4-turbo
+  max_rounds: 3
+
+# Embedding configuration for query similarity matching
+embeddings:
+  provider: openai
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    model: text-embedding-3-small  # Fast, cost-efficient embeddings
+
+# Vector store for semantic cache
+vectorstore:
+  provider: firestore  # Use 'memory' for development
+  embedding_dimensions: 1536
+  default_top_k: 1  # Only need the best match for caching
+  firestore:
+    project_id: ${GCP_PROJECT}
+    collection: llm_cache
+    # credentials_file: /path/to/service-account.json
+
+agents:
+  - name: cached-assistant
+    role: react
+    model: gpt-4-turbo
+    prompt: |
+      You are an efficient AI assistant that provides helpful, accurate answers.
+      Your responses are cached for faster retrieval on similar queries.
+
+      Provide clear, concise answers to user questions.
+      Focus on being helpful while maintaining response quality.
+
+    # Semantic cache configuration
+    semantic_cache:
+      enabled: true
+      collection: llm_cache  # Vector store collection for cache
+      ttl: 5m  # Cache expiration time (5 minutes)
+      similarity_threshold: 0.95  # High threshold for cache hits (0.0-1.0)
+      embedding_model: text-embedding-3-small  # Must match embeddings config
+
+      # Cache key includes these fields for partitioning
+      key_fields:
+        - model  # Different models have different caches
+        - temperature  # Different temperatures have different caches
+
+      # Metadata stored with each cache entry
+      metadata:
+        version: "1.0"
+        application: "aixgo-example"
+
+      # Cache invalidation rules
+      invalidate_on:
+        - user_feedback: negative  # Clear cache on negative feedback
+        - accuracy_score: < 0.8  # Clear low-quality responses
+
+    # Standard tool configuration (cache applies automatically)
+    tools:
+      - name: get_current_time
+        description: "Get the current date and time"
+        input_schema:
+          type: object
+          properties: {}
+
+      - name: calculate
+        description: "Perform basic arithmetic calculations"
+        input_schema:
+          type: object
+          properties:
+            expression:
+              type: string
+              description: "Mathematical expression to evaluate (e.g., '2 + 2')"
+          required: [expression]
+
+    inputs:
+      - source: user
+        description: "User queries (checked against cache first)"
+    outputs:
+      - target: user
+        description: "Cached or freshly generated responses"
+
+  # Cache statistics monitor
+  - name: cache-monitor
+    role: logger
+    description: Tracks cache hit rates and performance metrics
+    tools:
+      - name: get_cache_stats
+        description: "Retrieve cache performance statistics"
+        vectorstore:
+          collection: llm_cache
+        input_schema:
+          type: object
+          properties:
+            time_window:
+              type: string
+              default: "1h"
+              description: "Time window for statistics (e.g., '1h', '24h', '7d')"
+
+      - name: clear_cache
+        description: "Clear expired or invalid cache entries"
+        vectorstore:
+          collection: llm_cache
+        input_schema:
+          type: object
+          properties:
+            older_than:
+              type: string
+              description: "Clear entries older than this duration (e.g., '1h', '24h')"
+            score_below:
+              type: number
+              description: "Clear entries with similarity score below threshold"
+
+    inputs:
+      - source: cached-assistant
+        description: "Monitor cache hits and misses"

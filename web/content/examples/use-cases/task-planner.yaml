@@ -1,0 +1,14 @@
+# Task Planner: Break down complex tasks into steps
+agents:
+  - name: task-planner
+    role: planner
+    model: gpt-4-turbo
+    planner_config:
+      planning_strategy: chain_of_thought
+      max_steps: 15
+      enable_self_critique: true
+      include_alternatives: true
+    inputs:
+      - source: task-requests
+    outputs:
+      - target: execution-monitor

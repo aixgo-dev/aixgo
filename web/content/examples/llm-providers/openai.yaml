@@ -1,0 +1,144 @@
+# OpenAI Provider Configuration
+# Supports GPT-3.5, GPT-4, and OpenAI-compatible endpoints
+
+agents:
+  - name: openai-agent
+    role: react
+
+    # OpenAI model selection
+    # Available models: gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4-turbo-preview
+    model: gpt-4-turbo
+
+    prompt: |
+      You are a helpful AI assistant powered by OpenAI's GPT-4.
+      Provide clear, accurate, and helpful responses.
+
+    tools:
+      - name: get_weather
+        description: "Get current weather for a location"
+        input_schema:
+          type: object
+          properties:
+            location:
+              type: string
+              description: "City name or coordinates"
+            units:
+              type: string
+              enum: ["celsius", "fahrenheit"]
+              default: "celsius"
+          required: [location]
+
+    inputs:
+      - source: user-input
+    outputs:
+      - target: response-handler
+
+# Example: Cost-optimized with GPT-3.5-turbo
+  - name: cost-efficient-agent
+    role: react
+    model: gpt-3.5-turbo  # Cheaper, faster for simpler tasks
+
+    prompt: |
+      You are a quick-response assistant optimized for efficiency.
+      Provide concise, accurate answers.
+
+    inputs:
+      - source: simple-queries
+    outputs:
+      - target: quick-responses
+
+# Example: OpenAI-compatible endpoint (e.g., LocalAI, Ollama with OpenAI API)
+  - name: compatible-endpoint-agent
+    role: react
+    model: custom-model  # Model name for compatible endpoint
+
+    prompt: |
+      You are running on an OpenAI-compatible endpoint.
+
+    inputs:
+      - source: custom-input
+    outputs:
+      - target: custom-output
+
+# Supporting agents
+  - name: user-input
+    role: producer
+    interval: 10s
+    outputs:
+      - target: openai-agent
+
+  - name: response-handler
+    role: logger
+    inputs:
+      - source: openai-agent
+
+# Environment variables required:
+# - OPENAI_API_KEY: Your OpenAI API key (required)
+#     Get from: https://platform.openai.com/api-keys
+#
+# - OPENAI_BASE_URL: Custom base URL (optional)
+#     Default: https://api.openai.com/v1
+#     Use for OpenAI-compatible endpoints (LocalAI, Ollama, etc.)
+#     Example: http://localhost:11434/v1
+
+# Configuration via environment:
+# export OPENAI_API_KEY="sk-..."
+# export OPENAI_BASE_URL="https://api.openai.com/v1"  # optional
+
+# Model Comparison:
+#
+# GPT-3.5-turbo:
+#   - Cost: $0.001 per 1K input tokens, $0.002 per 1K output tokens
+#   - Speed: Fast (1-2 seconds typical)
+#   - Use for: Simple tasks, high volume, cost optimization
+#
+# GPT-4:
+#   - Cost: $0.03 per 1K input tokens, $0.06 per 1K output tokens
+#   - Speed: Moderate (3-5 seconds typical)
+#   - Use for: Complex reasoning, high accuracy requirements
+#
+# GPT-4-turbo:
+#   - Cost: $0.01 per 1K input tokens, $0.03 per 1K output tokens
+#   - Speed: Fast (2-3 seconds typical)
+#   - Use for: Best balance of cost, speed, and capability
+#   - Context: 128K tokens
+
+# Features:
+# - Function calling / tool use
+# - JSON mode for structured outputs
+# - Vision (GPT-4V for image inputs)
+# - Streaming responses
+# - Fine-tuning support (GPT-3.5)
+
+# Rate Limits (Tier 1):
+# - GPT-3.5-turbo: 3,500 RPM, 90,000 TPM
+# - GPT-4: 500 RPM, 10,000 TPM
+# - GPT-4-turbo: 500 RPM, 30,000 TPM
+
+# Best Practices:
+# 1. Use GPT-3.5 for simple, high-volume tasks
+# 2. Use GPT-4 for complex reasoning and accuracy
+# 3. Set appropriate temperature (0.0-2.0):
+#    - 0.0-0.3: Factual, deterministic
+#    - 0.7-1.0: Creative, varied
+# 4. Implement retry logic for rate limits
+# 5. Monitor token usage and costs
+# 6. Use streaming for better UX on long responses
+# 7. Cache common prompts to reduce API calls
+
+# OpenAI-Compatible Endpoints:
+# The OpenAI provider works with any OpenAI-compatible API:
+# - LocalAI: https://localai.io
+# - Ollama: https://ollama.ai (with --openai-compat flag)
+# - vLLM: https://vllm.ai
+# - Text Generation WebUI: https://github.com/oobabooga/text-generation-webui
+#
+# Set OPENAI_BASE_URL to your endpoint and use appropriate model names.
+
+# Notes:
+# - API key is automatically loaded from OPENAI_API_KEY environment variable
+# - Provider is auto-detected from model name (gpt-*)
+# - Supports both synchronous and streaming responses
+# - Tool calls are automatically formatted for OpenAI's function calling
+# - Retries with exponential backoff on rate limit errors
+# - Validates tool schemas before sending to API

@@ -1,0 +1,20 @@
+{{ if hugo.IsProduction }}
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
+
+  const firebaseConfig = {
+    apiKey: "REMOVED_FIREBASE_API_KEY",
+    authDomain: "REMOVED_AUTH_DOMAIN",
+    projectId: "aixgo-dev",
+    storageBucket: "aixgo-dev.firebasestorage.app",
+    messagingSenderId: "REMOVED_SENDER_ID",
+    appId: "1:REMOVED_SENDER_ID:web:e6af034ca8503534958121",
+    measurementId: "REMOVED_MEASUREMENT_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+{{ end }}

@@ -1,0 +1,227 @@
+# Google Gemini Provider Configuration
+# Supports Gemini Pro and Gemini Pro Vision via Google AI Studio
+
+agents:
+  - name: gemini-pro-agent
+    role: react
+
+    # Gemini model selection
+    # Available: gemini-pro, gemini-pro-vision
+    model: gemini-pro
+
+    prompt: |
+      You are Gemini, Google's advanced AI assistant.
+      Provide accurate, helpful, and comprehensive responses.
+
+    tools:
+      - name: search_knowledge
+        description: "Search knowledge base for information"
+        input_schema:
+          type: object
+          properties:
+            query:
+              type: string
+              description: "Search query"
+            domain:
+              type: string
+              description: "Domain to search (tech, science, general)"
+          required: [query]
+
+      - name: generate_content
+        description: "Generate creative content"
+        input_schema:
+          type: object
+          properties:
+            content_type:
+              type: string
+              enum: ["article", "summary", "outline"]
+            topic:
+              type: string
+            style:
+              type: string
+              enum: ["formal", "casual", "technical"]
+          required: [content_type, topic]
+
+    inputs:
+      - source: user-queries
+    outputs:
+      - target: gemini-responses
+
+# Example: Vision capabilities with Gemini Pro Vision
+  - name: gemini-vision-agent
+    role: react
+    model: gemini-pro-vision
+
+    prompt: |
+      You can analyze images and visual content.
+      Describe what you see accurately and answer questions about images.
+
+    tools:
+      - name: analyze_image
+        description: "Analyze image content and answer questions"
+        input_schema:
+          type: object
+          properties:
+            image_url:
+              type: string
+              description: "URL of the image to analyze"
+            question:
+              type: string
+              description: "Question about the image"
+          required: [image_url]
+
+    inputs:
+      - source: image-queries
+    outputs:
+      - target: vision-responses
+
+# Example: Multi-turn conversation with context
+  - name: gemini-conversational-agent
+    role: react
+    model: gemini-pro
+
+    prompt: |
+      You maintain conversation context and provide coherent multi-turn interactions.
+      Reference previous messages when relevant.
+
+    inputs:
+      - source: conversation-stream
+    outputs:
+      - target: conversation-responses
+
+# Supporting agents
+  - name: user-queries
+    role: producer
+    interval: 10s
+    outputs:
+      - target: gemini-pro-agent
+
+  - name: gemini-responses
+    role: logger
+    inputs:
+      - source: gemini-pro-agent
+
+# Environment variables required:
+# - GOOGLE_API_KEY: Your Google AI Studio API key (required)
+#     Get from: https://makersuite.google.com/app/apikey
+#
+# - GEMINI_BASE_URL: Custom base URL (optional)
+#     Default: https://generativelanguage.googleapis.com/v1
+
+# Configuration via environment:
+# export GOOGLE_API_KEY="AIza..."
+# export GEMINI_BASE_URL="https://generativelanguage.googleapis.com/v1"  # optional
+
+# Model Comparison:
+#
+# Gemini Pro:
+#   - Cost: Free tier available, then usage-based
+#   - Speed: Fast (2-3 seconds typical)
+#   - Context: 32K tokens
+#   - Use for: Text generation, reasoning, general tasks
+#   - Features: Function calling, multi-turn chat
+#
+# Gemini Pro Vision:
+#   - Cost: Same as Gemini Pro
+#   - Speed: Moderate (3-5 seconds typical)
+#   - Context: 16K tokens + image
+#   - Use for: Image understanding, visual Q&A
+#   - Features: Image analysis, OCR, scene understanding
+
+# Key Features:
+# - Free Tier: Generous free quota for development
+# - Multimodal: Native image understanding (Vision)
+# - Function Calling: Tool use capabilities
+# - Safety Settings: Configurable content filtering
+# - Streaming: Real-time response generation
+# - Grounding: Can cite sources (experimental)
+
+# Rate Limits (Free Tier):
+# - 60 requests per minute
+# - 1,500 requests per day
+# - Paid tier has higher limits
+
+# Free Tier Quotas:
+# - Gemini Pro: 60 RPM, 32K tokens per request
+# - Gemini Pro Vision: 60 RPM, includes image input
+# - No cost for moderate usage
+
+# Best Practices:
+# 1. Use free tier for development and testing
+# 2. Gemini Pro for text-only tasks
+# 3. Gemini Pro Vision when images are involved
+# 4. Set safety settings appropriately for your use case
+# 5. Use streaming for better UX
+# 6. Implement retry logic for rate limits
+# 7. Cache responses when possible
+# 8. Monitor usage to stay within quotas
+# 9. Use function calling for structured outputs
+# 10. Test thoroughly before upgrading to paid tier
+
+# Safety Settings:
+# Gemini has built-in safety filters for:
+# - Harassment
+# - Hate speech
+# - Sexually explicit content
+# - Dangerous content
+#
+# Can be configured per request or use defaults
+
+# Multimodal Capabilities (Vision):
+# - Image formats: PNG, JPEG, WebP
+# - Max image size: 4MB
+# - Multiple images per request
+# - Image + text prompts
+# - OCR from images
+# - Chart and diagram understanding
+# - Scene description
+
+# Function Calling:
+# - Similar to OpenAI's tool use
+# - JSON schema for parameters
+# - Automatic parameter extraction
+# - Multiple function calls per turn
+# - Well-suited for agent workflows
+
+# Comparison with Other Providers:
+#
+# vs OpenAI:
+# + Free tier available
+# + Native multimodal (Vision)
+# - Smaller context window (32K vs 128K)
+# - Less mature ecosystem
+#
+# vs Anthropic:
+# + Free tier
+# + Google ecosystem integration
+# - Smaller context (32K vs 200K)
+# - Less sophisticated reasoning
+#
+# vs Vertex AI:
+# - Simpler API (no GCP setup)
+# - Lower rate limits
+# + Easier for development
+# - No enterprise features
+
+# Google AI Studio vs Vertex AI:
+# This configuration uses Google AI Studio (makersuite.google.com):
+# - Simpler setup (just API key)
+# - Free tier available
+# - Good for development
+#
+# For production, consider Vertex AI:
+# - Enterprise SLAs
+# - Higher rate limits
+# - More models available
+# - GCP integration
+# - See vertexai.yaml for Vertex AI configuration
+
+# Notes:
+# - API key automatically loaded from GOOGLE_API_KEY
+# - Provider auto-detected from model name (gemini-*)
+# - Free tier is generous for development
+# - Vision model can handle both text and images
+# - Safety filters may block some content
+# - Streaming responses improve perceived performance
+# - Function calling uses similar format to OpenAI
+# - Consider Vertex AI for production deployments

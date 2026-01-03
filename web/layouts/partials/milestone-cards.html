@@ -1,0 +1,44 @@
+{{- /*
+  Milestone Cards Partial
+  Renders development milestone cards from data/milestones.yaml
+
+  Usage: {{ partial "milestone-cards.html" . }}
+
+  Status mapping: complete (✅), in_progress (🚧), planned (📋)
+*/ -}}
+
+{{- $statusLabels := dict "complete" "Complete" "in_progress" "In Progress" "planned" "Planned" -}}
+{{- $statusIcons := dict "complete" "✅" "in_progress" "🚧" "planned" "📋" -}}
+
+{{- with site.Data.milestones -}}
+  <div class="roadmap-grid">
+    {{- range $milestone := .milestones -}}
+      {{- $icon := "📋" -}}
+      {{- if eq $milestone.status "complete" -}}
+        {{- $icon = "✅" -}}
+      {{- else if eq $milestone.status "in_progress" -}}
+        {{- $icon = "🚧" -}}
+      {{- end -}}
+      <div class="roadmap-card">
+        <div class="version-badge">
+          {{ $milestone.version }}
+          {{- if eq $milestone.status "complete" }} - ✅{{ end -}}
+        </div>
+        {{- if $milestone.date }}
+          <div class="milestone-date">{{ $milestone.date }}</div>
+        {{- end }}
+        <ul>
+          {{- range $milestone.highlights -}}
+            <li>{{ $icon }} {{ . }}</li>
+          {{- end -}}
+        </ul>
+      </div>
+    {{- end -}}
+  </div>
+
+  <div class="roadmap-cta">
+    <a href="/features/" class="btn btn-primary">
+      View Full Feature List →
+    </a>
+  </div>
+{{- end -}}

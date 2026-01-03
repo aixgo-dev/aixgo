@@ -1,0 +1,13 @@
+<div class="feature-card">
+  <div class="feature-icon">{{ .Get "icon" }}</div>
+  <h3 class="feature-title">{{ .Get "title" }}</h3>
+  <p class="feature-description">{{ .Get "description" }}</p>
+  {{ if .Get "benefit" }}
+  <div class="feature-benefit">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    {{ .Get "benefit" }}
+  </div>
+  {{ end }}
+</div>

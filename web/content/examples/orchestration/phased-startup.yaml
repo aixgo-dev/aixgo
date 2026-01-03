@@ -1,0 +1,89 @@
+# Phased Agent Startup with Dependencies
+#
+# This example demonstrates dependency-aware agent startup introduced in v0.2.3.
+# Agents are started in phases based on their depends_on declarations, eliminating
+# race conditions and ensuring proper initialization order.
+#
+# Startup sequence:
+# - Phase 0: config-service, database (concurrent)
+# - Phase 1: cache, auth-service (concurrent, after Phase 0)
+# - Phase 2: user-service, order-service (concurrent, after Phase 1)
+# - Phase 3: api-gateway (after Phase 2)
+
+supervisor:
+  name: phased-startup-coordinator
+  max_rounds: 100
+
+config:
+  # Wait up to 60 seconds for agents to become ready
+  agent_start_timeout: 60s
+
+agents:
+  # ===== PHASE 0: Foundation services (no dependencies) =====
+
+  - name: config-service
+    role: producer
+    description: "Loads configuration from environment and files"
+    # No depends_on - starts in Phase 0
+
+  - name: database
+    role: producer
+    description: "Connects to PostgreSQL database"
+    # No depends_on - starts in Phase 0
+
+  # ===== PHASE 1: Services depending on foundation =====
+
+  - name: cache
+    role: producer
+    description: "Redis cache with database fallback"
+    depends_on: [database, config-service]
+    # Depends on Phase 0 agents - starts in Phase 1
+
+  - name: auth-service
+    role: react
+    model: gpt-4-turbo
+    prompt: "Handle authentication and JWT token verification"
+    depends_on: [database]
+    # Depends on Phase 0 agent - starts in Phase 1
+
+  # ===== PHASE 2: Application services =====
+
+  - name: user-service
+    role: react
+    model: gpt-4-turbo
+    prompt: "Manage user accounts, profiles, and preferences"
+    depends_on: [database, cache, auth-service]
+    # Depends on Phase 0 & 1 agents - starts in Phase 2
+    inputs:
+      - source: api-gateway
+    outputs:
+      - target: api-gateway
+
+  - name: order-service
+    role: react
+    model: gpt-4-turbo
+    prompt: "Process and manage customer orders"
+    depends_on: [database, cache, auth-service]
+    # Depends on Phase 0 & 1 agents - starts in Phase 2
+    inputs:
+      - source: api-gateway
+    outputs:
+      - target: api-gateway
+
+  # ===== PHASE 3: API Gateway =====
+
+  - name: api-gateway
+    role: react
+    model: gpt-4-turbo
+    prompt: |
+      You are an API gateway that routes requests to appropriate services.
+      Available services: user-service, order-service.
+      Analyze the request and delegate to the correct service.
+    depends_on: [user-service, order-service]
+    # Depends on Phase 2 agents - starts in Phase 3
+    inputs:
+      - source: user-service
+      - source: order-service
+    outputs:
+      - target: user-service
+      - target: order-service

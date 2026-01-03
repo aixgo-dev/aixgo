@@ -1,0 +1,14 @@
+# Reflection Pattern: Agent critiques and improves own output
+agents:
+  - name: generator
+    role: react
+    model: gpt-4
+    prompt: "Generate initial response"
+    outputs:
+      - target: critic
+  - name: critic
+    role: react
+    model: gpt-4
+    prompt: "Critique and suggest improvements"
+    inputs:
+      - source: generator

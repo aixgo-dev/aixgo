@@ -1,0 +1,250 @@
+/* Alpha Badge (next to Get Started button) */
+.alpha-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  background: rgba(34, 211, 238, 0.15);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #22d3ee;
+  margin-left: 0.75rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .alpha-badge {
+    display: none;
+  }
+}
+
+/* Alpha Notice Banner */
+.alpha-notice-banner {
+  background: #FFB74D;
+  color: white;
+  padding: 1rem 2rem;
+  text-align: center;
+  font-weight: 600;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Alpha Banner (used in templates) */
+.alpha-banner {
+  background: #FFB74D;
+  color: white !important;
+  padding: 1rem 2rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.alpha-banner .container {
+  color: white !important;
+}
+
+.alpha-banner span {
+  color: white !important;
+}
+
+.alpha-banner strong {
+  color: white !important;
+}
+
+.alpha-banner a {
+  color: white !important;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+.alpha-notice-banner a {
+  color: white;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+.alpha-notice-banner strong {
+  font-size: 1.1em;
+  letter-spacing: 0.5px;
+}
+
+/* Alpha Status Section */
+.alpha-status-section {
+  background: #FFB74D;
+  padding: 3rem 2rem;
+  margin: 3rem 0;
+  border-radius: 8px;
+}
+
+.alpha-status-section h2 {
+  color: white !important;
+  margin-top: 0;
+}
+
+.alpha-status-section h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.alpha-status-section p {
+  color: white !important;
+}
+
+.alpha-status-section a {
+  color: white !important;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Feature Version Badge */
+.version-badge-inline {
+  background-color: #FFB74D;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.status-alpha {
+  background-color: #FFB74D;
+}
+
+.status-planned {
+  background-color: #2196F3;
+}
+
+.status-available {
+  background-color: #4CAF50;
+}
+
+/* Page-level Alpha Notice */
+.page-alpha-notice {
+  background: #FFB74D;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  font-weight: 500;
+  color: white !important;
+}
+
+.page-alpha-notice strong {
+  color: white !important;
+}
+
+.page-alpha-notice a {
+  color: white !important;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+/* Feature Status Grid */
+.feature-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-status-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.feature-status-card.available {
+  border-color: #4CAF50;
+}
+
+.feature-status-card.planned {
+  border-color: #2196F3;
+}
+
+.feature-status-card.alpha {
+  border-color: #FFB74D;
+}
+
+.feature-status-card h4 {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Roadmap Timeline */
+.roadmap-timeline {
+  position: relative;
+  padding-left: 2rem;
+  margin: 2rem 0;
+}
+
+.roadmap-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #4CAF50 0%, #2196F3 50%, #FFB74D 100%);
+}
+
+.roadmap-item {
+  position: relative;
+  margin-bottom: 2rem;
+  padding-left: 2rem;
+}
+
+.roadmap-item::before {
+  content: '';
+  position: absolute;
+  left: -2rem;
+  top: 0.5rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid currentColor;
+}
+
+.roadmap-item.complete {
+  color: #4CAF50;
+}
+
+.roadmap-item.in-progress {
+  color: #2196F3;
+}
+
+.roadmap-item.planned {
+  color: #FFB74D;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .alpha-notice-banner {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .hidden-mobile {
+    display: none;
+  }
+
+  .feature-status-grid {
+    grid-template-columns: 1fr;
+  }
+}

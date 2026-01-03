@@ -1,0 +1,72 @@
+# Logger Agent Configuration
+# Simple logging agent that outputs messages to stdout/logs
+# Use case: Debugging, monitoring, audit trails
+
+agents:
+  # Example 1: Basic logger with single input
+  - name: basic-logger
+    role: logger
+    # Logger receives from one or more sources
+    inputs:
+      - source: data-producer
+
+  # Example 2: Multi-input logger (aggregates from multiple sources)
+  - name: aggregated-logger
+    role: logger
+    inputs:
+      - source: agent-a
+      - source: agent-b
+      - source: agent-c
+
+  # Example 3: Specialized audit logger
+  - name: audit-logger
+    role: logger
+    inputs:
+      - source: security-events
+      - source: auth-events
+
+# Supporting agents for the examples
+  - name: data-producer
+    role: producer
+    interval: 2s
+    outputs:
+      - target: basic-logger
+
+  - name: agent-a
+    role: producer
+    interval: 1s
+    outputs:
+      - target: aggregated-logger
+
+  - name: agent-b
+    role: producer
+    interval: 1500ms
+    outputs:
+      - target: aggregated-logger
+
+  - name: agent-c
+    role: producer
+    interval: 2s
+    outputs:
+      - target: aggregated-logger
+
+  - name: security-events
+    role: producer
+    interval: 5s
+    outputs:
+      - target: audit-logger
+
+  - name: auth-events
+    role: producer
+    interval: 3s
+    outputs:
+      - target: audit-logger
+
+# Notes:
+# - Logger outputs to stdout with [ALERT] prefix
+# - Messages include type and payload
+# - Useful for debugging agent pipelines
+# - Can listen to multiple sources simultaneously
+# - No configuration needed - works out of the box
+# - Consider external log aggregation for production use
+# - Logs are written immediately (no buffering)

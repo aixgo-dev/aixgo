@@ -1,0 +1,39 @@
+# -- Site Configuration --
+baseURL = "https://aixgo.dev/"
+languageCode = "en-us"
+title = "Aixgo - AI Agents in Go (Alpha)"
+defaultContentLanguage = "en"
+
+enableRobotsTXT = true
+summaryLength = 30
+
+buildDrafts = false
+buildFuture = false
+
+enableEmoji = true
+
+# googleAnalytics = "G-XXXXXXXXX"
+
+[pagination]
+  pagerSize = 10
+
+[imaging]
+  anchor = 'Center'
+
+[taxonomies]
+  tag = "tags"
+  category = "categories"
+  author = "authors"
+
+[sitemap]
+  changefreq = 'daily'
+  filename = 'sitemap.xml'
+  priority = 0.5
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
+
+[params]
+  description = "AI agent framework for Go developers. Alpha release - build and test multi-agent systems. Production release late 2025."
+  author = "Charles Green"
+  github = "https://github.com/aixgo-dev/aixgo"

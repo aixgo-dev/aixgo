@@ -1,0 +1,117 @@
+# Security Configuration: Delegated Authentication (Google Cloud IAP)
+# Infrastructure-level authentication handled by Identity-Aware Proxy
+# Users authenticate with Google accounts, IAP verifies and forwards identity
+
+environment: production
+auth_mode: delegated
+
+delegated_auth:
+  # IAP sets this header with authenticated user email
+  identity_header: X-Goog-Authenticated-User-Email
+
+  iap:
+    enabled: true
+    verify_jwt: true
+    # IAP audience - get from GCP Console
+    # Format: /projects/PROJECT_NUMBER/apps/PROJECT_ID
+    audience: "/projects/123456789/apps/my-project-id"
+
+  # Map additional IAP headers to principal attributes
+  header_mapping:
+    email: X-Goog-Authenticated-User-Email
+    user_id: X-Goog-Authenticated-User-ID
+    # Add custom mappings as needed
+
+authorization:
+  enabled: true
+  default_deny: true
+  policy_file: /etc/aixgo/iap-policies.json
+
+audit:
+  enabled: true
+  backend: json
+  log_auth_decisions: true
+  siem:
+    enabled: true
+    endpoint: https://logging.googleapis.com/v2/entries:write
+
+# IAP Configuration (in GCP Console):
+# 1. Enable IAP for your Cloud Run service or GKE ingress
+# 2. Configure OAuth consent screen
+# 3. Add authorized users/groups
+# 4. Get IAP audience value
+# 5. Configure HTTPS load balancer with IAP
+
+# Example Authorization Policies (iap-policies.json):
+# {
+#   "policies": [
+#     {
+#       "principal": "user:admin@example.com",
+#       "resource": "*",
+#       "action": "*",
+#       "effect": "allow"
+#     },
+#     {
+#       "principal": "group:developers@example.com",
+#       "resource": "agents.*",
+#       "action": ["read", "execute"],
+#       "effect": "allow"
+#     }
+#   ]
+# }
+
+agents:
+  - name: iap-protected-agent
+    role: react
+    model: gpt-4
+    prompt: "You are a secure agent accessible only to authenticated users."
+    inputs:
+      - source: user-requests
+    outputs:
+      - target: user-responses
+
+# IAP Benefits:
+# + Google account authentication (familiar to users)
+# + No application code for auth
+# + Centralized access control
+# + MFA support built-in
+# + Integration with Google Workspace
+# + Audit logs in Cloud Logging
+# + Works with Cloud Run, GKE, Compute Engine
+
+# IAP Limitations:
+# - Google Cloud only
+# - Requires HTTPS load balancer
+# - All users need Google accounts
+# - Limited customization
+
+# Best Practices:
+# 1. Always verify JWT signature
+# 2. Validate audience claim
+# 3. Use groups for access control (not individual users)
+# 4. Enable MFA for sensitive operations
+# 5. Monitor IAP access logs
+# 6. Rotate service account keys
+# 7. Use least-privilege IAM roles
+# 8. Test failover scenarios
+
+# Security Considerations:
+# - IAP provides authentication (identity)
+# - Application must handle authorization (permissions)
+# - Validate all user inputs even with IAP
+# - Implement additional controls for sensitive operations
+# - Monitor for unusual access patterns
+# - IAP can be bypassed if service is publicly accessible
+# - Always enforce IAP at load balancer level
+
+# Testing IAP Locally:
+# For development, simulate IAP headers:
+# curl -H "X-Goog-Authenticated-User-Email: accounts.google.com:test@example.com" \
+#      http://localhost:8080/api/endpoint
+
+# Notes:
+# - Perfect for internal tools and dashboards
+# - Google Workspace integration
+# - No credential management in application
+# - Scales automatically with Cloud infrastructure
+# - Audit logs automatically integrated with Cloud Logging

@@ -1,0 +1,248 @@
+# MCP Local Transport Configuration
+# In-process MCP server communication (same process)
+# Best for: Development, testing, embedded tools
+
+# This example shows how to configure MCP servers using local (in-process) transport.
+# Local transport is the simplest option - no network configuration needed.
+
+agents:
+  - name: mcp-enabled-agent
+    role: react
+    model: gpt-4-turbo
+
+    prompt: |
+      You are an AI assistant with access to MCP tools for file operations,
+      web search, and data analysis. Use these tools when needed to help users.
+
+    # No tools defined here - they come from MCP servers
+    # Tools are discovered dynamically from connected MCP servers
+
+    inputs:
+      - source: user-queries
+    outputs:
+      - target: agent-responses
+
+# Supporting agents
+  - name: user-queries
+    role: producer
+    interval: 15s
+    outputs:
+      - target: mcp-enabled-agent
+
+  - name: agent-responses
+    role: logger
+    inputs:
+      - source: mcp-enabled-agent
+
+# MCP Server Configuration (separate from agents config in production)
+# In a real deployment, this would be in application initialization code
+# or a separate configuration file
+
+# Example MCP Server Registration (pseudo-config):
+# This shows the concept - actual registration happens in Go code
+#
+# mcp_servers:
+#   - name: filesystem-tools
+#     transport: local
+#     tools:
+#       - name: read_file
+#         description: "Read contents of a file"
+#         schema:
+#           type: object
+#           properties:
+#             path:
+#               type: string
+#               description: "File path to read"
+#           required: [path]
+#
+#       - name: write_file
+#         description: "Write contents to a file"
+#         schema:
+#           type: object
+#           properties:
+#             path:
+#               type: string
+#               description: "File path to write"
+#             content:
+#               type: string
+#               description: "Content to write"
+#           required: [path, content]
+#
+#       - name: list_directory
+#         description: "List files in a directory"
+#         schema:
+#           type: object
+#           properties:
+#             path:
+#               type: string
+#               description: "Directory path"
+#           required: [path]
+#
+#   - name: web-tools
+#     transport: local
+#     tools:
+#       - name: fetch_url
+#         description: "Fetch content from a URL"
+#         schema:
+#           type: object
+#           properties:
+#             url:
+#               type: string
+#               description: "URL to fetch"
+#             timeout_ms:
+#               type: number
+#               description: "Request timeout"
+#               default: 5000
+#           required: [url]
+#
+#       - name: search_web
+#         description: "Search the web"
+#         schema:
+#           type: object
+#           properties:
+#             query:
+#               type: string
+#               description: "Search query"
+#             max_results:
+#               type: number
+#               default: 10
+#           required: [query]
+
+# How Local Transport Works:
+#
+# 1. Server Registration:
+#    - MCP servers are registered in the same process
+#    - No network communication overhead
+#    - Direct function calls
+#
+# 2. Tool Discovery:
+#    - Agent queries all registered MCP servers
+#    - Tools are listed and added to LLM context
+#    - Tool schemas are validated
+#
+# 3. Tool Execution:
+#    - When LLM calls a tool, provider routes to correct MCP server
+#    - Server executes tool handler
+#    - Result is returned to LLM
+#    - LLM continues reasoning with result
+
+# Advantages of Local Transport:
+# + No network overhead (fastest)
+# + Simple configuration (no ports, firewalls)
+# + Secure (no network exposure)
+# + Easy debugging (same process)
+# + No serialization overhead
+# + Perfect for embedded tools
+#
+# Limitations:
+# - Tools must be in same process
+# - No remote tool execution
+# - Limited to single machine
+# - No service isolation
+
+# When to Use Local Transport:
+# - Development and testing
+# - Embedded tool libraries
+# - Single-process applications
+# - Performance-critical tool calls
+# - Prototyping and experimentation
+# - Simple deployments
+
+# When to Use gRPC Transport Instead:
+# - Distributed systems
+# - Microservices architecture
+# - Remote tool execution
+# - Service isolation required
+# - Multiple machines/containers
+# - Production deployments with scaling
+
+# Example Go Code for Local MCP Server:
+#
+# ```go
+# import "github.com/aixgo-dev/aixgo/pkg/mcp"
+#
+# // Create MCP server
+# server := mcp.NewServer("filesystem-tools")
+#
+# // Register tools
+# server.RegisterTool(mcp.ToolDefinition{
+#     Name: "read_file",
+#     Description: "Read contents of a file",
+#     Schema: map[string]mcp.SchemaField{
+#         "path": {
+#             Type: "string",
+#             Description: "File path to read",
+#             Required: true,
+#         },
+#     },
+#     Handler: func(ctx context.Context, params mcp.CallToolParams) (*mcp.CallToolResult, error) {
+#         path := params.Arguments["path"].(string)
+#         content, err := os.ReadFile(path)
+#         if err != nil {
+#             return nil, err
+#         }
+#         return &mcp.CallToolResult{
+#             Content: []mcp.Content{{
+#                 Type: "text",
+#                 Text: string(content),
+#             }},
+#         }, nil
+#     },
+# })
+#
+# // Register server for local transport
+# mcp.RegisterLocalServer(server)
+#
+# // In your agent configuration, tools are auto-discovered
+# ```
+
+# Tool Discovery Flow:
+# 1. Agent starts and connects to MCP servers
+# 2. Agent calls ListTools() on each server
+# 3. Tools are aggregated into a registry
+# 4. Tool schemas are provided to LLM
+# 5. LLM can call any discovered tool
+# 6. Provider routes tool calls to correct server
+
+# Security Considerations:
+# Even with local transport, validate inputs:
+# - Sanitize file paths (prevent directory traversal)
+# - Validate URLs (prevent SSRF)
+# - Limit resource usage (file size, timeout)
+# - Audit tool usage
+# - Implement rate limiting if needed
+
+# Error Handling:
+# Implement robust error handling in tool handlers:
+# - Return descriptive error messages
+# - Log errors for debugging
+# - Don't expose sensitive information in errors
+# - Handle timeouts gracefully
+# - Provide fallback behaviors
+
+# Performance:
+# Local transport is the fastest option:
+# - No network serialization
+# - Direct function calls
+# - Minimal overhead
+# - Microsecond latency typical
+# - Limited only by tool handler performance
+
+# Testing:
+# Local transport simplifies testing:
+# - No network mocking needed
+# - Direct tool invocation
+# - Easy to unit test
+# - Fast test execution
+# - Simple setup/teardown
+
+# Notes:
+# - Local transport is automatically used when server name matches registered server
+# - No special configuration needed beyond server registration
+# - Tools are discovered automatically
+# - Multiple MCP servers can be registered
+# - Each server can provide multiple tools
+# - Tool names must be unique across all servers
+# - Server names are used for routing but not exposed to LLM
+# - Best for development and single-process deployments
+# - Consider gRPC transport for distributed production systems

@@ -1,0 +1,292 @@
+# Google Vertex AI Provider Configuration
+# Enterprise-grade Gemini and PaLM models on Google Cloud Platform
+# Requires GCP project and authentication
+
+agents:
+  - name: vertexai-gemini-agent
+    role: react
+
+    # Vertex AI Gemini models
+    # Available: gemini-pro, gemini-pro-vision, gemini-ultra (limited access)
+    model: gemini-pro
+
+    prompt: |
+      You are an enterprise AI assistant running on Google Cloud Vertex AI.
+      Provide reliable, secure, and compliant responses.
+
+    tools:
+      - name: query_database
+        description: "Query enterprise database"
+        input_schema:
+          type: object
+          properties:
+            query:
+              type: string
+              description: "SQL query or search term"
+            database:
+              type: string
+              description: "Database identifier"
+          required: [query, database]
+
+      - name: generate_report
+        description: "Generate business report"
+        input_schema:
+          type: object
+          properties:
+            report_type:
+              type: string
+              enum: ["financial", "operational", "technical"]
+            time_period:
+              type: string
+              description: "Time period for report (e.g., 'Q1 2024')"
+            metrics:
+              type: array
+              items:
+                type: string
+          required: [report_type, time_period]
+
+    inputs:
+      - source: business-queries
+    outputs:
+      - target: enterprise-responses
+
+# Example: PaLM 2 for text generation
+  - name: vertexai-palm-agent
+    role: react
+    model: text-bison@002  # PaLM 2 text model
+
+    prompt: |
+      You are a text generation specialist using PaLM 2.
+      Generate high-quality, coherent text for various purposes.
+
+    inputs:
+      - source: generation-requests
+    outputs:
+      - target: generated-content
+
+# Example: Code generation with Codey
+  - name: vertexai-code-agent
+    role: react
+    model: code-bison@002  # Codey for code generation
+
+    prompt: |
+      You are a code generation expert using Vertex AI Codey.
+      Generate clean, efficient, well-documented code.
+
+    tools:
+      - name: explain_code
+        description: "Explain code functionality"
+        input_schema:
+          type: object
+          properties:
+            code:
+              type: string
+            language:
+              type: string
+          required: [code, language]
+
+    inputs:
+      - source: code-requests
+    outputs:
+      - target: code-results
+
+# Example: Regional deployment for compliance
+  - name: vertexai-eu-agent
+    role: react
+    model: gemini-pro
+
+    prompt: |
+      You are an EU-region compliant AI assistant.
+      All data processing occurs within EU boundaries.
+
+    inputs:
+      - source: eu-queries
+    outputs:
+      - target: eu-responses
+
+# Supporting agents
+  - name: business-queries
+    role: producer
+    interval: 30s
+    outputs:
+      - target: vertexai-gemini-agent
+
+  - name: enterprise-responses
+    role: logger
+    inputs:
+      - source: vertexai-gemini-agent
+
+# Environment variables required:
+# - VERTEX_PROJECT_ID: Your GCP project ID (required)
+# - VERTEX_LOCATION: GCP region (optional, default: us-central1)
+# - GOOGLE_APPLICATION_CREDENTIALS: Path to service account key file (required)
+
+# Configuration via environment:
+# export VERTEX_PROJECT_ID="my-gcp-project"
+# export VERTEX_LOCATION="us-central1"  # or europe-west1, asia-northeast1, etc.
+# export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
+
+# Available Regions:
+# - us-central1 (Iowa)
+# - us-east4 (Virginia)
+# - us-west1 (Oregon)
+# - europe-west1 (Belgium)
+# - europe-west4 (Netherlands)
+# - asia-northeast1 (Tokyo)
+# - asia-southeast1 (Singapore)
+
+# Model Comparison:
+#
+# Gemini Pro (Vertex AI):
+#   - Cost: $0.00025 per 1K chars input, $0.0005 per 1K chars output
+#   - Context: 32K tokens
+#   - Features: Function calling, streaming, grounding
+#   - SLA: 99.9% uptime guarantee
+#
+# PaLM 2 (text-bison):
+#   - Cost: $0.00025 per 1K chars input, $0.0005 per 1K chars output
+#   - Context: 8K tokens
+#   - Features: Text generation, classification
+#   - Use for: Stable, production text tasks
+#
+# Codey (code-bison):
+#   - Cost: $0.00025 per 1K chars input, $0.0005 per 1K chars output
+#   - Context: 6K tokens
+#   - Features: Code generation, completion, explanation
+#   - Use for: Software development tasks
+
+# Key Enterprise Features:
+# - SLAs: 99.9% uptime guarantee
+# - Security: VPC-SC, CMEK, private endpoints
+# - Compliance: GDPR, HIPAA, SOC 2, ISO 27001
+# - Audit Logs: Cloud Audit Logs integration
+# - IAM: Fine-grained access control
+# - Regional Control: Data residency compliance
+# - Model Garden: Access to multiple models
+# - Private AI: No data used for training
+
+# Authentication Methods:
+#
+# 1. Service Account (Recommended for production):
+#    - Create service account in GCP Console
+#    - Grant "Vertex AI User" role
+#    - Download JSON key file
+#    - Set GOOGLE_APPLICATION_CREDENTIALS
+#
+# 2. Application Default Credentials (Development):
+#    - Run: gcloud auth application-default login
+#    - No service account needed
+#    - Uses your user credentials
+#
+# 3. Workload Identity (GKE):
+#    - Bind Kubernetes service account to GCP service account
+#    - No credential files needed
+#    - Most secure for GKE deployments
+
+# Required IAM Roles:
+# - roles/aiplatform.user: For using Vertex AI models
+# - roles/logging.logWriter: For audit logs (optional)
+# - roles/monitoring.metricWriter: For metrics (optional)
+
+# Rate Limits (Default):
+# - Gemini Pro: 300 requests per minute per project
+# - PaLM 2: 300 requests per minute per project
+# - Can request quota increases via GCP Console
+
+# Best Practices:
+# 1. Use service accounts for production
+# 2. Enable audit logging for compliance
+# 3. Choose region based on data residency requirements
+# 4. Implement circuit breakers for reliability
+# 5. Use VPC Service Controls for sensitive data
+# 6. Monitor costs via Cloud Billing
+# 7. Set up alerts for quota limits
+# 8. Use regional endpoints for lower latency
+# 9. Implement request retries with exponential backoff
+# 10. Tag resources for cost allocation
+
+# Security Considerations:
+#
+# VPC Service Controls:
+# - Restrict API access to VPC perimeter
+# - Prevent data exfiltration
+# - Compliance requirement for many industries
+#
+# Customer-Managed Encryption Keys (CMEK):
+# - Encrypt data with your own keys
+# - Full control over encryption
+# - Required for some compliance frameworks
+#
+# Private Google Access:
+# - Access Vertex AI without internet
+# - More secure for sensitive workloads
+# - Lower latency within GCP
+#
+# Audit Logging:
+# - All API calls logged to Cloud Logging
+# - Integrate with SIEM systems
+# - Compliance and forensics
+
+# Cost Optimization:
+# 1. Use appropriate model for task (don't over-provision)
+# 2. Implement caching for repeated queries
+# 3. Set max_tokens to limit output length
+# 4. Use batch prediction for large volumes
+# 5. Monitor usage via Cloud Billing
+# 6. Set budget alerts
+# 7. Use committed use discounts for high volume
+# 8. Choose cheaper models when appropriate (PaLM vs Gemini)
+
+# Comparison: Vertex AI vs Google AI Studio:
+#
+# Vertex AI (This config):
+# + Enterprise SLAs and support
+# + Higher rate limits
+# + VPC-SC, CMEK security
+# + Compliance certifications
+# + Regional data residency
+# + Integrated with GCP
+# - Requires GCP setup
+# - No free tier
+#
+# Google AI Studio:
+# + Simpler setup (just API key)
+# + Free tier available
+# + Good for development
+# - No SLAs
+# - Lower rate limits
+# - Consumer-grade
+
+# Regional Deployment Example:
+#
+# For GDPR compliance (EU data residency):
+# export VERTEX_PROJECT_ID="my-eu-project"
+# export VERTEX_LOCATION="europe-west1"
+#
+# For low latency in Asia:
+# export VERTEX_LOCATION="asia-northeast1"
+#
+# For US compliance:
+# export VERTEX_LOCATION="us-central1"
+
+# Model Garden:
+# Vertex AI provides access to multiple model families:
+# - Gemini: Latest Google models
+# - PaLM 2: Stable text generation
+# - Codey: Code-specialized models
+# - Imagen: Image generation (separate API)
+# - Chirp: Speech-to-text
+# - Third-party: Llama 2, Claude (via Model Garden)
+
+# Notes:
+# - Requires GCP project with billing enabled
+# - Authentication via service account or ADC
+# - Provider auto-detected from model name or explicit config
+# - Regional endpoints for data residency
+# - Enterprise-grade SLAs and support
+# - Audit logs automatically integrated
+# - VPC-SC compatible for secure deployments
+# - CMEK supported for encryption
+# - Model versions can be pinned for stability
+# - Streaming responses supported
+# - Function calling available on Gemini Pro

@@ -1,0 +1,105 @@
+# ReAct Agent Configuration
+# Reasoning and Acting agent with tool use capabilities
+# Implements the ReAct pattern: Thought -> Action -> Observation
+
+agents:
+  - name: research-assistant
+    # ReAct role enables reasoning with action (tool calling)
+    role: react
+
+    # Model selection - supports OpenAI, Anthropic, xAI, Gemini, Vertex AI
+    # The provider is auto-detected from the model name
+    model: gpt-4-turbo
+
+    # System prompt defines the agent's behavior and capabilities
+    prompt: |
+      You are an expert research assistant specializing in data analysis and fact-checking.
+
+      Your responsibilities:
+      - Analyze queries systematically using Chain-of-Thought reasoning
+      - Use available tools to gather information
+      - Provide evidence-based, well-reasoned answers
+      - Cite sources and explain your reasoning process
+
+      Always think step-by-step before taking actions.
+
+    # Tools define callable functions the agent can use
+    # Each tool requires a JSON Schema for input validation
+    tools:
+      - name: search_database
+        description: "Search the knowledge database for relevant information"
+        input_schema:
+          type: object
+          properties:
+            query:
+              type: string
+              description: "Search query string"
+            max_results:
+              type: number
+              description: "Maximum number of results to return"
+              minimum: 1
+              maximum: 100
+          required: [query]
+
+      - name: calculate
+        description: "Perform mathematical calculations"
+        input_schema:
+          type: object
+          properties:
+            expression:
+              type: string
+              description: "Mathematical expression to evaluate"
+          required: [expression]
+
+      - name: fetch_web_content
+        description: "Retrieve content from a web URL"
+        input_schema:
+          type: object
+          properties:
+            url:
+              type: string
+              description: "URL to fetch content from"
+              pattern: "^https?://"
+            timeout_ms:
+              type: number
+              description: "Request timeout in milliseconds"
+              default: 5000
+          required: [url]
+
+    # Input sources - where the agent receives messages
+    inputs:
+      - source: user-requests
+
+    # Output targets - where results are sent
+    outputs:
+      - target: response-formatter
+      - target: audit-log
+
+# Additional agents for the pipeline
+  - name: user-requests
+    role: producer
+    interval: 10s
+    outputs:
+      - target: research-assistant
+
+  - name: response-formatter
+    role: logger
+    inputs:
+      - source: research-assistant
+
+  - name: audit-log
+    role: logger
+    inputs:
+      - source: research-assistant
+
+# Environment variables required:
+# - OPENAI_API_KEY: API key for OpenAI models
+# - ANTHROPIC_API_KEY: If using Claude models
+# - XAI_API_KEY: If using Grok models
+
+# Notes:
+# - Tool calls are automatically validated against input_schema
+# - The agent will reason about which tools to use based on the query
+# - Supports multi-turn conversations with tool results
+# - Temperature and max_tokens can be configured via model parameters
+# - Failed tool calls are reported back to the LLM for retry/alternative approaches

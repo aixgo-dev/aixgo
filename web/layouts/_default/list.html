@@ -1,0 +1,93 @@
+{{ define "main" }}
+
+<section class="list-page">
+  <div class="container-narrow">
+    <h1 class="page-title {{ if eq .Section `blog` }}cyan{{ end }}">{{ .Title }}</h1>
+
+    {{ if .Description }}
+    <p class="page-description">{{ .Description }}</p>
+    {{ end }}
+
+    <div class="list-content">
+      {{ if eq .Section "guides" }}
+        <!-- Guides grouped by category -->
+        {{ range .Pages.GroupByParam "category" }}
+        <div class="guide-category">
+          <h2>{{ .Key | default "Other" }}</h2>
+          <div class="guide-list">
+            {{ range .Pages }}
+            <a href="{{ .Permalink }}" class="guide-card">
+              <div class="guide-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                </svg>
+              </div>
+              <div class="guide-content">
+                <h3>{{ .Title }}</h3>
+                <p>{{ .Description }}</p>
+              </div>
+            </a>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+
+      {{ else if eq .Section "blog" }}
+        <!-- Blog posts -->
+        <div class="blog-list">
+          {{ range .Pages }}
+          <a href="{{ .Permalink }}" class="blog-card">
+            <div class="blog-meta">
+              <span class="blog-date">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                {{ .Date.Format "January 2, 2006" }}
+              </span>
+              {{ if .Params.author }}
+              <span class="blog-author">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                {{ .Params.author }}
+              </span>
+              {{ end }}
+            </div>
+
+            <h2>{{ .Title }}</h2>
+            <p>{{ .Description }}</p>
+
+            {{ if .Params.tags }}
+            <div class="tags-inline">
+              {{ range .Params.tags }}
+              <span class="tag">{{ . }}</span>
+              {{ end }}
+            </div>
+            {{ end }}
+          </a>
+          {{ end }}
+        </div>
+
+      {{ else }}
+        <!-- Default list -->
+        <div class="page-list">
+          {{ range .Pages }}
+          <div class="page-item">
+            <h2><a href="{{ .Permalink }}">{{ .Title }}</a></h2>
+            {{ if .Description }}
+            <p>{{ .Description }}</p>
+            {{ end }}
+          </div>
+          {{ end }}
+        </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+
+{{ end }}

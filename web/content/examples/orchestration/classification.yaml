@@ -1,0 +1,11 @@
+# Classification Pattern: Route based on content type
+agents:
+  - name: classifier
+    role: classifier
+    model: gpt-4
+    outputs:
+      - target: router
+  - name: router
+    role: aggregator
+    inputs:
+      - source: classifier

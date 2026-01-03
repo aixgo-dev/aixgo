@@ -1,0 +1,216 @@
+# Anthropic Claude Provider Configuration
+# Supports Claude 3 family: Haiku, Sonnet, and Opus
+
+agents:
+  - name: claude-opus-agent
+    role: react
+
+    # Claude model selection
+    # Available: claude-3-haiku, claude-3-sonnet, claude-3-opus
+    model: claude-3-opus-20240229
+
+    prompt: |
+      You are Claude, an AI assistant created by Anthropic.
+      You are thoughtful, helpful, and provide well-reasoned responses.
+      You acknowledge uncertainty when appropriate.
+
+    tools:
+      - name: analyze_code
+        description: "Analyze code for potential issues and improvements"
+        input_schema:
+          type: object
+          properties:
+            code:
+              type: string
+              description: "Source code to analyze"
+            language:
+              type: string
+              description: "Programming language"
+          required: [code, language]
+
+      - name: research_topic
+        description: "Research a technical topic in depth"
+        input_schema:
+          type: object
+          properties:
+            topic:
+              type: string
+              description: "Topic to research"
+            depth:
+              type: string
+              enum: ["overview", "detailed", "comprehensive"]
+          required: [topic]
+
+    inputs:
+      - source: complex-queries
+    outputs:
+      - target: opus-responses
+
+# Example: Fast and cost-effective with Claude Haiku
+  - name: claude-haiku-agent
+    role: react
+    model: claude-3-haiku-20240307
+
+    prompt: |
+      You are a quick-response assistant focused on efficiency.
+      Provide accurate, concise answers.
+
+    inputs:
+      - source: simple-queries
+    outputs:
+      - target: haiku-responses
+
+# Example: Balanced performance with Claude Sonnet
+  - name: claude-sonnet-agent
+    role: react
+    model: claude-3-sonnet-20240229
+
+    prompt: |
+      You are a balanced AI assistant providing thorough yet efficient responses.
+
+    inputs:
+      - source: standard-queries
+    outputs:
+      - target: sonnet-responses
+
+# Example: Long context with extended thinking
+  - name: claude-extended-agent
+    role: react
+    model: claude-3-opus-20240229
+
+    prompt: |
+      You are analyzing complex documents with extended context.
+      Take time to think through problems systematically.
+      Use the full context window when needed.
+
+    tools:
+      - name: analyze_document
+        description: "Deep analysis of long documents"
+        input_schema:
+          type: object
+          properties:
+            document:
+              type: string
+              description: "Document text (up to 200K tokens)"
+            analysis_type:
+              type: string
+              enum: ["summary", "critique", "comparison"]
+          required: [document, analysis_type]
+
+    inputs:
+      - source: document-stream
+    outputs:
+      - target: analysis-results
+
+# Supporting agents
+  - name: complex-queries
+    role: producer
+    interval: 30s
+    outputs:
+      - target: claude-opus-agent
+
+  - name: opus-responses
+    role: logger
+    inputs:
+      - source: claude-opus-agent
+
+# Environment variables required:
+# - ANTHROPIC_API_KEY: Your Anthropic API key (required)
+#     Get from: https://console.anthropic.com/settings/keys
+#
+# - ANTHROPIC_BASE_URL: Custom base URL (optional)
+#     Default: https://api.anthropic.com/v1
+
+# Configuration via environment:
+# export ANTHROPIC_API_KEY="sk-ant-..."
+# export ANTHROPIC_BASE_URL="https://api.anthropic.com/v1"  # optional
+
+# Model Comparison:
+#
+# Claude 3 Haiku:
+#   - Cost: $0.25 per MTok input, $1.25 per MTok output
+#   - Speed: Fastest (~1 second typical)
+#   - Context: 200K tokens
+#   - Use for: Simple tasks, high volume, real-time responses
+#
+# Claude 3 Sonnet:
+#   - Cost: $3 per MTok input, $15 per MTok output
+#   - Speed: Fast (~2-3 seconds typical)
+#   - Context: 200K tokens
+#   - Use for: Balanced performance and cost, most workloads
+#
+# Claude 3 Opus:
+#   - Cost: $15 per MTok input, $75 per MTok output
+#   - Speed: Moderate (~5-7 seconds typical)
+#   - Context: 200K tokens
+#   - Use for: Complex reasoning, highest accuracy, research
+
+# Key Features:
+# - Extended Context: 200K tokens across all models
+# - Vision: Image understanding in all models
+# - Tool Use: Sophisticated function calling
+# - Thinking: Can show reasoning process
+# - Constitutional AI: Built-in safety and helpfulness
+# - JSON Mode: Reliable structured outputs
+# - Streaming: Real-time response generation
+
+# Rate Limits (varies by tier):
+# Tier 1 (Default):
+#   - Haiku: 50 RPM, 25K TPM
+#   - Sonnet: 50 RPM, 20K TPM
+#   - Opus: 50 RPM, 10K TPM
+#
+# Higher tiers available with increased usage
+
+# Best Practices:
+# 1. Use Haiku for speed-critical, simple tasks
+# 2. Use Sonnet for most production workloads
+# 3. Use Opus for complex reasoning and research
+# 4. Leverage 200K context for long documents
+# 5. Use thinking prompts for complex reasoning:
+#    "Think step by step" or "Show your reasoning"
+# 6. System prompts go in separate field (not messages)
+# 7. Cache long system prompts to reduce costs
+# 8. Use streaming for better user experience
+# 9. Tool definitions should be clear and specific
+# 10. Monitor usage to stay within rate limits
+
+# Advanced Features:
+#
+# Extended Thinking:
+# - Ask Claude to "think step by step"
+# - Request reasoning before answers
+# - Useful for math, logic, complex analysis
+#
+# Constitutional AI:
+# - Built-in alignment with human values
+# - Can refuse harmful requests
+# - More reliable than GPT for safety
+#
+# Long Context:
+# - 200K tokens = ~500 pages of text
+# - Maintains quality across full context
+# - Excellent for document analysis
+#
+# Vision:
+# - Upload images directly
+# - Supports diagrams, charts, screenshots
+# - Can describe and analyze visual content
+
+# Anthropic-Specific Considerations:
+# - System prompts are separate from messages
+# - Tool use format differs from OpenAI
+# - Provider auto-handles format conversion
+# - Streaming uses Server-Sent Events (SSE)
+# - Extended context maintained better than GPT-4
+# - More conservative than GPT (may decline more often)
+# - Better at acknowledging uncertainty
+
+# Notes:
+# - API key automatically loaded from ANTHROPIC_API_KEY
+# - Provider auto-detected from model name (claude-*)
+# - System prompts converted to Anthropic format
+# - Tools formatted as Anthropic tool definitions
+# - Supports both sync and streaming
+# - Automatic retry with exponential backoff
+# - JSON schema validation before API calls

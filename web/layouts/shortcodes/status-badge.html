@@ -1,0 +1,12 @@
+{{ $status := .Get "status" }}
+{{ $text := "UNKNOWN" }}
+
+{{ if eq $status "alpha" }}
+  {{ $text = "v0.1" }}
+{{ else if eq $status "planned" }}
+  {{ $text = "PLANNED" }}
+{{ else if eq $status "available" }}
+  {{ $text = "AVAILABLE" }}
+{{ end }}
+
+<span class="status-badge status-{{ $status }}">{{ $text }}</span>

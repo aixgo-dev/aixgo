@@ -1,0 +1,269 @@
+# MCP gRPC Transport Configuration
+# Remote MCP server communication via gRPC
+# Best for: Production, microservices, distributed systems
+
+# This example shows MCP servers accessed via gRPC for distributed deployments.
+# Supports load balancing and service discovery.
+#
+# IMPORTANT: TLS/mTLS Security
+# TLS is handled externally by your cloud infrastructure, NOT directly by Aixgo.
+# Cloud Run, GKE Ingress, and other serverless platforms provide TLS by default.
+# For Kubernetes deployments, use service mesh (Istio, Linkerd) or cert-manager for mTLS.
+
+agents:
+  - name: distributed-mcp-agent
+    role: react
+    model: gpt-4-turbo
+
+    prompt: |
+      You are an AI assistant with access to distributed MCP services.
+      Use these remote tools for data access, computation, and integrations.
+
+    inputs:
+      - source: user-requests
+    outputs:
+      - target: agent-results
+
+  - name: user-requests
+    role: producer
+    interval: 20s
+    outputs:
+      - target: distributed-mcp-agent
+
+  - name: agent-results
+    role: logger
+    inputs:
+      - source: distributed-mcp-agent
+
+# MCP Server Configuration (gRPC Transport)
+# This configuration would typically be in a separate file or environment config
+
+# Example: Basic gRPC MCP Server (Insecure - Development Only)
+# mcp_servers:
+#   - name: data-service
+#     transport: grpc
+#     address: "localhost:50051"
+#     tls: false  # WARNING: Development only!
+#
+#   - name: compute-service
+#     transport: grpc
+#     address: "localhost:50052"
+#     tls: false
+
+# Example: Production gRPC MCP Server with TLS
+# mcp_servers:
+#   - name: secure-data-service
+#     transport: grpc
+#     address: "data-service.example.com:443"
+#     tls: true
+#     tls_config:
+#       ca_file: "/path/to/ca.crt"
+#       cert_file: "/path/to/client.crt"
+#       key_file: "/path/to/client.key"
+#       server_name: "data-service.example.com"
+#       insecure_skip_verify: false  # MUST be false in production
+#
+#   - name: secure-compute-service
+#     transport: grpc
+#     address: "compute-service.example.com:443"
+#     tls: true
+#     tls_config:
+#       ca_file: "/path/to/ca.crt"
+#       cert_file: "/path/to/client.crt"
+#       key_file: "/path/to/client.key"
+
+# Example: Kubernetes Service Discovery
+# mcp_servers:
+#   - name: k8s-data-service
+#     transport: grpc
+#     address: "mcp-data-service.default.svc.cluster.local:50051"
+#     tls: true
+#     tls_config:
+#       ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+# Environment Variables for Configuration:
+# MCP_DATA_SERVICE_ADDRESS=data-service.example.com:443
+# MCP_DATA_SERVICE_TLS=true
+# MCP_DATA_SERVICE_CA=/path/to/ca.crt
+# MCP_DATA_SERVICE_CERT=/path/to/client.crt
+# MCP_DATA_SERVICE_KEY=/path/to/client.key
+
+# gRPC Transport Features:
+#
+# Security:
+# - TLS 1.2+ encryption
+# - Mutual TLS (mTLS) for authentication
+# - Certificate validation
+# - Secure cipher suites
+#
+# Performance:
+# - HTTP/2 multiplexing
+# - Binary protocol (efficient)
+# - Streaming support
+# - Connection pooling
+#
+# Reliability:
+# - Automatic retries
+# - Health checking
+# - Load balancing
+# - Timeout configuration
+
+# TLS Configuration (Handled by Infrastructure):
+#
+# Cloud Run / Serverless:
+# - TLS is enabled by default
+# - No configuration needed in Aixgo
+# - Managed certificates automatically
+#
+# Kubernetes / GKE:
+# - Use Ingress with managed certificates
+# - Or service mesh (Istio, Linkerd) for mTLS
+# - cert-manager for certificate automation
+#
+# NOTE: Aixgo does not directly implement TLS.
+# TLS termination is handled by your cloud infrastructure.
+
+# Certificate Management:
+#
+# Development:
+# - Self-signed certificates OK
+# - Can use insecure_skip_verify (carefully!)
+# - Simple generation with openssl
+#
+# Production:
+# - Use proper CA (Let's Encrypt, internal CA)
+# - Never use insecure_skip_verify
+# - Rotate certificates regularly
+# - Use cert-manager in Kubernetes
+
+# Load Balancing:
+#
+# Client-side (gRPC):
+# - Multiple addresses: "srv1:50051,srv2:50051,srv3:50051"
+# - Round-robin by default
+# - Automatic failover
+#
+# Server-side (Infrastructure):
+# - Use load balancer (nginx, envoy, traefik)
+# - Health check endpoints
+# - Session affinity if needed
+
+# Service Discovery:
+#
+# DNS-based:
+# - Use service DNS names
+# - Kubernetes service discovery
+# - Consul DNS
+#
+# API-based:
+# - Consul catalog
+# - etcd service registry
+# - Kubernetes API
+#
+# Configuration:
+# - Environment variables
+# - Config files
+# - Configuration management (consul-template, etc.)
+
+# Health Checking:
+# Implement health checks in MCP servers:
+# - gRPC health check protocol
+# - Kubernetes liveness/readiness probes
+# - Monitoring integration
+
+# Error Handling:
+# gRPC provides rich error codes:
+# - UNAVAILABLE: Service down, retry
+# - DEADLINE_EXCEEDED: Timeout, may retry
+# - UNAUTHENTICATED: Auth failed, don't retry
+# - PERMISSION_DENIED: Insufficient permissions
+# - RESOURCE_EXHAUSTED: Rate limited, back off
+
+# Retry Strategy:
+# Implement exponential backoff:
+# - Initial retry after 100ms
+# - Double each retry (200ms, 400ms, 800ms)
+# - Max retry delay 30s
+# - Max 3-5 retries
+# - Only retry idempotent operations
+
+# Monitoring and Observability:
+# Track metrics:
+# - Request latency (p50, p95, p99)
+# - Error rates by gRPC status code
+# - Connection status
+# - Tool call success rate
+# - Network bytes sent/received
+
+# Production Deployment Patterns:
+#
+# Pattern 1: Kubernetes Service
+# - Deploy MCP server as Kubernetes service
+# - Use ClusterIP for internal access
+# - mTLS with cert-manager
+# - Service discovery via DNS
+#
+# Pattern 2: Service Mesh
+# - Use Istio or Linkerd
+# - Automatic mTLS
+# - Advanced traffic management
+# - Built-in observability
+#
+# Pattern 3: API Gateway
+# - Expose via API gateway
+# - Authentication/authorization
+# - Rate limiting
+# - API management
+
+# Security Best Practices:
+# 1. Deploy to TLS-enabled platforms (Cloud Run, GKE, etc.)
+# 2. Use service mesh (Istio, Linkerd) for mTLS between services
+# 3. Never expose gRPC services without TLS termination
+# 4. Let infrastructure handle certificate management
+# 5. Use cert-manager for Kubernetes deployments
+# 6. Implement authentication at application level
+# 7. Audit all tool access
+# 8. Rate limit requests
+# 9. Monitor for anomalies
+# 10. Use VPC/private networking where possible
+
+# Performance Optimization:
+# 1. Use connection pooling
+# 2. Enable HTTP/2
+# 3. Implement caching where appropriate
+# 4. Set appropriate timeouts
+# 5. Use streaming for large data
+# 6. Deploy servers close to consumers
+# 7. Monitor and optimize latency
+# 8. Use compression for large payloads
+
+# vs Local Transport:
+#
+# gRPC Transport:
+# + Distributed deployment
+# + Service isolation
+# + Independent scaling
+# + Language-agnostic
+# + Network security (TLS)
+# - Network latency
+# - More complex setup
+# - Requires infrastructure
+#
+# Local Transport:
+# + Faster (no network)
+# + Simpler setup
+# + Easier debugging
+# - Single process only
+# - No distribution
+# - No isolation
+
+# Notes:
+# - gRPC transport enables distributed MCP architecture
+# - TLS is handled by cloud infrastructure (Cloud Run, GKE, service mesh)
+# - Aixgo does not directly implement TLS - deploy to TLS-enabled platforms
+# - Use service discovery for dynamic environments
+# - Implement proper error handling and retries
+# - Monitor performance and reliability metrics
+# - Consider service mesh for advanced mTLS scenarios
+# - Load balancing improves availability and performance
+# - gRPC's HTTP/2 provides excellent performance

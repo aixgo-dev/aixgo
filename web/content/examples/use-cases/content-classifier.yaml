@@ -1,0 +1,14 @@
+# Content Classifier: Categorize incoming content
+agents:
+  - name: content-classifier
+    role: classifier
+    model: gpt-4
+    classifier_config:
+      categories:
+        - name: spam
+          description: "Spam or unwanted content"
+        - name: support
+          description: "Customer support requests"
+        - name: sales
+          description: "Sales inquiries"
+      confidence_threshold: 0.7

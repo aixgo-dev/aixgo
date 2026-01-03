@@ -1,0 +1,245 @@
+# Planner Agent Configuration
+# AI-powered Chain-of-Thought planning and reasoning
+# Supports multiple planning strategies: CoT, Tree-of-Thought, ReAct, Hierarchical
+
+agents:
+  - name: strategic-planner
+    role: planner
+
+    # Model for complex reasoning and planning
+    # Recommend using most capable models (GPT-4, Claude Opus)
+    model: gpt-4-turbo
+
+    prompt: |
+      You are an expert strategic planner specializing in problem decomposition
+      and systematic reasoning. Your plans should be:
+      - Logically sound and complete
+      - Practically executable
+      - Risk-aware with contingencies
+      - Optimized for efficiency
+
+    # Planner-specific configuration
+    planner_config:
+      # Planning strategy determines reasoning approach
+      # Options: chain_of_thought, tree_of_thought, react_planning,
+      #          monte_carlo, backward_chaining, hierarchical_plan
+      planning_strategy: chain_of_thought
+
+      # Maximum number of steps in the plan
+      max_steps: 20
+
+      # Detail level for each step
+      # Options: minimal, standard, detailed, comprehensive
+      step_detail_level: detailed
+
+      # Enable backtracking if a step fails
+      enable_backtracking: true
+
+      # Enable self-critique and plan improvement
+      enable_self_critique: true
+
+      # Depth of reasoning chains (1-5)
+      # Higher values create more thorough analysis
+      reasoning_depth: 3
+
+      # Identify steps that can run in parallel
+      parallelizable_steps: true
+
+      # Include alternative approaches for each step
+      include_alternatives: true
+
+      # LLM parameters
+      temperature: 0.7  # Higher for creative problem-solving
+      max_tokens: 2000  # More tokens for detailed planning
+
+      # Few-shot example plans to guide the planner
+      example_plans:
+        - problem: "Deploy a new microservice to production"
+          steps:
+            - "Review deployment checklist and dependencies"
+            - "Run comprehensive test suite in staging"
+            - "Prepare rollback plan and monitoring alerts"
+            - "Deploy to production with canary release"
+            - "Monitor metrics and error rates"
+            - "Gradually increase traffic to new version"
+          explanation: "Systematic deployment with risk mitigation and monitoring"
+
+        - problem: "Investigate production performance degradation"
+          steps:
+            - "Check current metrics and error logs"
+            - "Identify when degradation started"
+            - "Review recent deployments and changes"
+            - "Analyze database query performance"
+            - "Check external service dependencies"
+            - "Implement fixes and monitor improvement"
+          explanation: "Root cause analysis with systematic elimination"
+
+    inputs:
+      - source: problem-stream
+
+    outputs:
+      - target: plan-executor
+      - target: plan-archive
+
+# Example: Tree-of-Thought planning for complex problems
+  - name: tot-planner
+    role: planner
+    model: claude-3-opus
+
+    planner_config:
+      planning_strategy: tree_of_thought
+      max_steps: 15
+      reasoning_depth: 4
+      enable_self_critique: true
+      include_alternatives: true
+      temperature: 0.8  # Higher for exploring alternative paths
+      max_tokens: 2500
+
+    inputs:
+      - source: complex-problems
+    outputs:
+      - target: tot-results
+
+# Example: Hierarchical planning for large-scale problems
+  - name: hierarchical-planner
+    role: planner
+    model: gpt-4
+
+    planner_config:
+      planning_strategy: hierarchical_plan
+      max_steps: 30
+      step_detail_level: comprehensive
+      reasoning_depth: 3
+      parallelizable_steps: true
+      temperature: 0.7
+      max_tokens: 3000
+
+    inputs:
+      - source: large-scale-problems
+    outputs:
+      - target: hierarchical-results
+
+# Supporting pipeline agents
+  - name: problem-stream
+    role: producer
+    interval: 30s
+    outputs:
+      - target: strategic-planner
+
+  - name: plan-executor
+    role: logger
+    inputs:
+      - source: strategic-planner
+
+  - name: plan-archive
+    role: logger
+    inputs:
+      - source: strategic-planner
+
+# Environment variables required:
+# - OPENAI_API_KEY: For GPT models
+# - ANTHROPIC_API_KEY: For Claude models
+
+# Output format (JSON):
+# {
+#   "problem": "Original problem statement",
+#   "analysis": {
+#     "problem_type": "optimization",
+#     "domain": "software engineering",
+#     "constraints": ["time budget", "resource limits"],
+#     "available_resources": ["cloud infrastructure", "dev team"],
+#     "key_challenges": ["scalability", "data consistency"],
+#     "assumptions": ["existing auth system", "database available"]
+#   },
+#   "steps": [
+#     {
+#       "step_number": 1,
+#       "action": "Analyze current architecture bottlenecks",
+#       "reasoning": "Understanding current limitations guides optimization strategy",
+#       "prerequisites": [],
+#       "expected_outcome": "List of performance bottlenecks with metrics",
+#       "complexity": "medium",
+#       "can_parallelize": false,
+#       "confidence": 0.95,
+#       "alternatives": [
+#         {
+#           "action": "Start with load testing first",
+#           "reasoning": "Empirical data before analysis",
+#           "trade_offs": "Takes more time but provides hard data"
+#         }
+#       ]
+#     }
+#   ],
+#   "execution_strategy": "parallel_optimized",
+#   "critical_path": [1, 2, 5, 8],
+#   "parallel_groups": [[3, 4], [6, 7]],
+#   "backup_plans": [
+#     {
+#       "trigger_condition": "Performance improvement < 20%",
+#       "alternative_steps": [...],
+#       "description": "Fallback to horizontal scaling approach"
+#     }
+#   ],
+#   "success_criteria": [
+#     "Response time reduced by 50%",
+#     "Zero downtime during implementation",
+#     "All tests passing"
+#   ],
+#   "risk_assessment": {
+#     "overall_risk": "medium",
+#     "risk_factors": [
+#       {
+#         "factor": "Database migration",
+#         "severity": "high",
+#         "likelihood": 0.3,
+#         "impact": "Service downtime possible"
+#       }
+#     ],
+#     "mitigation_steps": ["Backup before migration", "Use blue-green deployment"]
+#   },
+#   "total_complexity": "high",
+#   "estimated_duration": "2-3 days",
+#   "tokens_used": 1847,
+#   "planning_strategy": "chain_of_thought",
+#   "self_critique": "Plan is comprehensive but step 7 could be broken into sub-steps..."
+# }
+
+# Planning Strategies Explained:
+#
+# 1. chain_of_thought: Linear reasoning with explicit steps
+#    - Best for: Well-defined problems with clear sequences
+#    - Provides transparent reasoning at each step
+#
+# 2. tree_of_thought: Explores multiple reasoning branches
+#    - Best for: Problems with multiple solution paths
+#    - Evaluates alternatives and selects best branch
+#
+# 3. react_planning: Alternates Thought-Action-Observation
+#    - Best for: Dynamic problems requiring feedback
+#    - Adapts plan based on intermediate results
+#
+# 4. backward_chaining: Starts from goal, works backward
+#    - Best for: Goal-oriented planning
+#    - Identifies prerequisites recursively
+#
+# 5. hierarchical_plan: Multi-level decomposition
+#    - Best for: Complex, large-scale problems
+#    - Creates high-level plan, then details each step
+#
+# 6. monte_carlo: Simulates multiple plan executions
+#    - Best for: Uncertain environments
+#    - Selects plan with highest success probability
+
+# Notes:
+# - Chain-of-Thought is most reliable for production use
+# - Self-critique improves plan quality but uses more tokens
+# - Parallelizable steps can reduce execution time significantly
+# - Critical path identifies the longest dependency chain
+# - Risk assessment helps anticipate and mitigate failures
+# - Backup plans provide fallback strategies
+# - Success criteria make plans measurable and testable
+# - Higher reasoning_depth creates more thorough analysis
+# - Example plans significantly improve output quality
+# - The planner tracks metrics and learns from execution history
+# - Use temperature 0.7-0.8 for creative problem-solving
+# - Use temperature 0.4-0.6 for structured, procedural planning

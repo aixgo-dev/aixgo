@@ -1,0 +1,79 @@
+# Security Configuration: Built-in API Key Authentication
+# Application-level authentication using API keys
+# Suitable for service-to-service communication and API access
+
+environment: production
+auth_mode: builtin
+
+builtin_auth:
+  method: api_key
+  api_keys:
+    # Load API keys from environment variables
+    # Format: AIXGO_API_KEY_<name>=<key>
+    source: environment
+    env_prefix: AIXGO_API_KEY_
+
+# Alternative: Load from file
+# builtin_auth:
+#   method: api_key
+#   api_keys:
+#     source: file
+#     file_path: /etc/aixgo/api-keys.json
+
+authorization:
+  enabled: true
+  default_deny: true
+  # policy_file: /etc/aixgo/rbac-policies.json
+
+audit:
+  enabled: true
+  backend: json
+  log_auth_decisions: true
+  # siem:
+  #   enabled: true
+  #   endpoint: https://siem.example.com/events
+
+# Environment Variables Required:
+# AIXGO_API_KEY_service1=sk-1234567890abcdef
+# AIXGO_API_KEY_service2=sk-abcdef1234567890
+# AIXGO_API_KEY_admin=sk-admin_secure_key_here
+
+# API Key Format in Requests:
+# Authorization: Bearer sk-1234567890abcdef
+
+# Example: API Key Usage
+agents:
+  - name: api-agent
+    role: react
+    model: gpt-4
+    prompt: "You are an API service with authenticated access."
+    inputs:
+      - source: api-requests
+    outputs:
+      - target: api-responses
+
+# API Key Management Best Practices:
+# 1. Generate cryptographically random keys (32+ characters)
+# 2. Use unique keys per service/user
+# 3. Rotate keys regularly (90 days recommended)
+# 4. Store keys in secrets management (Vault, AWS Secrets Manager)
+# 5. Never commit keys to version control
+# 6. Use key prefixes for identification (sk-, pk-, etc.)
+# 7. Implement key revocation mechanism
+# 8. Monitor key usage and detect anomalies
+# 9. Rate limit per API key
+# 10. Log all authentication attempts
+
+# Key Rotation Process:
+# 1. Generate new keys
+# 2. Distribute to clients (support dual-key period)
+# 3. Monitor usage of old keys
+# 4. Disable old keys after transition period
+# 5. Remove old keys from configuration
+
+# Notes:
+# - Suitable for machine-to-machine authentication
+# - Simpler than OAuth for service-to-service
+# - Works well with CI/CD pipelines
+# - Requires secure key storage
+# - Less suitable for human users (use delegated auth)

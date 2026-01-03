@@ -1,0 +1,48 @@
+{{/*
+  Alpha Notice Partial - Displays a styled notice block for alpha-quality features
+
+  Parameters:
+    - badges: Array of badge objects, each with a "status" field (alpha/planned/available)
+    - title: The bold title text (rendered in <strong> tags, properly escaped)
+    - message: The description text (properly escaped, no HTML needed)
+    - link: URL for the status page link (defaults to /#alpha-status)
+    - linkText: Text for the status page link (defaults to "Check status →")
+    - detailed: Boolean, if true shows a more detailed warning format
+*/}}
+
+{{- $badges := .badges -}}
+{{- $title := .title | default "" -}}
+{{- $message := .message | default "" -}}
+{{- $link := .link | default "/#alpha-status" -}}
+{{- $linkText := .linkText | default "Check status →" -}}
+{{- $detailed := .detailed | default false -}}
+
+<div class="page-alpha-notice" role="alert">
+  {{- if $detailed -}}
+  <div>
+    {{- if $title -}}<strong>{{ $title }}</strong>{{- end -}}
+    {{- if and $title $message -}}<br><br>{{- end -}}
+    {{- if $message -}}{{ $message }}{{- end -}}
+
+    <a href="{{ $link }}">{{ $linkText }}</a>
+  </div>
+  {{- else -}}
+  <span>
+    {{- range $badges -}}
+      {{- $status := .status -}}
+      {{- $text := "v0.1" -}}
+      {{- if eq $status "alpha" -}}
+        {{- $text = "v0.1" -}}
+      {{- else if eq $status "planned" -}}
+        {{- $text = "PLANNED" -}}
+      {{- else if eq $status "available" -}}
+        {{- $text = "AVAILABLE" -}}
+      {{- end -}}
+      <span class="status-badge status-{{ $status }}">{{ $text }}</span>
+    {{- end -}}
+    {{- if $title -}}<strong>{{ $title }}</strong> - {{- end -}}
+    {{ $message }}
+    <a href="{{ $link }}">{{ $linkText }}</a>
+  </span>
+  {{- end -}}
+</div>

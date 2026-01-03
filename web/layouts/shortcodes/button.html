@@ -1,0 +1,3 @@
+<a href="{{ .Get "href" }}" {{ with .Get "target" }}target="{{ . }}"{{ end }} class="btn {{ with .Get "class" }}{{ . }}{{ else }}btn-primary{{ end }}">
+  {{ .Inner }}
+</a>

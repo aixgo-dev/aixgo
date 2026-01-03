@@ -1,0 +1,42 @@
+{{/*
+  Alpha Notice Shortcode - Wrapper for the alpha-notice partial
+
+  Usage:
+    {{< alpha-notice
+      status="alpha"
+      title="Alpha Software"
+      message="This guide uses alpha-quality APIs."
+      linkText="Check current status →"
+    >}}
+
+  Or for detailed format:
+    {{< alpha-notice
+      status="alpha"
+      title="ALPHA SOFTWARE WARNING"
+      message="This feature is under active development..."
+      detailed=true
+    >}}
+
+  Multiple statuses (comma-separated):
+    {{< alpha-notice
+      status="alpha,planned"
+      title="Alpha Feature"
+      message="Some features are planned for future releases."
+    >}}
+*/}}
+
+{{- $statusParam := .Get "status" | default "alpha" -}}
+{{- $statuses := split $statusParam "," -}}
+{{- $badges := slice -}}
+{{- range $statuses -}}
+  {{- $badges = $badges | append (dict "status" (trim . " ")) -}}
+{{- end -}}
+
+{{ partial "alpha-notice.html" (dict
+  "badges" $badges
+  "title" (.Get "title")
+  "message" (.Get "message")
+  "link" (.Get "link")
+  "linkText" (.Get "linkText")
+  "detailed" (.Get "detailed")
+) }}
