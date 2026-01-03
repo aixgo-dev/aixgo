@@ -1,12 +1,13 @@
 ---
-title: "Aixgo v0.2.3 & v0.2.4: Phased Agent Startup with Dependency Ordering"
+title: 'Aixgo v0.2.3 & v0.2.4: Phased Agent Startup with Dependency Ordering'
 date: 2026-01-03
-description: "Introducing dependency-aware agent startup that eliminates race conditions in multi-agent systems using topological sort and phased initialization."
-tags: ["release", "runtime", "startup", "dependencies", "orchestration"]
-author: "Aixgo Team"
+description: 'Introducing dependency-aware agent startup that eliminates race conditions in multi-agent systems using topological sort and phased initialization.'
+tags: ['release', 'runtime', 'startup', 'dependencies', 'orchestration']
+author: 'Aixgo Team'
 ---
 
-We're excited to announce **Aixgo v0.2.3** and **v0.2.4**, featuring **phased agent startup with dependency ordering**. This eliminates race conditions in multi-agent systems and makes startup behavior predictable and safe.
+We're excited to announce **Aixgo v0.2.3** and **v0.2.4**, featuring **phased agent startup with dependency ordering**. This eliminates race conditions in multi-agent systems and
+makes startup behavior predictable and safe.
 
 ## The Problem: Startup Race Conditions
 
@@ -26,7 +27,8 @@ rt.Start(ctx)  // All start concurrently - race condition!
 
 ## The Solution: Phased Startup
 
-v0.2.3 introduces **phased agent startup** powered by topological sort. Agents are grouped into dependency levels and started in phases, with each phase completing before the next begins.
+v0.2.3 introduces **phased agent startup** powered by topological sort. Agents are grouped into dependency levels and started in phases, with each phase completing before the next
+begins.
 
 ### How It Works
 
@@ -69,7 +71,7 @@ agents:
 
 ```yaml
 config:
-  agent_start_timeout: 45s  # Default: 30s
+  agent_start_timeout: 45s # Default: 30s
 ```
 
 ### 3. All Runtime Support

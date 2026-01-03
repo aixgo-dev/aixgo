@@ -2,8 +2,7 @@
 title: 'Introducing Aixgo: AI Agents in Pure Go (Alpha Release)'
 date: 2025-11-16
 draft: false
-description:
-  'Aixgo alpha release - AI agent framework for Go developers. Build and test multi-agent systems today. Production release late 2025.'
+description: 'Aixgo alpha release - AI agent framework for Go developers. Build and test multi-agent systems today. Production release late 2025.'
 tags: ['go', 'ai agents', 'alpha', 'langchain alternative', 'multi-agent systems']
 categories: ['Announcement', 'Technical']
 author: 'Charles Green'
@@ -102,6 +101,7 @@ Configure agents declaratively in YAML. See the [Quick Start Guide](/guides/quic
 | Throughput       | 500-1,000 req/s    | 10,000 req/s  | **10-20x higher**      |
 | Memory Footprint | 512MB baseline     | 50MB baseline | **10x more efficient** |
 | Dependencies     | 200+ packages      | ~10 packages  | **95% fewer**          |
+
 {.advantage-table}
 
 </div>
@@ -153,7 +153,8 @@ security:
 
 **What's ready today:**
 
-- Multi-agent orchestration with 13 patterns (supervisor, sequential, parallel, router, swarm, hierarchical, RAG, reflection, ensemble, classifier, aggregation, planning, MapReduce)
+- Multi-agent orchestration with 13 patterns (supervisor, sequential, parallel, router, swarm, hierarchical, RAG, reflection, ensemble, classifier, aggregation, planning,
+  MapReduce)
 - Seven agent types: Producer, ReAct, Logger, Classifier, Aggregator, Planner, Custom
 - YAML-based declarative configuration with validation
 - Local and distributed execution (Go channels, gRPC/MCP)
@@ -191,7 +192,8 @@ Choose Python frameworks when:
 
 ## Getting Started
 
-Follow our [Quick Start Guide](/guides/quick-start) to get running in 5 minutes. Explore the [Features](/features) and join [GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions).
+Follow our [Quick Start Guide](/guides/quick-start) to get running in 5 minutes. Explore the [Features](/features) and join
+[GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions).
 
 ## Roadmap
 
@@ -218,7 +220,8 @@ See our [v1.0 Compatibility Guarantee](/v1-compatibility) for API stability deta
 
 Aixgo is built on a simple belief: **production AI deserves production tooling.**
 
-We're not trying to out-prototype Python. We're trying to out-ship it. Production-first design, single binary simplicity, type safety, Go-native patterns, observable by default, open source (MIT licensed).
+We're not trying to out-prototype Python. We're trying to out-ship it. Production-first design, single binary simplicity, type safety, Go-native patterns, observable by default,
+open source (MIT licensed).
 
 Read our complete [Philosophy](/why-aixgo) for design principles and decision criteria.
 
