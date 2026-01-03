@@ -5,13 +5,13 @@
   import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
 
   const firebaseConfig = {
-    apiKey: "{{ getenv "FIREBASE_API_KEY" }}",
-    authDomain: "{{ getenv "FIREBASE_AUTH_DOMAIN" }}",
-    projectId: "{{ getenv "FIREBASE_PROJECT_ID" }}",
-    storageBucket: "{{ getenv "FIREBASE_STORAGE_BUCKET" }}",
-    messagingSenderId: "{{ getenv "FIREBASE_MESSAGING_SENDER_ID" }}",
-    appId: "{{ getenv "FIREBASE_APP_ID" }}",
-    measurementId: "{{ getenv "FIREBASE_MEASUREMENT_ID" }}"
+    apiKey: "{{ getenv "HUGO_FIREBASE_API_KEY" }}",
+    authDomain: "{{ getenv "HUGO_FIREBASE_AUTH_DOMAIN" }}",
+    projectId: "{{ getenv "HUGO_FIREBASE_PROJECT_ID" }}",
+    storageBucket: "{{ getenv "HUGO_FIREBASE_STORAGE_BUCKET" }}",
+    messagingSenderId: "{{ getenv "HUGO_FIREBASE_MESSAGING_SENDER_ID" }}",
+    appId: "{{ getenv "HUGO_FIREBASE_APP_ID" }}",
+    measurementId: "{{ getenv "HUGO_FIREBASE_MEASUREMENT_ID" }}"
   };
 
   const app = initializeApp(firebaseConfig);
