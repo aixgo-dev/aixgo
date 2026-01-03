@@ -111,7 +111,7 @@ func (p *VertexAIProvider) CreateCompletion(ctx context.Context, req CompletionR
 	// Use -1 as sentinel for "not set" if needed, but typically callers set explicit values
 	config.Temperature = genai.Ptr(float32(req.Temperature))
 	if req.MaxTokens != 0 {
-		config.MaxOutputTokens = genai.Ptr(int32(req.MaxTokens))
+		config.MaxOutputTokens = int32(req.MaxTokens)
 	}
 
 	// Build contents from messages
@@ -173,7 +173,7 @@ func (p *VertexAIProvider) CreateStructured(ctx context.Context, req StructuredR
 	// Always set temperature - 0 is a valid value for deterministic output
 	config.Temperature = genai.Ptr(float32(req.Temperature))
 	if req.MaxTokens != 0 {
-		config.MaxOutputTokens = genai.Ptr(int32(req.MaxTokens))
+		config.MaxOutputTokens = int32(req.MaxTokens)
 	}
 
 	// Add response schema if provided
@@ -243,7 +243,7 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 	// Always set temperature - 0 is a valid value for deterministic output
 	config.Temperature = genai.Ptr(float32(req.Temperature))
 	if req.MaxTokens != 0 {
-		config.MaxOutputTokens = genai.Ptr(int32(req.MaxTokens))
+		config.MaxOutputTokens = int32(req.MaxTokens)
 	}
 
 	// Build contents from messages
@@ -400,12 +400,8 @@ func (p *VertexAIProvider) parseResponse(resp *genai.GenerateContentResponse) (*
 	// Get usage stats
 	var usage Usage
 	if resp.UsageMetadata != nil {
-		if resp.UsageMetadata.PromptTokenCount != nil {
-			usage.PromptTokens = int(*resp.UsageMetadata.PromptTokenCount)
-		}
-		if resp.UsageMetadata.CandidatesTokenCount != nil {
-			usage.CompletionTokens = int(*resp.UsageMetadata.CandidatesTokenCount)
-		}
+		usage.PromptTokens = int(resp.UsageMetadata.PromptTokenCount)
+		usage.CompletionTokens = int(resp.UsageMetadata.CandidatesTokenCount)
 		usage.TotalTokens = int(resp.UsageMetadata.TotalTokenCount)
 	}
 
