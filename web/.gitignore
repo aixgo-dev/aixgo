@@ -3,8 +3,15 @@
 /resources/_gen/
 /assets/jsconfig.json
 
+# Hugo binary (downloaded during Cloud Build)
+hugo
+hugo.tar.gz
+
 # Hugo cache
 .hugo_build.lock
+
+# Environment variables (use .env.example as template)
+.env
 
 # OS files
 .DS_Store

@@ -5,13 +5,13 @@
   import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
 
   const firebaseConfig = {
-    apiKey: "AIzaSyBnNQgBjTiYZBsoxqRr2fipwLNufrWtHxE",
-    authDomain: "aixgo-dev.firebaseapp.com",
-    projectId: "aixgo-dev",
-    storageBucket: "aixgo-dev.firebasestorage.app",
-    messagingSenderId: "938796011636",
-    appId: "1:938796011636:web:e6af034ca8503534958121",
-    measurementId: "G-QXCK2HENJ4"
+    apiKey: "{{ getenv "FIREBASE_API_KEY" }}",
+    authDomain: "{{ getenv "FIREBASE_AUTH_DOMAIN" }}",
+    projectId: "{{ getenv "FIREBASE_PROJECT_ID" }}",
+    storageBucket: "{{ getenv "FIREBASE_STORAGE_BUCKET" }}",
+    messagingSenderId: "{{ getenv "FIREBASE_MESSAGING_SENDER_ID" }}",
+    appId: "{{ getenv "FIREBASE_APP_ID" }}",
+    measurementId: "{{ getenv "FIREBASE_MEASUREMENT_ID" }}"
   };
 
   const app = initializeApp(firebaseConfig);
