@@ -27,7 +27,7 @@ jobs:
 
       - name: Download baseline (main branch)
         if: github.event_name == 'pull_request'
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v12
         with:
           workflow: benchmark.yml
           branch: main
@@ -49,7 +49,7 @@ jobs:
             -ci=${{ github.event_name == 'pull_request' }}
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-results
           path: |
@@ -114,7 +114,7 @@ jobs:
           cat benchmark-go.txt
 
       - name: Upload Go benchmark results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: go-benchmark-results
           path: benchmark-go.txt

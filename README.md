@@ -34,9 +34,59 @@ Python AI frameworks excel at prototyping but struggle in production. Aixgo is b
 
 ### Installation
 
+Choose the installation method based on your use case:
+
+#### As a Library
+
+For adding Aixgo to your Go project:
+
 ```bash
 go get github.com/aixgo-dev/aixgo
 ```
+
+This downloads only the Go framework source code (~2MB), not the website or documentation.
+
+#### CLI Tools
+
+**Option 1: Install via `go install`** (requires Go 1.24+):
+
+```bash
+# Install all CLI tools
+go install github.com/aixgo-dev/aixgo/cmd/orchestrator@latest
+go install github.com/aixgo-dev/aixgo/cmd/benchmark@latest
+go install github.com/aixgo-dev/aixgo/cmd/deploy@latest
+go install github.com/aixgo-dev/aixgo/cmd/tools@latest
+
+# Or install individual tools as needed
+go install github.com/aixgo-dev/aixgo/cmd/orchestrator@latest
+```
+
+**Option 2: Download pre-built binaries**:
+
+Download platform-specific binaries from [GitHub Releases](https://github.com/aixgo-dev/aixgo/releases). Available for:
+- Linux (amd64, arm64)
+- macOS/Darwin (amd64, arm64)
+- Windows (amd64, arm64)
+
+#### Full Repository (Contributors)
+
+For contributing or exploring examples:
+
+```bash
+git clone https://github.com/aixgo-dev/aixgo.git
+cd aixgo
+go build ./...
+```
+
+This includes the full repository with website source (`web/`), examples, and documentation.
+
+#### What You Get
+
+| User Type | Command | What's Included | Size |
+|-----------|---------|----------------|------|
+| **Library user** | `go get github.com/aixgo-dev/aixgo` | Go source code only | ~2MB |
+| **CLI user** | `go install` or binary download | Single executable binary | <10MB |
+| **Contributor** | `git clone` | Full repo including web/, examples/, docs/ | ~20MB |
 
 ### Setup
 
