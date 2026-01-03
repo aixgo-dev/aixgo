@@ -1,5 +1,11 @@
 .PHONY: dev serve build clean lint lint-md lint-html lint-install
 
+# Load environment variables from .env if it exists
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
 # Development server with fast render disabled for accurate previews
 dev:
 	hugo server --disableFastRender
@@ -9,7 +15,7 @@ serve: dev
 
 # Build the site for production
 build:
-	hugo --minify
+	hugo --minify --environment production
 
 # Clean generated files
 clean:
