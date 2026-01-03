@@ -144,6 +144,13 @@ Aixgo provides a flexible, layered architecture:
 
 **Comprehensive guides and examples available at [aixgo.dev](https://aixgo.dev)**
 
+### Resources
+
+- **[Website](https://aixgo.dev)** - Comprehensive guides and documentation
+- **[docs/](docs/)** - Technical reference documentation
+- **[examples/](examples/)** - Production-ready code examples
+- **[web/](web/)** - Website source code
+
 ### Core Documentation
 
 - **[FEATURES.md](docs/FEATURES.md)** - Complete feature catalog with code references

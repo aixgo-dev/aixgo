@@ -1,0 +1,161 @@
+# Security Configuration: Hybrid Authentication
+# Combines delegated (IAP) and builtin (API key) authentication
+# Supports both human users and service-to-service calls
+
+environment: production
+auth_mode: hybrid
+
+# Delegated auth for human users via IAP
+delegated_auth:
+  identity_header: X-Goog-Authenticated-User-Email
+  iap:
+    enabled: true
+    verify_jwt: true
+    audience: "/projects/123456789/apps/my-project-id"
+  header_mapping:
+    email: X-Goog-Authenticated-User-Email
+    user_id: X-Goog-Authenticated-User-ID
+
+# Builtin auth for service accounts and automation
+builtin_auth:
+  method: api_key
+  api_keys:
+    source: environment
+    env_prefix: AIXGO_API_KEY_
+
+authorization:
+  enabled: true
+  default_deny: true
+  policy_file: /etc/aixgo/hybrid-policies.json
+
+audit:
+  enabled: true
+  backend: json
+  log_auth_decisions: true
+  siem:
+    enabled: true
+    endpoint: https://siem.example.com/events
+
+# How Hybrid Mode Works:
+# 1. Check for IAP headers (X-Goog-Authenticated-User-Email)
+#    -> If present: Use delegated auth (human user)
+# 2. Check for Authorization header with Bearer token
+#    -> If present: Use builtin auth (service account)
+# 3. If neither: Reject request (default deny)
+
+# Example Authorization Policies:
+# {
+#   "policies": [
+#     # Human users (via IAP)
+#     {
+#       "principal": "user:admin@example.com",
+#       "resource": "*",
+#       "action": "*",
+#       "effect": "allow"
+#     },
+#     {
+#       "principal": "group:operators@example.com",
+#       "resource": "agents.*",
+#       "action": ["read", "execute"],
+#       "effect": "allow"
+#     },
+#     # Service accounts (via API key)
+#     {
+#       "principal": "service:ci-pipeline",
+#       "resource": "agents.deploy",
+#       "action": "execute",
+#       "effect": "allow"
+#     },
+#     {
+#       "principal": "service:monitoring",
+#       "resource": "agents.*.metrics",
+#       "action": "read",
+#       "effect": "allow"
+#     }
+#   ]
+# }
+
+agents:
+  - name: hybrid-auth-agent
+    role: react
+    model: gpt-4
+    prompt: |
+      You are a hybrid-auth agent accessible to both human users
+      (via IAP) and automated services (via API keys).
+    inputs:
+      - source: mixed-requests
+    outputs:
+      - target: responses
+
+# Use Cases for Hybrid Auth:
+#
+# Human Users (IAP):
+# - Web dashboards
+# - Admin panels
+# - Interactive tools
+# - Manual operations
+#
+# Service Accounts (API Keys):
+# - CI/CD pipelines
+# - Monitoring systems
+# - Scheduled jobs
+# - Microservice communication
+# - External integrations
+
+# Environment Setup:
+# export AIXGO_API_KEY_ci_pipeline=sk-ci-secure-key-here
+# export AIXGO_API_KEY_monitoring=sk-mon-secure-key-here
+# export AIXGO_API_KEY_integration=sk-int-secure-key-here
+
+# Request Examples:
+#
+# Human user via IAP (automatic):
+# - Browser request to https://app.example.com
+# - IAP authenticates user
+# - Headers: X-Goog-Authenticated-User-Email: accounts.google.com:user@example.com
+#
+# Service account via API key:
+# curl -H "Authorization: Bearer sk-ci-secure-key-here" \
+#      https://app.example.com/api/deploy
+
+# Advantages of Hybrid:
+# + Flexibility for different client types
+# + Seamless user experience (no API keys for humans)
+# + Secure service-to-service communication
+# + Unified authorization policy
+# + Comprehensive audit trail
+
+# Best Practices:
+# 1. Use IAP for all human interactive access
+# 2. Use API keys only for automation and services
+# 3. Separate policies for human vs service principals
+# 4. More restrictive policies for service accounts
+# 5. Rotate API keys regularly
+# 6. Monitor both auth types independently
+# 7. Different rate limits for each auth type
+# 8. Explicit deny rules for sensitive operations
+# 9. MFA enforcement for human users
+# 10. Audit all service account usage
+
+# Rate Limiting Strategy:
+# - Human users: per-user rate limits (higher)
+# - Service accounts: per-key rate limits (lower)
+# - Global rate limit as backstop
+# - Different limits for different operations
+
+# Monitoring:
+# Track separately:
+# - IAP authentication success/failure
+# - API key authentication success/failure
+# - Authorization decisions by principal type
+# - Resource access patterns
+# - Anomaly detection per auth type
+
+# Notes:
+# - Most flexible auth mode
+# - Supports diverse client types
+# - Requires careful policy design
+# - More complex to configure than single mode
+# - Ideal for production environments with mixed clients
+# - Each auth method can fail independently
+# - Policies must account for both principal types

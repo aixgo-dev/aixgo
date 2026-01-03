@@ -1,0 +1,319 @@
+# MCP Multiple Servers Configuration
+# Connecting to multiple MCP servers simultaneously
+# Demonstrates tool aggregation from diverse sources
+
+# This example shows an agent accessing tools from multiple MCP servers,
+# combining local and remote servers for a hybrid architecture.
+
+agents:
+  - name: multi-tool-agent
+    role: react
+    model: gpt-4-turbo
+
+    prompt: |
+      You are an advanced AI assistant with access to a comprehensive toolkit
+      from multiple specialized services:
+
+      - File system operations (local)
+      - Database queries (remote)
+      - Web APIs (remote)
+      - Data processing (remote)
+      - Notification services (remote)
+
+      Use these tools intelligently to accomplish complex tasks that span
+      multiple domains. Combine tools from different services when needed.
+
+    # No tools defined - all come from MCP servers
+    # The agent will have access to ALL tools from ALL connected servers
+
+    inputs:
+      - source: complex-tasks
+    outputs:
+      - target: task-results
+
+  - name: complex-tasks
+    role: producer
+    interval: 30s
+    outputs:
+      - target: multi-tool-agent
+
+  - name: task-results
+    role: logger
+    inputs:
+      - source: multi-tool-agent
+
+# MCP Servers Configuration
+# Multiple servers with different transports and purposes
+
+# Example Multi-Server Configuration:
+#
+# mcp_servers:
+#   # Local filesystem tools (fast, embedded)
+#   - name: filesystem
+#     transport: local
+#     # Tools registered in code:
+#     # - read_file, write_file, list_directory, delete_file, etc.
+#
+#   # Remote database service (gRPC, production)
+#   - name: database
+#     transport: grpc
+#     address: "database-mcp.example.com:443"
+#     tls: true
+#     tls_config:
+#       ca_file: "/etc/certs/ca.crt"
+#       cert_file: "/etc/certs/client.crt"
+#       key_file: "/etc/certs/client.key"
+#     # Tools provided by remote server:
+#     # - query_sql, execute_sql, get_schema, list_tables, etc.
+#
+#   # Remote web API service (gRPC, internal)
+#   - name: web-api
+#     transport: grpc
+#     address: "web-api-mcp.internal:50051"
+#     tls: true
+#     tls_config:
+#       ca_file: "/etc/certs/ca.crt"
+#     # Tools provided:
+#     # - http_get, http_post, fetch_json, search_web, etc.
+#
+#   # Remote data processing service (gRPC, high-performance)
+#   - name: data-processor
+#     transport: grpc
+#     address: "data-processor.internal:50052"
+#     tls: true
+#     tls_config:
+#       ca_file: "/etc/certs/ca.crt"
+#     # Tools provided:
+#     # - process_csv, analyze_data, generate_stats, etc.
+#
+#   # Remote notification service (gRPC)
+#   - name: notifications
+#     transport: grpc
+#     address: "notifications.internal:50053"
+#     tls: true
+#     tls_config:
+#       ca_file: "/etc/certs/ca.crt"
+#     # Tools provided:
+#     # - send_email, send_slack, send_sms, create_ticket, etc.
+#
+#   # Development analytics server (local, for testing)
+#   - name: analytics
+#     transport: local
+#     # Tools registered in code:
+#     # - log_event, track_metric, create_report, etc.
+
+# How Multi-Server Tool Discovery Works:
+#
+# 1. Agent Initialization:
+#    - Connects to all configured MCP servers
+#    - Each server is queried for its tool list
+#
+# 2. Tool Registry:
+#    - All tools from all servers are aggregated
+#    - Tool names must be unique across all servers
+#    - Tool schemas are validated
+#    - Registry maps tool names to server names
+#
+# 3. Tool Execution:
+#    - LLM calls a tool by name
+#    - Provider looks up which server hosts the tool
+#    - Request is routed to the correct server
+#    - Result is returned to LLM
+
+# Example Tool Combination Scenario:
+#
+# User Request: "Analyze sales data and email report to team"
+#
+# Agent Execution:
+# 1. Call database.query_sql("SELECT * FROM sales WHERE date > NOW() - INTERVAL 7 DAY")
+# 2. Call data-processor.analyze_data(sql_results, "summary")
+# 3. Call data-processor.generate_stats(analyzed_data, ["mean", "median", "total"])
+# 4. Call filesystem.write_file("/tmp/report.txt", formatted_stats)
+# 5. Call notifications.send_email("team@example.com", "Weekly Sales Report", report_content)
+#
+# This combines tools from 4 different servers!
+
+# Tool Naming Conventions:
+# Use prefixed names to avoid conflicts:
+# - filesystem_read_file
+# - database_query_sql
+# - web_api_fetch_json
+# - data_process_csv
+# - notify_send_email
+
+# Server Organization Strategies:
+#
+# Strategy 1: By Domain
+# - filesystem (all file operations)
+# - database (all data queries)
+# - web (all web/API operations)
+# - notifications (all alert mechanisms)
+#
+# Strategy 2: By Deployment
+# - local-tools (embedded, fast)
+# - cloud-services (remote, scalable)
+# - external-apis (third-party integrations)
+#
+# Strategy 3: By Security Level
+# - public-tools (low-risk operations)
+# - internal-tools (authenticated access)
+# - privileged-tools (admin operations, audit required)
+
+# Performance Considerations:
+#
+# Local vs Remote:
+# - Local tools: microseconds latency
+# - Remote tools: milliseconds to seconds
+# - Use local for frequent, fast operations
+# - Use remote for specialized, intensive operations
+#
+# Parallelization:
+# - Some tools can run in parallel
+# - Database + Web API calls can be concurrent
+# - Local tools have minimal overhead
+# - Coordinate via LLM or supervisor
+
+# Error Handling Across Servers:
+#
+# Graceful Degradation:
+# - If one server is unavailable, others still work
+# - LLM can adapt based on available tools
+# - Implement fallbacks where possible
+#
+# Error Propagation:
+# - Server errors are returned to LLM
+# - LLM can retry, use alternatives, or inform user
+# - Log all errors for debugging
+
+# Security with Multiple Servers:
+#
+# Authentication:
+# - Each server can have different auth requirements
+# - mTLS for service-to-service
+# - API keys for external services
+# - IAM roles in cloud environments
+#
+# Authorization:
+# - Tool-level permissions
+# - User context propagation
+# - Audit logging across all servers
+#
+# Network Security:
+# - TLS for all remote servers
+# - VPC/network isolation
+# - Firewall rules
+# - Service mesh for advanced policies
+
+# Monitoring Multi-Server Architecture:
+#
+# Metrics to Track:
+# - Tool call distribution (which servers used most)
+# - Latency by server
+# - Error rate by server
+# - Network failures
+# - Authentication failures
+#
+# Distributed Tracing:
+# - Trace requests across multiple servers
+# - Identify bottlenecks
+# - Visualize call chains
+# - Use OpenTelemetry or similar
+
+# Configuration Management:
+#
+# Environment-based:
+# Development:
+#   - More local servers (faster, easier debugging)
+#   - Some remote servers for integration testing
+#   - Relaxed security (self-signed certs OK)
+#
+# Production:
+#   - Mostly remote servers (scalable, isolated)
+#   - Minimal local servers (only essential)
+#   - Strong security (mTLS, validated certs)
+
+# Service Discovery Integration:
+#
+# Static Configuration:
+# - Hardcoded server addresses
+# - Simple, reliable
+# - Requires config updates for changes
+#
+# Dynamic Discovery:
+# - Consul, etcd, Kubernetes
+# - Servers register themselves
+# - Agents discover automatically
+# - Handles scaling and failures
+
+# Testing Multi-Server Setups:
+#
+# Unit Testing:
+# - Mock individual servers
+# - Test tool routing logic
+# - Validate error handling
+#
+# Integration Testing:
+# - Use local servers in tests
+# - Test actual tool execution
+# - Verify multi-tool workflows
+#
+# E2E Testing:
+# - Test against real remote servers
+# - Validate security (TLS, auth)
+# - Performance testing
+
+# Best Practices:
+# 1. Organize servers by logical domain
+# 2. Use consistent naming conventions
+# 3. Document which server provides which tools
+# 4. Implement health checks for all servers
+# 5. Use local servers for low-latency needs
+# 6. Use remote servers for scalability
+# 7. Secure all remote connections with TLS
+# 8. Monitor all servers independently
+# 9. Implement graceful degradation
+# 10. Test multi-server failure scenarios
+# 11. Use distributed tracing for debugging
+# 12. Keep server configurations in version control
+
+# Scaling Considerations:
+#
+# Horizontal Scaling:
+# - Run multiple instances of each server
+# - Load balance across instances
+# - Use service discovery
+#
+# Vertical Scaling:
+# - Increase server resources
+# - Optimize tool implementations
+# - Cache frequently used data
+#
+# Geographic Distribution:
+# - Deploy servers close to data sources
+# - Minimize cross-region latency
+# - Consider data residency requirements
+
+# Example Complex Workflow:
+#
+# "Generate weekly analytics report and post to Slack"
+#
+# 1. database.query_sql("SELECT * FROM events WHERE week = CURRENT_WEEK")
+# 2. data-processor.analyze_data(events, "weekly_summary")
+# 3. analytics.log_event("report_generated", summary_metadata)
+# 4. filesystem.write_file("/tmp/report.json", summary_json)
+# 5. web-api.http_post("https://api.slack.com/...", slack_message)
+# 6. notifications.send_email("manager@example.com", "Report Posted", "...")
+#
+# This orchestrates 6 tools across 5 different servers!
+
+# Notes:
+# - Multiple MCP servers enable powerful distributed architectures
+# - Tools from all servers appear as one unified toolkit to the LLM
+# - Mix local and remote servers based on requirements
+# - Each server can use different transport (local or gRPC)
+# - Tool names must be unique across all servers
+# - Routing is automatic based on tool name
+# - Failures are isolated to individual servers
+# - Provides excellent separation of concerns
+# - Scales independently by server
+# - Ideal for production microservices architectures

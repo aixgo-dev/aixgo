@@ -1,0 +1,360 @@
+{{ define "main" }}
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container">
+    <h1 class="hero-title">
+      The Future of AI Agents is <span class="highlight">Go</span>
+    </h1>
+    <p class="hero-subtitle">
+      Build and test AI systems as single binaries. Alpha release - production features coming late 2025.
+    </p>
+    <a href="/guides" class="btn btn-cta">Try Alpha Version →</a>
+  </div>
+</section>
+
+<!-- Code Example Section -->
+<section class="code-section">
+  <div class="container">
+    <h2 class="section-title">
+      From Prototype to Planet-Scale in <span class="highlight">60 Seconds</span>
+    </h2>
+
+    <div class="code-steps">
+      <div class="code-step">
+        <h3>1. Install</h3>
+        <div class="code-block-wrapper">
+          <button class="copy-button" aria-label="Copy code">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <pre><code>go get github.com/aixgo-dev/aixgo</code></pre>
+        </div>
+      </div>
+
+      <div class="code-step">
+        <h3>2. Create config/agents.yaml</h3>
+        <div class="code-block-wrapper">
+          <button class="copy-button" aria-label="Copy code">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <pre><code>supervisor:
+  name: coordinator
+  model: grok-beta
+  max_rounds: 10
+
+agents:
+  - name: data-producer
+    role: producer
+    interval: 1s
+    outputs:
+      - target: analyzer
+
+  - name: analyzer
+    role: react
+    model: grok-beta
+    prompt: |
+      You are a data analyst. Analyze incoming data and provide insights.
+    inputs:
+      - source: data-producer
+    outputs:
+      - target: logger
+
+  - name: logger
+    role: logger
+    inputs:
+      - source: analyzer</code></pre>
+        </div>
+      </div>
+
+      <div class="code-step">
+        <h3>3. Create main.go</h3>
+        <div class="code-block-wrapper">
+          <button class="copy-button" aria-label="Copy code">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <pre><code>package main
+
+import (
+    "github.com/aixgo-dev/aixgo"
+    _ "github.com/aixgo-dev/aixgo/agents"
+)
+
+func main() {
+    if err := aixgo.Run("config/agents.yaml"); err != nil {
+        panic(err)
+    }
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="code-step">
+        <h3>4. Deploy anywhere</h3>
+        <div class="code-block-wrapper">
+          <button class="copy-button" aria-label="Copy code">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <pre><code># Local development
+go run main.go
+
+# Production - single 8MB binary
+go build -o agent
+./agent
+
+# Edge, Lambda, Cloud Run, Kubernetes - one binary, zero configuration</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-cta">
+      <a href="/docs" class="btn btn-primary">View Full Documentation →</a>
+    </div>
+  </div>
+</section>
+
+<!-- Why Go Section -->
+<section class="why-go-section">
+  <div class="container">
+    <h2 class="section-title">
+      Why the Industry is Moving to <span class="highlight">Go</span>
+    </h2>
+    <p class="section-subtitle">
+      Python dominated AI because it was easy to prototype. Go will dominate production because it's built to ship.
+    </p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <h3>Container Size</h3>
+        <div class="feature-comparison">
+          <div class="comparison-item">
+            <p class="comparison-label">Python frameworks</p>
+            <p class="comparison-value">1.2GB with dependencies</p>
+          </div>
+          <div class="comparison-divider"></div>
+          <div class="comparison-item">
+            <p class="comparison-label">Aixgo</p>
+            <p class="comparison-value highlight">8MB single binary</p>
+          </div>
+          <div class="comparison-divider"></div>
+          <div class="comparison-item">
+            <p class="comparison-label">Impact:</p>
+            <p class="comparison-impact">Deploy to edge devices, serverless, anywhere</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Startup Performance</h3>
+        <div class="feature-comparison">
+          <div class="comparison-item">
+            <p class="comparison-label">Python frameworks</p>
+            <p class="comparison-value">30-45s cold start</p>
+          </div>
+          <div class="comparison-divider"></div>
+          <div class="comparison-item">
+            <p class="comparison-label">Aixgo</p>
+            <p class="comparison-value highlight">&lt;100ms instant startup</p>
+          </div>
+          <div class="comparison-divider"></div>
+          <div class="comparison-item">
+            <p class="comparison-label">Impact:</p>
+            <p class="comparison-impact">True serverless viability, real-time response</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Runtime Safety</h3>
+        <div class="feature-comparison">
+          <div class="comparison-item">
+            <p class="comparison-label">Python frameworks</p>
+            <p class="comparison-value">Runtime - Discover errors in production</p>
+          </div>
+          <div class="comparison-divider"></div>
+          <div class="comparison-item">
+            <p class="comparison-label">Aixgo</p>
+            <p class="comparison-value highlight">Compile-time - Compiler catches errors before deploy</p>
+          </div>
+          <div class="comparison-divider"></div>
+          <div class="comparison-item">
+            <p class="comparison-label">Impact:</p>
+            <p class="comparison-impact">Ship with confidence, sleep at night</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>LLM Data Validation</h3>
+        <div class="feature-comparison">
+          <div class="comparison-item">
+            <p class="comparison-label">Python frameworks</p>
+            <p class="comparison-value">Runtime only - Type changes found in production</p>
+          </div>
+          <div class="comparison-divider"></div>
+          <div class="comparison-item">
+            <p class="comparison-label">Aixgo</p>
+            <p class="comparison-value highlight">Compile-time - Type changes caught before deploy, auto-retry</p>
+          </div>
+          <div class="comparison-divider"></div>
+          <div class="comparison-item">
+            <p class="comparison-label">Impact:</p>
+            <p class="comparison-impact">Refactor with confidence, LLM errors auto-recover</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- The Go Advantage Section -->
+<section class="advantage-section">
+  <div class="container">
+    <h2 class="section-title">
+      The <span class="highlight">Go</span> Advantage
+    </h2>
+
+    <div class="advantage-table-wrapper">
+      <table class="advantage-table">
+        <thead>
+          <tr>
+            <th>What Matters in Production</th>
+            <th>Python Frameworks</th>
+            <th>Aixgo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Deploy Anywhere</td>
+            <td>1GB+ containers, complex deps</td>
+            <td>8MB binary, zero deps</td>
+          </tr>
+          <tr>
+            <td>Cold Start Speed</td>
+            <td>10-45 seconds</td>
+            <td>&lt;100ms</td>
+          </tr>
+          <tr>
+            <td>Type Safety</td>
+            <td>Runtime discovery</td>
+            <td>Compile-time guarantees</td>
+          </tr>
+          <tr>
+            <td>Concurrency</td>
+            <td>GIL bottleneck</td>
+            <td>Native parallelism</td>
+          </tr>
+          <tr>
+            <td>Scaling Pattern</td>
+            <td>Rewrite for distribution</td>
+            <td>Same code, local → distributed</td>
+          </tr>
+          <tr>
+            <td>Operational Cost</td>
+            <td>High compute overhead</td>
+            <td>60-70% infrastructure savings</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Built for What's Next Section -->
+<section class="built-for-section">
+  <div class="container">
+    <h2 class="section-title">
+      Built for What's <span class="highlight">Next</span>
+    </h2>
+    <p class="section-subtitle">
+      Aixgo isn't just another framework. It's the foundation for the next generation of AI systems.
+    </p>
+
+    <div class="features-grid-2">
+      <div class="feature-card-2">
+        <div class="feature-header">
+          <div class="feature-icon"><i data-lucide="network"></i></div>
+          <h3>13 Orchestration Patterns</h3>
+        </div>
+        <p>All patterns production-ready: Supervisor, Sequential, Parallel, Router, Swarm, RAG, Reflection, Ensemble, and more. Go channels locally, gRPC for distributed.</p>
+      </div>
+
+      <div class="feature-card-2">
+        <div class="feature-header">
+          <div class="feature-icon"><i data-lucide="boxes"></i></div>
+          <h3>8+ LLM Providers</h3>
+        </div>
+        <p>OpenAI, Anthropic, Google Gemini, xAI, Vertex AI, HuggingFace, Ollama, and vLLM. Switch providers with a config change. Auto-detection by model name.</p>
+      </div>
+
+      <div class="feature-card-2">
+        <div class="feature-header">
+          <div class="feature-icon"><i data-lucide="activity"></i></div>
+          <h3>Full Observability Stack</h3>
+        </div>
+        <p>OpenTelemetry tracing, Langfuse integration, Prometheus metrics, automatic cost tracking. Kubernetes health probes included.</p>
+      </div>
+
+      <div class="feature-card-2">
+        <div class="feature-header">
+          <div class="feature-icon"><i data-lucide="shield"></i></div>
+          <h3>Enterprise Security</h3>
+        </div>
+        <p>4 auth modes, RBAC, SSRF protection, prompt injection defense, SIEM integration. Rate limiting and audit logging built-in.</p>
+      </div>
+
+      <div class="feature-card-2">
+        <div class="feature-header">
+          <div class="feature-icon"><i data-lucide="check-circle"></i></div>
+          <h3>Type-Safe Validation</h3>
+        </div>
+        <p>Pydantic AI-style validation with automatic retry. 40-70% improvement in structured output reliability. Compile-time type checking.</p>
+      </div>
+
+      <div class="feature-card-2">
+        <div class="feature-header">
+          <div class="feature-icon"><i data-lucide="trending-down"></i></div>
+          <h3>60-70% Lower Infra Costs</h3>
+        </div>
+        <p>8MB binaries, &lt;100ms cold starts, ~50MB memory. Router pattern saves 25-50% on LLM costs. Local inference with Ollama for zero API costs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Roadmap Section -->
+<section class="roadmap-section">
+  <div class="container">
+    <h2 class="section-title">
+      What We're <span class="highlight">Building</span>
+    </h2>
+
+    {{ partial "milestone-cards.html" . }}
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="cta-title">
+      Join the <span class="highlight">Alpha</span>
+    </h2>
+    <p class="cta-subtitle">
+      The AI infrastructure built on Python is reaching its limits. Aixgo is what comes next. Join us in building it.
+    </p>
+    <a href="/guides" class="btn btn-cta">Try Alpha Version →</a>
+  </div>
+</section>
+
+{{ end }}

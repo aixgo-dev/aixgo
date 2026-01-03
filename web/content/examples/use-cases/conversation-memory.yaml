@@ -1,0 +1,217 @@
+# Conversation Memory: Stateful agent with long-term memory
+# This example demonstrates using vector databases to store and retrieve
+# conversation history, enabling personalized, context-aware interactions.
+
+# Supervisor coordinates memory operations
+supervisor:
+  name: memory-coordinator
+  model: gpt-4-turbo
+  max_rounds: 10
+
+# Embedding configuration for memory search
+embeddings:
+  provider: openai
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    model: text-embedding-3-small
+
+# Vector store for conversation memory
+vectorstore:
+  provider: firestore  # Use 'memory' for development
+  embedding_dimensions: 1536
+  default_top_k: 10  # Retrieve more context for conversations
+  firestore:
+    project_id: ${GCP_PROJECT}
+    collection: conversations
+    # credentials_file: /path/to/service-account.json
+
+agents:
+  - name: stateful-assistant
+    role: react
+    model: gpt-4-turbo
+    prompt: |
+      You are a personal AI assistant with memory of past conversations.
+
+      Your capabilities:
+      - Remember user preferences, interests, and past interactions
+      - Provide personalized responses based on conversation history
+      - Reference previous discussions naturally
+      - Build rapport over time through consistent context
+
+      Guidelines:
+      1. Search conversation memory before responding
+      2. Acknowledge and reference relevant past interactions
+      3. Adapt your tone and style based on user preferences
+      4. Store important information for future reference
+      5. Respect user privacy and data boundaries
+
+      Provide helpful, context-aware assistance that improves over time.
+
+    # Conversation memory configuration
+    conversation_memory:
+      enabled: true
+      collection: conversations
+
+      # Scope defines how memories are partitioned
+      scope:
+        - user  # Separate memory per user
+        - session  # Track current session
+        # - tenant  # For multi-tenant applications
+
+      # Memory management
+      max_turns: 20  # Maximum conversation turns to retain
+      ttl: 24h  # Memory expiration (24 hours)
+      embedding_model: text-embedding-3-small
+
+      # What to store in memory
+      store:
+        - user_messages: true  # Store user inputs
+        - assistant_messages: true  # Store assistant responses
+        - tool_calls: true  # Store tool usage
+        - metadata: true  # Store conversation metadata
+
+      # Memory retrieval strategy
+      retrieval:
+        method: hybrid  # Combine semantic search + recency
+        top_k: 5  # Most relevant memories
+        min_score: 0.6  # Relevance threshold
+        boost_recent: 0.3  # Weight factor for recent memories
+
+      # Summarization for long conversations
+      summarization:
+        enabled: true
+        trigger_after: 15  # Summarize after 15 turns
+        keep_last_n: 5  # Keep last 5 turns uncompressed
+        model: gpt-4-turbo  # Model for summarization
+
+      # Privacy and data management
+      privacy:
+        anonymize_pii: true  # Remove personal information
+        encrypt_at_rest: true  # Encrypt stored memories
+        user_data_retention: 30d  # Delete after 30 days
+
+    tools:
+      - name: search_memory
+        description: "Search past conversation history for relevant context"
+        vectorstore:
+          collection: conversations
+          generate_embedding: true
+          filters:
+            scope: current_user  # Only search current user's memories
+        input_schema:
+          type: object
+          properties:
+            query:
+              type: string
+              description: "What to search for in conversation history"
+            time_range:
+              type: string
+              description: "Optional time range (e.g., 'last_week', 'today', 'last_month')"
+          required: [query]
+
+      - name: store_memory
+        description: "Explicitly store important information for future reference"
+        vectorstore:
+          collection: conversations
+          generate_embedding: true
+        input_schema:
+          type: object
+          properties:
+            content:
+              type: string
+              description: "The information to remember"
+            importance:
+              type: number
+              default: 5
+              description: "Importance level (1-10), affects retrieval priority"
+            tags:
+              type: array
+              items: { type: string }
+              description: "Tags for categorizing the memory (e.g., 'preference', 'fact', 'goal')"
+          required: [content]
+
+      - name: get_conversation_summary
+        description: "Retrieve a summary of the current conversation"
+        input_schema:
+          type: object
+          properties:
+            include_details:
+              type: boolean
+              default: false
+              description: "Include detailed breakdown of topics discussed"
+
+      - name: forget_memory
+        description: "Delete specific memories at user request"
+        vectorstore:
+          collection: conversations
+        input_schema:
+          type: object
+          properties:
+            memory_id:
+              type: string
+              description: "ID of the memory to delete"
+            time_range:
+              type: string
+              description: "Delete all memories in a time range (e.g., 'today', 'this_week')"
+
+    inputs:
+      - source: user
+        description: "User messages with conversation context"
+        metadata:
+          user_id: required  # User identification for memory scoping
+          session_id: required  # Session tracking
+    outputs:
+      - target: user
+        description: "Context-aware, personalized responses"
+
+  # Memory analytics and management
+  - name: memory-manager
+    role: logger
+    description: Monitors memory usage and maintains data quality
+    tools:
+      - name: get_memory_stats
+        description: "Retrieve statistics about stored memories"
+        vectorstore:
+          collection: conversations
+        input_schema:
+          type: object
+          properties:
+            user_id:
+              type: string
+              description: "Get stats for specific user"
+            aggregation:
+              type: string
+              enum: [user, session, global]
+              default: user
+
+      - name: cleanup_expired
+        description: "Remove expired memories based on TTL"
+        vectorstore:
+          collection: conversations
+        input_schema:
+          type: object
+          properties:
+            dry_run:
+              type: boolean
+              default: true
+              description: "Preview deletions without executing"
+
+      - name: export_memories
+        description: "Export user memories for data portability (GDPR compliance)"
+        vectorstore:
+          collection: conversations
+        input_schema:
+          type: object
+          properties:
+            user_id:
+              type: string
+              description: "User ID to export memories for"
+            format:
+              type: string
+              enum: [json, csv]
+              default: json
+          required: [user_id]
+
+    inputs:
+      - source: stateful-assistant
+        description: "Monitor memory operations"

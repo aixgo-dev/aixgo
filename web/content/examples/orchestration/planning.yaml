@@ -1,0 +1,12 @@
+# Planning Pattern: Plan first, then execute
+agents:
+  - name: planner
+    role: planner
+    model: gpt-4
+    outputs:
+      - target: executor
+  - name: executor
+    role: react
+    model: gpt-4
+    inputs:
+      - source: planner

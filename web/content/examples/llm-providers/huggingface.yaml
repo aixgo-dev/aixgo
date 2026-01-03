@@ -1,0 +1,309 @@
+# HuggingFace Provider Configuration
+# Access to open-source models via HuggingFace Inference API
+# Supports serverless and dedicated endpoints
+
+agents:
+  - name: huggingface-llama-agent
+    role: react
+
+    # HuggingFace model selection (organization/model format)
+    # Available: meta-llama/Llama-2-7b-chat-hf, mistralai/Mistral-7B-Instruct-v0.2, etc.
+    model: meta-llama/Llama-2-13b-chat-hf
+
+    prompt: |
+      You are a helpful AI assistant powered by Llama 2.
+      Provide clear, accurate, and thoughtful responses.
+
+    tools:
+      - name: search_documents
+        description: "Search through documentation"
+        input_schema:
+          type: object
+          properties:
+            query:
+              type: string
+              description: "Search query"
+            category:
+              type: string
+              enum: ["technical", "general", "api"]
+          required: [query]
+
+    inputs:
+      - source: user-queries
+    outputs:
+      - target: llama-responses
+
+# Example: Mistral for fast, efficient inference
+  - name: huggingface-mistral-agent
+    role: react
+    model: mistralai/Mistral-7B-Instruct-v0.2
+
+    prompt: |
+      You are an efficient AI assistant powered by Mistral.
+      Provide concise, accurate responses optimized for speed.
+
+    inputs:
+      - source: quick-queries
+    outputs:
+      - target: mistral-responses
+
+# Example: Code generation with CodeLlama
+  - name: huggingface-codellama-agent
+    role: react
+    model: codellama/CodeLlama-13b-Instruct-hf
+
+    prompt: |
+      You are a code generation specialist powered by CodeLlama.
+      Generate clean, efficient, well-documented code.
+
+    tools:
+      - name: generate_code
+        description: "Generate code based on requirements"
+        input_schema:
+          type: object
+          properties:
+            requirements:
+              type: string
+              description: "Code requirements"
+            language:
+              type: string
+              description: "Programming language"
+            framework:
+              type: string
+              description: "Framework (if applicable)"
+          required: [requirements, language]
+
+    inputs:
+      - source: code-requests
+    outputs:
+      - target: code-results
+
+# Example: Dedicated inference endpoint for production
+  - name: huggingface-dedicated-agent
+    role: react
+    model: custom-deployment  # Your deployed model name
+
+    prompt: |
+      You are running on a dedicated HuggingFace inference endpoint
+      for production workloads with guaranteed performance and availability.
+
+    inputs:
+      - source: production-queries
+    outputs:
+      - target: production-responses
+
+# Supporting agents
+  - name: user-queries
+    role: producer
+    interval: 10s
+    outputs:
+      - target: huggingface-llama-agent
+
+  - name: llama-responses
+    role: logger
+    inputs:
+      - source: huggingface-llama-agent
+
+# Environment variables required:
+# - HUGGINGFACE_API_KEY: Your HuggingFace API token (required)
+#     Get from: https://huggingface.co/settings/tokens
+#
+# - HUGGINGFACE_ENDPOINT: Custom inference endpoint URL (optional)
+#     For dedicated endpoints, use the endpoint URL
+#     Default: HuggingFace serverless inference API
+
+# Configuration via environment:
+# export HUGGINGFACE_API_KEY="hf_..."
+# export HUGGINGFACE_ENDPOINT="https://your-endpoint.endpoints.huggingface.cloud"  # optional
+
+# Popular Model Options:
+#
+# Llama 2 Family:
+#   - meta-llama/Llama-2-7b-chat-hf: Fast, efficient, 7B params
+#   - meta-llama/Llama-2-13b-chat-hf: Balanced, 13B params
+#   - meta-llama/Llama-2-70b-chat-hf: Most capable, 70B params
+#   - Use for: General chat, instruction following
+#
+# Mistral Family:
+#   - mistralai/Mistral-7B-Instruct-v0.2: Fast, efficient, high quality
+#   - mistralai/Mixtral-8x7B-Instruct-v0.1: MoE, very capable
+#   - Use for: Speed + quality balance, efficiency
+#
+# Code Models:
+#   - codellama/CodeLlama-7b-Instruct-hf: Code generation, 7B
+#   - codellama/CodeLlama-13b-Instruct-hf: Better code quality, 13B
+#   - codellama/CodeLlama-34b-Instruct-hf: Most capable code model
+#   - Use for: Code generation, explanation, debugging
+#
+# Specialized Models:
+#   - tiiuae/falcon-7b-instruct: Fast, efficient
+#   - EleutherAI/gpt-j-6B: General purpose, open license
+#   - bigscience/bloom-7b1: Multilingual
+#   - google/flan-t5-xxl: Instruction-tuned, versatile
+
+# Deployment Options:
+#
+# 1. Serverless Inference (Free/Pay-per-use):
+#    - Use model name directly (e.g., meta-llama/Llama-2-7b-chat-hf)
+#    - No dedicated resources
+#    - Pay only for what you use
+#    - Shared infrastructure
+#    - Cold starts possible
+#    - Rate limits apply
+#    - Good for: Development, low-volume production
+#
+# 2. Dedicated Inference Endpoints (Production):
+#    - Deploy model to dedicated GPU
+#    - Guaranteed resources and uptime
+#    - No cold starts
+#    - Custom scaling
+#    - Higher throughput
+#    - Set HUGGINGFACE_ENDPOINT to endpoint URL
+#    - Good for: High-volume production, SLA requirements
+
+# Pricing:
+#
+# Serverless:
+# - Free tier: Limited requests per month
+# - Pay-per-use: ~$0.06 per 1K tokens (varies by model)
+# - Rate limited
+#
+# Dedicated Endpoints:
+# - GPU rental: Starting at ~$1/hour for small GPUs
+# - ~$4-6/hour for medium GPUs (A10G, T4)
+# - ~$10-15/hour for large GPUs (A100)
+# - Auto-scaling available
+# - Custom pricing for enterprise
+
+# Rate Limits (Serverless):
+# Free tier:
+# - Varies by model
+# - Typically 1-10 requests per second
+# - Daily quotas apply
+#
+# Pro tier:
+# - Higher rate limits
+# - ~$9/month subscription
+# - Better quotas
+
+# Best Practices:
+# 1. Start with serverless for development
+# 2. Use dedicated endpoints for production
+# 3. Choose model size based on latency/quality tradeoff
+# 4. Implement request queuing for rate limits
+# 5. Cache responses when possible
+# 6. Monitor token usage and costs
+# 7. Use smaller models when sufficient (7B vs 70B)
+# 8. Implement fallback for rate limit errors
+# 9. Test thoroughly before production deployment
+# 10. Consider self-hosting for high volume
+
+# Model Selection Guide:
+#
+# For Speed (lowest latency):
+# - Mistral-7B-Instruct (best speed/quality)
+# - Llama-2-7b-chat (good speed)
+# - falcon-7b-instruct (very fast)
+#
+# For Quality (best responses):
+# - Llama-2-70b-chat (highest quality)
+# - Mixtral-8x7B (excellent quality, MoE)
+# - Llama-2-13b-chat (good balance)
+#
+# For Code:
+# - CodeLlama-34b-Instruct (best code quality)
+# - CodeLlama-13b-Instruct (good balance)
+# - CodeLlama-7b-Instruct (fast code gen)
+#
+# For Cost Efficiency:
+# - Mistral-7B (best value)
+# - Llama-2-7b (good efficiency)
+# - Falcon-7b (low cost)
+
+# Dedicated Endpoint Setup:
+# 1. Go to https://huggingface.co/inference-endpoints
+# 2. Create new endpoint
+# 3. Select model (or upload custom)
+# 4. Choose GPU type and region
+# 5. Configure scaling
+# 6. Deploy endpoint
+# 7. Get endpoint URL
+# 8. Set HUGGINGFACE_ENDPOINT environment variable
+
+# Custom Models:
+# You can deploy your own fine-tuned models:
+# 1. Upload model to HuggingFace Hub
+# 2. Create inference endpoint
+# 3. Use model name or endpoint URL
+# 4. Same API as public models
+
+# Advantages of HuggingFace:
+# + Open-source models (transparency)
+# + Model flexibility (many options)
+# + Cost-effective (especially serverless)
+# + Self-hosting possible
+# + No vendor lock-in
+# + Active community
+# + Custom model deployment
+# - May require more tuning than commercial APIs
+# - Smaller context windows than GPT-4/Claude
+# - Less sophisticated out-of-box than commercial models
+
+# Context Window Sizes:
+# - Llama 2: 4K tokens
+# - Mistral: 8K tokens (some variants 32K)
+# - CodeLlama: 16K tokens
+# - Mixtral: 32K tokens
+#
+# Compare to:
+# - GPT-4-turbo: 128K
+# - Claude 3: 200K
+# - Gemini Pro: 32K
+
+# Function Calling:
+# Open-source models have varying function calling support:
+# - Some models support it natively
+# - Others require prompt engineering
+# - Provider handles conversion where possible
+# - Test thoroughly for your use case
+
+# Performance Optimization:
+# 1. Use smaller models when sufficient
+# 2. Batch requests when possible
+# 3. Cache common queries
+# 4. Dedicate endpoints for high volume
+# 5. Use quantized models (GPTQ, AWQ) for speed
+# 6. Implement request queuing
+# 7. Monitor and optimize prompts
+# 8. Consider self-hosting for cost at scale
+
+# Self-Hosting vs HuggingFace Inference:
+#
+# HuggingFace Inference:
+# + No infrastructure management
+# + Easy to get started
+# + Pay-per-use pricing
+# - Higher cost at scale
+# - Shared resources (serverless)
+# - Rate limits
+#
+# Self-Hosting:
+# + Full control
+# + Lower cost at high volume
+# + No rate limits
+# + Data privacy
+# - Requires GPU infrastructure
+# - DevOps overhead
+# - Upfront costs
+
+# Notes:
+# - API key automatically loaded from HUGGINGFACE_API_KEY
+# - Provider auto-detected from model name format (org/model)
+# - Supports both serverless and dedicated endpoints
+# - Open-source models provide transparency and control
+# - Model quality varies - test before production use
+# - Consider dedicated endpoints for production SLAs
+# - Smaller models (7B) can be very cost-effective
+# - Custom model deployment supported
+# - Self-hosting is an option for high volume
+# - Active community and model ecosystem

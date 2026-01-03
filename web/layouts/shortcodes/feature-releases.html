@@ -1,0 +1,61 @@
+{{- /*
+  Feature Releases Shortcode
+  Renders feature tables from data/features.yaml
+
+  Usage: {{< feature-releases >}}
+
+  Supports:
+  - Status indicators: complete (✅), in_progress (🚧), roadmap (❌)
+  - Tooltips for additional context
+  - Maintains existing CSS classes for styling
+*/ -}}
+
+{{- $statusIcons := dict "complete" "✅" "in_progress" "🚧" "roadmap" "❌" -}}
+
+{{- with site.Data.features -}}
+  {{- range .categories -}}
+    <h3>{{ .name }}</h3>
+
+    {{- /* Find max feature count in this category */ -}}
+    {{- $maxCount := 0 -}}
+    {{- range .subcategories -}}
+      {{- $count := len .features -}}
+      {{- if gt $count $maxCount -}}
+        {{- $maxCount = $count -}}
+      {{- end -}}
+    {{- end -}}
+
+    <div class="feature-table">
+      {{- range .subcategories -}}
+        <div class="feature-column">
+          <h4>{{ .title }}</h4>
+
+          {{- range .features -}}
+            {{- $icon := index $statusIcons .status -}}
+            <div class="feature-item">
+              {{- $icon }} {{ .name -}}
+              {{- if .tooltip }} <span class="info-tooltip">ⓘ
+                  <span class="tooltip-text">
+                    {{- if .tooltip.title -}}
+                      <strong>{{ .tooltip.title }}:</strong> {{ .tooltip.content }}
+                    {{- else -}}
+                      {{ .tooltip.content }}
+                    {{- end -}}
+                    {{- if .tooltip.roadmap }} <strong>Roadmap:</strong> {{ .tooltip.roadmap }}{{ end -}}
+                  </span>
+                </span>
+              {{- end -}}
+            </div>
+          {{- end -}}
+
+          {{- /* Add empty cells to match max count */ -}}
+          {{- $currentCount := len .features -}}
+          {{- $emptyCells := sub $maxCount $currentCount -}}
+          {{- range seq $emptyCells -}}
+            <div class="feature-item feature-item-empty">&nbsp;</div>
+          {{- end -}}
+        </div>
+      {{- end -}}
+    </div>
+  {{- end -}}
+{{- end -}}

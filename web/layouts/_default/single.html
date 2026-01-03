@@ -1,0 +1,64 @@
+{{ define "main" }}
+
+<article class="single-page">
+  <div class="container-narrow">
+    <!-- Back link if it's a guide or blog post -->
+    {{ if or (eq .Section "guides") (eq .Section "blog") }}
+    <a href="/{{ .Section }}" class="back-link">← Back to {{ if eq .Section "guides" }}Guides{{ else }}Blog{{ end }}</a>
+    {{ end }}
+
+    <!-- Date and author for blog posts -->
+    {{ if eq .Section "blog" }}
+    <div class="post-meta">
+      <span class="post-date">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        {{ .Date.Format "January 2, 2006" }}
+      </span>
+      {{ if .Params.author }}
+      <span class="post-author">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        {{ .Params.author }}
+      </span>
+      {{ end }}
+    </div>
+    {{ end }}
+
+    <!-- Breadcrumb for guides -->
+    {{ if eq .Section "guides" }}
+    {{ if .Params.breadcrumb }}
+    <div class="breadcrumb">
+      <a href="/guides" class="breadcrumb-link">{{ .Params.breadcrumb }}</a>
+    </div>
+    {{ end }}
+    {{ end }}
+
+    <h1>{{ .Title }}</h1>
+
+    {{ if .Description }}
+    <p class="lead">{{ .Description }}</p>
+    {{ end }}
+
+    <div class="content">
+      {{ .Content }}
+    </div>
+
+    <!-- Tags for blog posts -->
+    {{ if and (eq .Section "blog") (.Params.tags) }}
+    <div class="tags">
+      {{ range .Params.tags }}
+      <span class="tag">{{ . }}</span>
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+</article>
+
+{{ end }}

@@ -12,6 +12,7 @@ Quick reference for AI assistants working with Aixgo - a production-grade AI age
 - [Architecture](#architecture)
 - [Code Conventions](#code-conventions)
 - [Key Concepts](#key-concepts)
+- [Website](#website-web)
 - [Common Tasks](#common-tasks)
 - [Quick Reference](#quick-reference)
 
@@ -410,6 +411,62 @@ export LANGFUSE_PUBLIC_KEY=...
 export AIXGO_API_KEY_<NAME>=...
 export ENVIRONMENT=production
 ```
+
+---
+
+## Website (`web/`)
+
+Hugo-based static website for [aixgo.dev](https://aixgo.dev).
+
+### Development
+
+```bash
+cd web
+make dev    # Start dev server at localhost:1313
+make build  # Build for production
+make lint   # Lint markdown content
+```
+
+### Data-Driven Content
+
+Feature matrices and roadmap are driven by YAML data files:
+- `data/features.yaml` - Feature matrix with status indicators (complete/in_progress/roadmap)
+- `data/milestones.yaml` - Development milestones for homepage
+
+### Content Structure
+
+- `content/guides/` - 18+ technical guides (quick-start, agent-types, cost-optimization, etc.)
+- `content/blog/` - Release announcements and blog posts
+- `content/examples/` - YAML configuration examples
+
+### Key Templates
+
+- `layouts/index.html` - Homepage template
+- `layouts/shortcodes/` - Reusable components:
+  - `feature-releases.html` - Feature table renderer
+  - `status-badge.html` - Status indicators (checkmark/construction/roadmap)
+  - `alpha-notice.html` - Alpha warning banner
+
+### Configuration
+
+- `config/_default/hugo.toml` - Main Hugo config (baseURL, language, SEO)
+- `firebase.json` - Firebase Hosting config
+- `.firebaserc` - Firebase project ID
+
+### Deployment
+
+Automatically deployed via Google Cloud Build on push to main:
+1. Builds Hugo site with `--minify`
+2. Deploys to Firebase Hosting
+
+Manual: `cd web && make build && firebase deploy --only hosting`
+
+### Key Conventions
+
+- **Data files first**: Always update `features.yaml` and `milestones.yaml` rather than hardcoding content
+- **Ordered lists**: Use `1.` numbering throughout (markdownlint rule)
+- **File naming**: kebab-case (e.g., `provider-integration.md`)
+- **Code blocks**: Always specify language for syntax highlighting
 
 ---
 

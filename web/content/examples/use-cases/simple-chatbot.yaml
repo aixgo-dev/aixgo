@@ -1,0 +1,18 @@
+# Simple Chatbot: Basic conversational AI
+agents:
+  - name: chatbot
+    role: react
+    model: gpt-4
+    prompt: |
+      You are a friendly, helpful chatbot assistant.
+      Provide clear, concise answers to user questions.
+    tools:
+      - name: get_time
+        description: "Get current time"
+        input_schema:
+          type: object
+          properties: {}
+    inputs:
+      - source: user-messages
+    outputs:
+      - target: chat-responses

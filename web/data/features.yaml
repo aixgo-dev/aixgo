@@ -1,0 +1,402 @@
+# Aixgo Feature Releases
+# Status indicators: complete (✅), in_progress (🚧), roadmap (❌)
+
+categories:
+  - name: "Core AI Capabilities"
+    subcategories:
+      - title: "LLM Providers"
+        features:
+          - name: "OpenAI"
+            status: "complete"
+            tooltip:
+              content: "Full support for GPT-4, GPT-3.5, and other OpenAI models with streaming, function calling, and vision capabilities."
+          - name: "Anthropic (Claude)"
+            status: "complete"
+            tooltip:
+              content: "Native integration with Claude 3 family (Opus, Sonnet, Haiku) featuring extended context windows and advanced reasoning."
+          - name: "Google Gemini"
+            status: "complete"
+            tooltip:
+              content: "Access to Gemini Pro and Ultra models with multi-modal capabilities and large context support."
+          - name: "xAI (Grok)"
+            status: "complete"
+            tooltip:
+              content: "Integration with Grok models for real-time information and alternative AI perspectives."
+          - name: "Vertex AI"
+            status: "complete"
+            tooltip:
+              content: "Enterprise-grade access to Google's AI models through Vertex AI platform with enhanced security and compliance."
+          - name: "HuggingFace (free)"
+            status: "complete"
+            tooltip:
+              content: "Free Inference API with simulated streaming due to API limitations."
+          - name: "Ollama (local)"
+            status: "complete"
+            tooltip:
+              content: "Run AI models locally with zero API costs. Enterprise-grade SSRF protection, hybrid cloud fallback, production K8s manifests. Support for phi, llama, mistral, gemma, and 100+ models."
+          - name: "HuggingFace (TGI)"
+            status: "roadmap"
+            tooltip:
+              content: "Native streaming support for paid Text Generation Inference endpoints."
+
+      - title: "Agent System"
+        features:
+          - name: "ReAct Agent"
+            status: "complete"
+            tooltip:
+              content: "Reasoning and Acting agent that iteratively plans, executes tools, and observes results to solve complex tasks."
+          - name: "Supervisor Orchestration"
+            status: "complete"
+            tooltip:
+              content: "Coordinates multiple specialized agents, managing task delegation and result aggregation for complex workflows."
+          - name: "Classifier Agent"
+            status: "complete"
+            tooltip:
+              content: "Routes queries to appropriate specialized agents based on intent classification and context analysis."
+          - name: "Aggregator Agent"
+            status: "complete"
+            tooltip:
+              content: "Combines outputs from multiple agents into coherent responses, handling result synthesis and deduplication. Includes deterministic voting strategies (majority, unanimous, weighted, confidence) with zero LLM cost."
+          - name: "Planner Agent"
+            status: "complete"
+            tooltip:
+              content: "Breaks down complex tasks into executable steps, creating dynamic workflows based on goal analysis."
+          - name: "Producer Agent"
+            status: "complete"
+            tooltip:
+              content: "Generates content and artifacts based on task requirements, supporting various output formats and templates."
+          - name: "Logger Agent"
+            status: "complete"
+            tooltip:
+              content: "Captures and structures agent interactions, decisions, and outputs for debugging and audit trails."
+
+      - title: "Orchestration Patterns"
+        features:
+          - name: "Parallel Pattern"
+            status: "complete"
+            tooltip:
+              content: "Execute multiple independent tasks concurrently, reducing latency by leveraging parallel processing."
+          - name: "Sequential Pattern"
+            status: "complete"
+            tooltip:
+              content: "Chain tasks in order where each step depends on previous results, ensuring proper execution flow."
+          - name: "Reflection Pattern"
+            status: "complete"
+            tooltip:
+              content: "Self-critique and iterative improvement where agents evaluate and refine their own outputs."
+          - name: "MapReduce Pattern"
+            status: "complete"
+            tooltip:
+              content: "Distribute work across multiple agents and combine results, ideal for processing large datasets."
+          - name: "Planning Pattern"
+            status: "complete"
+            tooltip:
+              content: "Generate and execute multi-step plans dynamically, adapting to intermediate results and conditions."
+          - name: "Classification Pattern"
+            status: "complete"
+            tooltip:
+              content: "Route requests to specialized handlers based on classification, enabling intent-based processing."
+          - name: "Supervisor Pattern"
+            status: "complete"
+            tooltip:
+              content: "Hub-and-spoke coordination where supervisor delegates to specialists."
+          - name: "Router Pattern"
+            status: "complete"
+            tooltip:
+              content: "Intelligent routing to appropriate agent with 25-50% cost reduction."
+          - name: "Swarm Pattern"
+            status: "complete"
+            tooltip:
+              content: "Decentralized coordination with dynamic agent handoffs."
+          - name: "Hierarchical Pattern"
+            status: "complete"
+            tooltip:
+              content: "Multi-level delegation with manager-worker structure."
+          - name: "RAG Pattern"
+            status: "complete"
+            tooltip:
+              content: "Retrieval-Augmented Generation with vector search and LLM synthesis."
+          - name: "Ensemble Pattern"
+            status: "complete"
+            tooltip:
+              content: "Multi-model voting and consensus for 25-50% error reduction."
+          - name: "Aggregation Pattern"
+            status: "complete"
+            tooltip:
+              content: "Multi-agent synthesis using consensus, weighted, or semantic strategies."
+
+  - name: "Tools & MCP"
+    subcategories:
+      - title: "Tools & MCP"
+        features:
+          - name: "Function Calling"
+            status: "complete"
+            tooltip:
+              content: "Enable LLMs to invoke external functions and APIs, extending capabilities beyond text generation."
+          - name: "Tool Registration"
+            status: "complete"
+            tooltip:
+              content: "Dynamic registration and discovery of tools, allowing agents to utilize custom functions at runtime."
+          - name: "Local Transport"
+            status: "complete"
+            tooltip:
+              content: "In-process tool communication for low-latency function calls without network overhead."
+          - name: "gRPC Transport"
+            status: "complete"
+            tooltip:
+              content: "Distributed tool execution via gRPC, enabling remote service integration and microservices architecture."
+          - name: "Service Discovery"
+            status: "complete"
+            tooltip:
+              content: "Automatic discovery and registration of available tools and services across the infrastructure."
+
+  - name: "Data Infrastructure"
+    subcategories:
+      - title: "Vector Databases"
+        features:
+          - name: "Firestore"
+            status: "complete"
+            tooltip:
+              content: "Google Cloud Firestore integration for vector storage with built-in scaling and real-time synchronization."
+          - name: "In-Memory Store"
+            status: "complete"
+            tooltip:
+              content: "High-performance in-memory vector storage for development, testing, and low-latency use cases."
+          - name: "Qdrant"
+            status: "roadmap"
+            tooltip:
+              content: "High-performance vector search engine with advanced filtering and hybrid search capabilities."
+              roadmap: "Full integration with metadata filtering and batch operations."
+          - name: "pgvector"
+            status: "roadmap"
+            tooltip:
+              content: "PostgreSQL extension for vector similarity search, combining relational and vector data."
+              roadmap: "Complete CRUD operations and index optimization support."
+
+      - title: "Memory & Context"
+        features:
+          - name: "Conversation History"
+            status: "complete"
+            tooltip:
+              content: "Persistent storage and retrieval of conversation threads, maintaining context across sessions."
+          - name: "RAG Systems"
+            status: "complete"
+            tooltip:
+              content: "Retrieval Augmented Generation for grounding LLM responses in your knowledge base and documents."
+          - name: "Semantic Search"
+            status: "complete"
+            tooltip:
+              content: "Vector-based similarity search for finding relevant information based on meaning rather than keywords."
+          - name: "Long-term Memory"
+            status: "roadmap"
+            tooltip:
+              content: "Cross-session knowledge retention and personalization based on historical interactions."
+              roadmap: "Automatic memory consolidation and fact extraction from conversations."
+
+      - title: "Embeddings"
+        features:
+          - name: "OpenAI"
+            status: "complete"
+            tooltip:
+              content: "OpenAI's text-embedding models (ada-002, text-embedding-3) for high-quality vector representations."
+          - name: "HuggingFace API"
+            status: "complete"
+            tooltip:
+              content: "Access to HuggingFace's hosted embedding models via their Inference API."
+          - name: "HuggingFace TEI"
+            status: "complete"
+            tooltip:
+              content: "Text Embeddings Inference server integration for self-hosted, optimized embedding generation."
+
+  - name: "Security & Observability"
+    subcategories:
+      - title: "Security"
+        features:
+          - name: "Auth Framework"
+            status: "complete"
+            tooltip:
+              content: "Pluggable authentication system supporting multiple providers and custom auth strategies."
+          - name: "RBAC Authorization"
+            status: "complete"
+            tooltip:
+              content: "Role-Based Access Control for fine-grained permissions on agents, tools, and data resources."
+          - name: "Rate Limiting"
+            status: "complete"
+            tooltip:
+              content: "Configurable request throttling to prevent abuse and control API costs per user or endpoint."
+          - name: "Injection Protection"
+            status: "complete"
+            tooltip:
+              content: "Detection and mitigation of prompt injection attacks to prevent unauthorized LLM behavior manipulation."
+          - name: "SSRF Protection"
+            status: "complete"
+            tooltip:
+              content: "Enterprise-grade SSRF (Server-Side Request Forgery) protection with URL validation, private IP blocking (RFC1918), cloud metadata service blocking (169.254.169.254), DNS rebinding prevention, and configurable host allowlists. Protects local inference services like Ollama."
+          - name: "TLS/mTLS Support"
+            status: "complete"
+            tooltip:
+              content: "Transport Layer Security handled by cloud infrastructure (Cloud Run, GKE, etc.) for encrypted service-to-service communication."
+          - name: "Audit Logging"
+            status: "complete"
+            tooltip:
+              content: "Comprehensive logging of security events, access attempts, and data operations for compliance."
+          - name: "JWT Verification"
+            status: "complete"
+            tooltip:
+              content: "JSON Web Token validation for stateless authentication and secure API access."
+          - name: "Input Validation"
+            status: "complete"
+            tooltip:
+              content: "Schema-based validation of inputs to prevent injection attacks and ensure data integrity."
+          - name: "Error Sanitization"
+            status: "complete"
+            tooltip:
+              content: "Automatically masks sensitive information (file paths, IPs) in error messages and logs."
+          - name: "SIEM Integration"
+            status: "complete"
+            tooltip:
+              content: "Export audit logs to Elasticsearch, Splunk HEC, Webhook, or custom backends for security monitoring."
+          - name: "Type-Safe Validation"
+            status: "complete"
+            tooltip:
+              content: "Compile-time type checking with Go's type system plus Pydantic AI-style automatic validation retry (40-70% reliability improvement)."
+
+      - title: "Observability"
+        features:
+          - name: "OpenTelemetry"
+            status: "complete"
+            tooltip:
+              content: "Industry-standard distributed tracing, metrics, and logging for comprehensive system observability."
+          - name: "Langfuse Integration"
+            status: "complete"
+            tooltip:
+              content: "LLM-specific observability platform integration for tracking prompts, completions, costs, and quality metrics."
+          - name: "Prometheus Metrics"
+            status: "complete"
+            tooltip:
+              content: "Expose operational metrics in Prometheus format for monitoring, alerting, and performance analysis."
+          - name: "Health Checks"
+            status: "complete"
+            tooltip:
+              content: "Liveness and readiness endpoints for orchestration platforms and load balancer integration."
+          - name: "Distributed Tracing"
+            status: "complete"
+            tooltip:
+              content: "End-to-end request tracing across services to diagnose latency issues and understand system behavior."
+          - name: "Cost Tracking"
+            status: "complete"
+            tooltip:
+              content: "Automatic token counting with per-request, per-agent, per-user cost tracking. Calculate costs per provider with accurate pricing."
+
+      - title: "Multi-Modal"
+        features:
+          - name: "Vision/Images"
+            status: "roadmap"
+            tooltip:
+              content: "Image understanding and analysis capabilities for visual question answering and OCR tasks."
+              roadmap: "Integration with vision-enabled models like GPT-4 Vision and Claude 3."
+          - name: "Audio Processing"
+            status: "roadmap"
+            tooltip:
+              content: "Speech-to-text transcription and audio analysis for voice-driven applications."
+              roadmap: "Support for Whisper and other audio AI models."
+          - name: "Document Parsing"
+            status: "roadmap"
+            tooltip:
+              content: "Extract structured data from PDFs, images, and complex document formats."
+              roadmap: "Integration with document AI services and layout analysis models."
+
+  - name: "Infrastructure & Operations"
+    subcategories:
+      - title: "Configuration"
+        features:
+          - name: "Phased Agent Startup"
+            status: "complete"
+            tooltip:
+              content: "Dependency-aware agent startup using topological sort. Declare dependencies with depends_on field, automatic phase-based initialization eliminates race conditions, concurrent startup within phases for performance. Includes configurable timeout (30s default) and supports all runtimes (Local, Simple, Distributed)."
+          - name: "Public Agent Package"
+            status: "complete"
+            tooltip:
+              content: "Standalone package exporting Agent, Message, and Runtime interfaces for building custom agents without the full framework. Minimal dependencies, 85%+ test coverage, and comprehensive documentation for library-style integration."
+          - name: "YAML Workflows"
+            status: "complete"
+            tooltip:
+              content: "Declarative workflow definitions using YAML for version-controlled, code-free agent orchestration."
+          - name: "Go SDK"
+            status: "complete"
+            tooltip:
+              content: "Comprehensive Go library for programmatic agent creation, customization, and integration."
+          - name: "29+ Example Configs"
+            status: "complete"
+            tooltip:
+              content: "Production-ready reference implementations covering common patterns and use cases."
+          - name: "Complete Use Cases"
+            status: "complete"
+            tooltip:
+              content: "End-to-end examples demonstrating real-world applications from setup to deployment."
+          - name: "Single Binary (<10MB)"
+            status: "complete"
+            tooltip:
+              content: "Compile to a single 8MB binary with zero runtime dependencies. Deploy anywhere without package managers."
+          - name: "Instant Startup (<100ms)"
+            status: "complete"
+            tooltip:
+              content: "Near-instant cold start enabling true serverless viability and real-time response."
+          - name: "60-70% Cost Savings"
+            status: "complete"
+            tooltip:
+              content: "Dramatically lower compute costs vs Python frameworks through Go's efficiency and small footprint."
+
+      - title: "Deployment"
+        features:
+          - name: "Docker"
+            status: "complete"
+            tooltip:
+              content: "Containerized deployment with optimized images for consistent runtime environments."
+          - name: "Docker Compose"
+            status: "complete"
+            tooltip:
+              content: "Multi-container orchestration for local development and simple production deployments."
+          - name: "Cloud Run"
+            status: "complete"
+            tooltip:
+              content: "Serverless deployment on Google Cloud Run with automatic scaling and zero-ops infrastructure."
+          - name: "Kubernetes Manifests"
+            status: "complete"
+            tooltip:
+              content: "Production-ready Kubernetes configurations including deployments, services, and ingress rules."
+          - name: "Kubernetes Operator"
+            status: "roadmap"
+            tooltip:
+              content: "Custom controller for automated agent lifecycle management on Kubernetes."
+              roadmap: "CRDs for declarative agent provisioning and GitOps workflows."
+          - name: "Terraform IaC"
+            status: "roadmap"
+            tooltip:
+              content: "Infrastructure as Code modules for automated cloud resource provisioning."
+              roadmap: "Modules for GCP, AWS, and Azure deployments with best practices."
+
+      - title: "Production Reliability"
+        features:
+          - name: "Circuit Breakers"
+            status: "complete"
+            tooltip:
+              content: "Automatic failure detection and circuit breaking to prevent cascade failures during service outages."
+          - name: "Retry with Backoff"
+            status: "complete"
+            tooltip:
+              content: "Exponential backoff retry logic for handling transient failures and rate limit errors gracefully."
+          - name: "State Persistence"
+            status: "complete"
+            tooltip:
+              content: "Durable storage of agent state and conversation context for resuming workflows after interruptions."
+          - name: "Crash Recovery"
+            status: "roadmap"
+            tooltip:
+              content: "Automatic detection and recovery from process crashes with workflow continuation."
+              roadmap: "Checkpoint-based recovery and state reconstruction mechanisms."
+          - name: "Multi-Region"
+            status: "roadmap"
+            tooltip:
+              content: "Deploy agents across multiple geographic regions for low latency and high availability."
+              roadmap: "Cross-region state replication and request routing strategies."

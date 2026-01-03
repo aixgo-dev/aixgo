@@ -1,0 +1,48 @@
+# Producer Agent Configuration
+# Generates messages at regular intervals for downstream processing
+# Use case: Data streaming, event generation, monitoring
+
+agents:
+  - name: data-stream-producer
+    # Role defines the agent type - producer generates periodic messages
+    role: producer
+
+    # Interval controls how often messages are produced
+    # Supported formats: ms, s, m, h (e.g., "500ms", "2s", "1m")
+    interval: 1s
+
+    # Outputs define where produced messages are sent
+    # Multiple outputs allow fan-out to different consumers
+    outputs:
+      - target: data-processor
+      - target: data-logger
+
+  # Example consumer that receives from the producer
+  - name: data-processor
+    role: react
+    model: gpt-4
+    prompt: |
+      You are a data analyst. Process incoming data streams and extract insights.
+    inputs:
+      - source: data-stream-producer
+    outputs:
+      - target: results-logger
+
+  - name: data-logger
+    role: logger
+    inputs:
+      - source: data-stream-producer
+
+  - name: results-logger
+    role: logger
+    inputs:
+      - source: data-processor
+
+# Environment variables required:
+# - OPENAI_API_KEY: For the react agent's LLM calls
+
+# Notes:
+# - Producer generates synthetic data with random values
+# - Interval can be adjusted based on throughput requirements
+# - Each message includes timestamp and unique ID
+# - Use for testing pipelines, load generation, or real-time simulations

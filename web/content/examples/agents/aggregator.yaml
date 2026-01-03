@@ -1,0 +1,231 @@
+# Aggregator Agent Configuration
+# AI-powered aggregation of multiple agent outputs
+# Supports consensus, weighted, semantic, hierarchical, and RAG-based aggregation
+
+agents:
+  - name: multi-agent-aggregator
+    role: aggregator
+
+    # Model for synthesizing multiple inputs
+    model: gpt-4-turbo
+
+    prompt: |
+      You are an expert synthesis agent that combines insights from multiple sources.
+      Your goal is to create comprehensive, accurate aggregations that preserve
+      important information while resolving contradictions intelligently.
+
+    # Aggregator-specific configuration
+    aggregator_config:
+      # Aggregation strategy determines how inputs are combined
+      # Options: consensus, weighted, semantic, hierarchical, rag_based
+      aggregation_strategy: consensus
+
+      # How to resolve conflicts between different agent outputs
+      # Options: vote, confidence, llm_arbitration, merge
+      conflict_resolution: llm_arbitration
+
+      # Method for detecting duplicate or similar content
+      # Options: exact, fuzzy, semantic
+      deduplication_method: semantic
+
+      # Whether to generate summary insights
+      summarization_enabled: true
+
+      # Maximum number of input sources to process
+      max_input_sources: 10
+
+      # Timeout for waiting for inputs before aggregating (milliseconds)
+      timeout_ms: 5000
+
+      # Threshold for semantic similarity (0.0 - 1.0)
+      # Higher values mean stricter similarity requirements
+      semantic_similarity_threshold: 0.85
+
+      # Weights for different input sources (optional)
+      # Higher weights give more importance to specific agents
+      source_weights:
+        expert-agent: 1.5
+        fact-checker: 1.3
+        general-agent: 1.0
+
+      # Consensus threshold (0.0 - 1.0)
+      # Minimum agreement level required for consensus
+      consensus_threshold: 0.7
+
+      # LLM parameters
+      temperature: 0.5  # Balanced creativity for synthesis
+      max_tokens: 1500  # More tokens for comprehensive aggregation
+
+    # Multiple input sources to aggregate
+    inputs:
+      - source: expert-agent
+      - source: fact-checker
+      - source: general-agent
+      - source: specialist-agent
+
+    outputs:
+      - target: final-output
+      - target: aggregation-analytics
+
+# Example: Alternative semantic clustering aggregation
+  - name: semantic-aggregator
+    role: aggregator
+    model: claude-3-opus
+
+    aggregator_config:
+      aggregation_strategy: semantic
+      semantic_similarity_threshold: 0.80
+      summarization_enabled: true
+      timeout_ms: 3000
+      temperature: 0.4
+      max_tokens: 2000
+
+    inputs:
+      - source: agent-1
+      - source: agent-2
+      - source: agent-3
+
+    outputs:
+      - target: semantic-results
+
+# Example: Weighted aggregation for prioritized sources
+  - name: weighted-aggregator
+    role: aggregator
+    model: gpt-4
+
+    aggregator_config:
+      aggregation_strategy: weighted
+      source_weights:
+        primary-expert: 2.0    # Double weight
+        secondary-expert: 1.5
+        auxiliary-source: 0.8   # Lower weight
+      timeout_ms: 4000
+      temperature: 0.5
+      max_tokens: 1200
+
+    inputs:
+      - source: primary-expert
+      - source: secondary-expert
+      - source: auxiliary-source
+
+    outputs:
+      - target: weighted-results
+
+# Supporting agents for the pipeline
+  - name: expert-agent
+    role: react
+    model: gpt-4
+    prompt: "You are a domain expert. Provide detailed, accurate analysis."
+    inputs:
+      - source: input-stream
+    outputs:
+      - target: multi-agent-aggregator
+
+  - name: fact-checker
+    role: react
+    model: gpt-4
+    prompt: "You are a fact-checker. Verify claims and provide evidence."
+    inputs:
+      - source: input-stream
+    outputs:
+      - target: multi-agent-aggregator
+
+  - name: general-agent
+    role: react
+    model: gpt-3.5-turbo
+    prompt: "You are a generalist. Provide broad perspective and context."
+    inputs:
+      - source: input-stream
+    outputs:
+      - target: multi-agent-aggregator
+
+  - name: specialist-agent
+    role: react
+    model: gpt-4
+    prompt: "You are a technical specialist. Focus on implementation details."
+    inputs:
+      - source: input-stream
+    outputs:
+      - target: multi-agent-aggregator
+
+  - name: input-stream
+    role: producer
+    interval: 10s
+    outputs:
+      - target: expert-agent
+      - target: fact-checker
+      - target: general-agent
+      - target: specialist-agent
+
+  - name: final-output
+    role: logger
+    inputs:
+      - target: multi-agent-aggregator
+
+  - name: aggregation-analytics
+    role: logger
+    inputs:
+      - source: multi-agent-aggregator
+
+# Environment variables required:
+# - OPENAI_API_KEY: For GPT models
+# - ANTHROPIC_API_KEY: For Claude models
+
+# Output format (JSON):
+# {
+#   "aggregated_content": "Synthesized output combining all inputs...",
+#   "sources": ["expert-agent", "fact-checker", "general-agent", "specialist-agent"],
+#   "strategy_used": "consensus",
+#   "conflicts_resolved": [
+#     {
+#       "topic": "implementation approach",
+#       "conflicting_sources": ["expert-agent", "specialist-agent"],
+#       "resolution": "Combined both approaches based on context",
+#       "reasoning": "Expert suggested A for scalability, specialist suggested B for performance..."
+#     }
+#   ],
+#   "consensus_level": 0.85,
+#   "summary_insights": "Key insights from aggregation...",
+#   "tokens_used": 1234,
+#   "processing_time_ms": 3456,
+#   "semantic_clusters": [
+#     {
+#       "cluster_id": "cluster_0",
+#       "members": ["expert-agent", "fact-checker"],
+#       "core_concept": "security best practices",
+#       "avg_similarity": 0.92
+#     }
+#   ]
+# }
+
+# Aggregation Strategies:
+#
+# 1. consensus: Find common ground among all inputs
+#    - Best for: Combining similar perspectives
+#    - Identifies agreements and resolves conflicts
+#
+# 2. weighted: Prioritize certain sources based on configured weights
+#    - Best for: When some agents are more authoritative
+#    - Maintains weighted influence in final output
+#
+# 3. semantic: Group inputs by semantic similarity
+#    - Best for: Diverse inputs covering different aspects
+#    - Creates clusters of related information
+#
+# 4. hierarchical: Multi-level aggregation (group then synthesize)
+#    - Best for: Large numbers of inputs
+#    - Scales better with many agents
+#
+# 5. rag_based: Retrieval-augmented generation approach
+#    - Best for: Factual synthesis with source attribution
+#    - Maintains traceability to original sources
+
+# Notes:
+# - timeout_ms controls how long to wait for inputs before processing
+# - Aggregator buffers inputs until timeout, then processes batch
+# - Semantic similarity uses text comparison (Levenshtein distance)
+# - For production, consider using embedding-based similarity
+# - Conflict resolution with LLM provides transparent reasoning
+# - Performance metrics tracked: consensus level, processing time, token usage
+# - Use higher temperature (0.5-0.7) for creative synthesis
+# - Lower temperature (0.3-0.4) for factual aggregation

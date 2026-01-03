@@ -1,0 +1,1747 @@
+/**
+ * Aixgo Custom Styles
+ * Works with BlowFish slate color scheme (dark mode)
+ * NO custom color overrides - uses theme's professional colors
+ */
+
+/* ==========================================================================
+   Typography Enhancements
+   ========================================================================== */
+
+/* Import professional fonts for better readability */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* CSS variables consolidated in main.css */
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+/* Hero H1 - Large for homepage impact only */
+.hero-section-wrapper h1 {
+  font-size: var(--text-6xl);  /* 56px */
+  font-weight: 900;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-6);
+}
+
+/* Content page H1 - readable size for documentation */
+h1 {
+  font-size: var(--text-4xl);  /* 36px */
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Section headers */
+h2 {
+  font-size: var(--text-3xl);  /* 30px */
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+}
+
+/* Subsection headers */
+h3 {
+  font-size: var(--text-2xl);  /* 24px */
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Tertiary headers - differentiated from bold text with accent color */
+h4 {
+  font-size: var(--text-lg);  /* 18px */
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  color: rgb(34, 211, 238);  /* Cyan accent for visual hierarchy */
+}
+
+/* Article/blog context - ensure h4 stands out from bold text */
+article h4,
+.prose h4,
+.content h4 {
+  font-size: 1.125rem;  /* 18px */
+  font-weight: 600;
+  color: rgba(34, 211, 238, 0.95);  /* Cyan at 95% opacity */
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+code, pre, .prose code, .prose pre {
+  font-family: var(--font-mono);
+  font-size: 1rem;  /* Larger code text */
+}
+
+/* Responsive typography */
+@media (max-width: 1024px) {
+  .hero-section-wrapper h1 { font-size: var(--text-5xl); }  /* 44px on tablet */
+}
+
+@media (max-width: 768px) {
+  .hero-section-wrapper h1 { font-size: var(--text-4xl); }  /* 36px on mobile */
+  h1 { font-size: var(--text-3xl); }  /* 30px */
+  h2 { font-size: var(--text-2xl); }  /* 24px */
+  h3 { font-size: var(--text-xl); }   /* 20px */
+}
+
+/* ==========================================================================
+   Enhanced Code Blocks (using slate theme colors)
+   ========================================================================== */
+
+.prose pre {
+  border-radius: 12px;
+  padding: 1.5rem;
+  overflow-x: auto;
+  position: relative;
+  margin: 2rem 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Copy button enhancements (BlowFish already provides this) */
+.copy-code-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.copy-code-button:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.copy-code-button:active {
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   Metric Cards (neutral styling for slate theme)
+   ========================================================================== */
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.metric-card {
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.metric-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.metric-number {
+  font-size: 3rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  margin-bottom: 0.5rem;
+}
+
+.metric-label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.metric-comparison {
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+
+/* ==========================================================================
+   Feature Cards
+   ========================================================================== */
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.feature-card {
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+  opacity: 0.6;
+}
+
+.feature-card:hover::before {
+  transform: scaleX(1);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: grayscale(30%);
+  transition: filter 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+  filter: grayscale(0%);
+}
+
+.feature-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.feature-description {
+  line-height: 1.7;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
+
+.feature-benefit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0.8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   Testimonial Cards
+   ========================================================================== */
+
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.testimonial-card {
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.testimonial-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.quote-icon {
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.testimonial-quote {
+  font-size: 1.125rem;
+  line-height: 1.75;
+  margin-bottom: 1.5rem;
+}
+
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.author-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.author-name {
+  font-weight: 600;
+}
+
+.author-title {
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+
+/* ==========================================================================
+   GitHub Stats Widget
+   ========================================================================== */
+
+.github-stats {
+  display: flex;
+  gap: 3rem;
+  padding: 2rem 0;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 3rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  opacity: 0.7;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   Social Proof Elements
+   ========================================================================== */
+
+.social-proof-strip {
+  margin: 2rem 0;
+  padding: 1rem 2rem;
+  border-left: 4px solid;
+  border-radius: 8px;
+  font-size: 1.125rem;
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   CTA Buttons (enhanced, using theme colors)
+   ========================================================================== */
+
+.hero-ctas {
+  display: flex;
+  gap: 1rem;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.cta-primary, .cta-secondary, .cta-tertiary {
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.125rem;
+  transition: all 0.3s ease;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.cta-primary:hover, .cta-secondary:hover, .cta-tertiary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.cta-secondary {
+  border: 2px solid;
+  background: transparent;
+}
+
+/* ==========================================================================
+   Expected Output Styling
+   ========================================================================== */
+
+.expected-output {
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0 2rem 0;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.expected-output::before {
+  content: 'Expected Output';
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.expected-output code {
+  background: none;
+  padding-top: 2rem;
+  display: block;
+}
+
+/* ==========================================================================
+   Comparison Charts
+   ========================================================================== */
+
+.comparison-chart {
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 2rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comparison-chart h3 {
+  margin-bottom: 1.5rem;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chart-label {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.chart-bar {
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.bar-value {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   Scroll Animations
+   ========================================================================== */
+
+.animate-in {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .hero-ctas {
+    flex-direction: column;
+  }
+
+  .metrics-grid,
+  .feature-grid,
+  .testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .github-stats {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .chart-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .chart-label {
+    font-size: 0.875rem;
+  }
+}
+
+/* ==========================================================================
+   Accessibility Improvements
+   ========================================================================== */
+
+/* Focus styles for keyboard navigation */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid;
+  outline-offset: 2px;
+}
+
+/* Reduced motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   UX ENHANCEMENT: Enhanced Visual Hierarchy
+   Phase 1 implementation - November 2025
+   ========================================================================== */
+
+/* Enhanced Typography Scale with Dramatic Size Contrast */
+/* CSS variables consolidated in main.css */
+
+/* ==========================================================================
+   Enhanced Hero Section
+   ========================================================================== */
+
+.hero-section-wrapper {
+  max-width: 1200px;
+  margin: 60px auto 60px;
+  padding: 0 2rem;
+  text-align: center;
+}
+
+.hero-section-wrapper h1 {
+  font-size: 6rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 32px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subheadline {
+  font-size: 1.5rem;
+  line-height: 1.6;
+  opacity: 0.85;
+  margin-bottom: 48px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cta-massive {
+  padding: 20px 40px !important;
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  min-width: 240px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.cta-massive:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.social-proof-strip-enhanced {
+  margin-top: 40px;
+  padding: 20px 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 4px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  font-size: 1.25rem;
+  display: inline-block;
+  backdrop-filter: blur(10px);
+}
+
+.proof-icon {
+  font-size: 1.5rem;
+  margin-right: 12px;
+  vertical-align: middle;
+}
+
+/* ==========================================================================
+   GitHub Stats Section Enhancement
+   ========================================================================== */
+
+.github-stats-section {
+  max-width: 1400px;
+  margin: 80px auto;
+  padding: 60px 2rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.github-stats-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 48px;
+  font-weight: 700;
+}
+
+/* Enhanced stat number styling */
+.github-stats .stat-number {
+  font-size: 4rem;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  display: block;
+  line-height: 1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.github-stats .stat-item {
+  text-align: center;
+  padding: 24px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.github-stats .stat-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-8px);
+}
+
+.github-stats .stat-label {
+  font-size: 1rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Problem Section Enhancement
+   ========================================================================== */
+
+.problem-section {
+  max-width: 1400px;
+  margin: 100px auto;
+  padding: 0 2rem;
+}
+
+.problem-section h2 {
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 40px;
+}
+
+.section-quote {
+  text-align: center;
+  font-size: 1.375rem;
+  font-style: italic;
+  line-height: 1.8;
+  max-width: 900px;
+  margin: 0 auto 60px;
+  opacity: 0.9;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  border-left: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.quote-attribution {
+  font-style: normal;
+  font-size: 1rem;
+  opacity: 0.7;
+  margin-top: 16px;
+  display: block;
+}
+
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 40px;
+  margin-top: 60px;
+}
+
+.problem-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 40px;
+  transition: all 0.3s ease;
+}
+
+.problem-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+}
+
+.problem-icon {
+  font-size: 4rem;
+  margin-bottom: 24px;
+  line-height: 1;
+}
+
+.problem-card h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.problem-stats {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  font-family: var(--font-mono);
+}
+
+.stat-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.stat-bad {
+  color: rgba(255, 100, 100, 0.9);
+  font-weight: 600;
+}
+
+.stat-good {
+  color: rgba(100, 255, 150, 0.9);
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.stat-result {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  padding: 12px;
+  background: rgba(100, 255, 150, 0.1);
+  border-radius: 8px;
+  color: rgba(100, 255, 150, 1);
+}
+
+.problem-card p {
+  line-height: 1.7;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   Metrics Section Enhanced
+   ========================================================================== */
+
+.metrics-section {
+  max-width: 1400px;
+  margin: 80px auto;
+  padding: 80px 2rem;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+  border-radius: 32px;
+  text-align: center;
+}
+
+.metrics-section h2 {
+  font-size: 3.5rem;
+  font-weight: 900;
+  margin-bottom: 24px;
+  line-height: 1.2;
+}
+
+.metrics-subheadline {
+  font-size: 1.375rem;
+  opacity: 0.8;
+  margin-bottom: 60px;
+  line-height: 1.6;
+}
+
+.metrics-grid-enhanced {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+}
+
+.metric-card-enhanced {
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 48px 32px;
+  text-align: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.metric-card-enhanced:hover::before {
+  opacity: 1;
+}
+
+.metric-card-enhanced:hover {
+  transform: translateY(-12px) scale(1.02);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.metric-icon-large {
+  font-size: 5rem;
+  margin-bottom: 24px;
+  line-height: 1;
+  filter: grayscale(0.3);
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.metric-card-enhanced:hover .metric-icon-large {
+  filter: grayscale(0);
+  transform: scale(1.1);
+}
+
+.metric-number-large {
+  font-size: 4.5rem;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  line-height: 1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.metric-label-large {
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 20px;
+  opacity: 0.9;
+}
+
+.metric-impact {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  padding: 12px 20px;
+  background: rgba(100, 255, 150, 0.1);
+  color: rgba(100, 255, 150, 1);
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.metric-comparison-text {
+  font-size: 0.9rem;
+  opacity: 0.6;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Section Dividers
+   ========================================================================== */
+
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  margin: 8rem auto;
+  max-width: 600px;
+}
+
+.section-divider-large {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  margin: 10rem auto;
+  max-width: 800px;
+}
+
+/* ==========================================================================
+   Container Width System
+   ========================================================================== */
+
+.container-xs {
+  max-width: var(--container-xs);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.container-sm {
+  max-width: var(--container-sm);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.container-md {
+  max-width: var(--container-md);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.container-lg {
+  max-width: var(--container-lg);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.container-xl {
+  max-width: var(--container-xl);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* ==========================================================================
+   Mobile Responsive Adjustments
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .hero-section-wrapper h1 {
+    font-size: 4.5rem;
+  }
+
+  .metrics-section h2 {
+    font-size: 2.75rem;
+  }
+
+  .problem-section h2 {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-section-wrapper {
+    margin: 80px auto 60px;
+  }
+
+  .hero-section-wrapper h1 {
+    font-size: 3.5rem;
+  }
+
+  .hero-subheadline {
+    font-size: 1.25rem;
+  }
+
+  .cta-massive {
+    min-width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .problem-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .metrics-grid-enhanced {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-number-large {
+    font-size: 3.5rem;
+  }
+
+  .problem-section h2,
+  .metrics-section h2 {
+    font-size: 2rem;
+  }
+
+  .github-stats-section h2 {
+    font-size: 2rem;
+  }
+
+  .section-divider {
+    margin: 4rem auto;
+  }
+
+  .section-divider-large {
+    margin: 5rem auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-section-wrapper h1 {
+    font-size: 3rem;
+    line-height: 1.15;
+  }
+
+  .hero-subheadline {
+    font-size: 1.125rem;
+  }
+
+  .problem-section h2,
+  .metrics-section h2 {
+    font-size: 1.875rem;
+  }
+
+  .hero-section-wrapper {
+    margin: 60px auto 40px;
+    padding: 0 1rem;
+  }
+
+  .problem-section,
+  .metrics-section {
+    margin: 60px auto;
+    padding: 40px 1rem;
+  }
+
+  .problem-card,
+  .metric-card-enhanced {
+    padding: 28px 20px;
+  }
+
+  .problem-icon,
+  .metric-icon-large {
+    font-size: 3rem;
+  }
+
+  .metric-number-large {
+    font-size: 2.75rem;
+  }
+
+  .social-proof-strip-enhanced {
+    font-size: 1rem;
+    padding: 16px 20px;
+  }
+
+  .section-quote {
+    font-size: 1.125rem;
+    padding: 20px;
+  }
+}
+
+/* Landscape Mobile */
+@media (max-width: 896px) and (orientation: landscape) {
+  .hero-section-wrapper {
+    margin-top: 40px;
+    margin-bottom: 40px;
+  }
+
+  .hero-section-wrapper h1 {
+    font-size: 2.5rem;
+  }
+}
+
+/* ==========================================================================
+   Logo Styling - Navbar and Footer
+   ========================================================================== */
+
+/* Navbar Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
+  margin-right: 1.5rem;
+}
+
+.logo a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.logo img {
+  height: 2rem;
+  width: auto;
+  max-width: 200px;
+  display: block;
+  vertical-align: middle;
+  transition: opacity 0.2s ease;
+}
+
+.logo a:hover img {
+  opacity: 0.85;
+}
+
+.logo a:focus {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Footer Logo */
+.footer-logo {
+  margin-bottom: 0.75rem;
+}
+
+.footer-logo img {
+  height: 1.75rem;
+  width: auto;
+  max-width: 170px;
+  display: block;
+}
+
+/* Responsive Logo Sizing */
+@media (max-width: 768px) {
+  .logo img {
+    height: 1.75rem;
+    max-width: 160px;
+  }
+
+  .footer-logo img {
+    height: 1.5rem;
+    max-width: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo img {
+    height: 1.5rem;
+    max-width: 140px;
+  }
+
+  .logo {
+    margin-right: 1rem;
+  }
+
+  .footer-logo img {
+    height: 1.5rem;
+    max-width: 140px;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* ==========================================================================
+   Comparison Grid - Simple, Clean Layout
+   ========================================================================== */
+
+.comparison-grid {
+  display: grid;
+  gap: 3rem;
+  margin: 3rem 0;
+  max-width: 1024px;
+}
+
+.comparison-grid h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+.comparison-grid ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.comparison-grid li {
+  margin: 0.75rem 0;
+  line-height: 1.6;
+}
+
+.comparison-grid strong {
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .comparison-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ==========================================================================
+   Section Spacing - Generous, Professional
+   ========================================================================== */
+
+article > hr,
+.prose > hr {
+  margin: var(--space-24) 0;  /* 96px between major sections */
+  border: none;
+  height: 1px;
+  opacity: 0.1;
+}
+
+.hero-section-wrapper {
+  margin-top: var(--space-16);   /* 64px */
+  margin-bottom: var(--space-24); /* 96px */
+  padding: var(--space-12) var(--space-6);
+}
+
+.hero-subheadline {
+  font-size: var(--text-xl);
+  line-height: var(--leading-relaxed);
+  opacity: 0.85;
+  margin-bottom: var(--space-12);
+  max-width: 42rem;
+}
+
+/* Increase spacing around sections */
+article section,
+.prose section {
+  margin: var(--space-16) 0;
+}
+
+/* CTA Button - Make it unmissable */
+.cta-massive {
+  font-size: var(--text-xl) !important;
+  padding: 1.25rem 3rem !important;
+  font-weight: 700 !important;
+  min-width: 320px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.cta-massive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 768px) {
+  .cta-massive {
+    font-size: var(--text-lg) !important;
+    padding: 1rem 2rem !important;
+    min-width: 100%;
+  }
+}
+
+/* Hero CTAs container */
+.hero-ctas {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: var(--space-12);
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Professional Table Styling with Visible Borders
+   ========================================================================== */
+
+article table,
+.prose table {
+  width: 100%;
+  margin: 3rem auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  font-size: 1.0625rem;
+  max-width: 1200px;
+}
+
+/* Table header with visible border */
+article thead,
+.prose thead {
+  background: rgba(255, 255, 255, 0.08);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+article thead th,
+.prose thead th {
+  padding: 1.25rem 1.5rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+article thead th:last-child,
+.prose thead th:last-child {
+  border-right: none;
+}
+
+/* Table body with visible borders between rows */
+article tbody tr,
+.prose tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+article tbody tr:last-child,
+.prose tbody tr:last-child {
+  border-bottom: none;
+}
+
+article tbody tr:hover,
+.prose tbody tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Table cells with visible vertical borders */
+article tbody td,
+.prose tbody td {
+  padding: 1.25rem 1.5rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+article tbody td:last-child,
+.prose tbody td:last-child {
+  border-right: none;
+}
+
+/* First column styling with stronger border */
+article tbody td:first-child,
+.prose tbody td:first-child {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.03);
+  border-right: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Strong emphasis in tables */
+article table strong,
+.prose table strong {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.98);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  article table,
+  .prose table {
+    font-size: 0.9375rem;
+    margin: 2rem auto;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  article thead th,
+  .prose thead th {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+
+  article tbody td,
+  .prose tbody td {
+    padding: 1rem;
+  }
+}
+
+/* Code block improvements */
+pre {
+  margin: var(--space-8) 0 !important;
+  border-radius: 8px !important;
+}
+
+code {
+  font-size: 0.95rem !important;
+}
+
+/* Lists improvements */
+ul, ol {
+  margin: var(--space-6) 0;
+  padding-left: 1.5rem;
+}
+
+li {
+  margin: 0.5rem 0;
+  line-height: var(--leading-relaxed);
+}
+
+/* Strong emphasis */
+strong {
+  font-weight: 700;
+}
+
+/* Hero Tagline - Half size of H1, directly under brand name */
+.hero-tagline {
+  font-size: var(--text-4xl);  /* 48px - half of 96px H1 */
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  margin-top: 0;
+  margin-bottom: var(--space-8);
+  opacity: 0.9;
+}
+
+@media (max-width: 1024px) {
+  .hero-tagline {
+    font-size: var(--text-3xl);  /* 36px on tablet */
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-tagline {
+    font-size: var(--text-2xl);  /* 30px on mobile */
+  }
+}
+
+/* Fix page layout to look like a proper hero */
+article.max-w-prose {
+  max-width: 100% !important;
+}
+
+.prose {
+  max-width: 100% !important;
+}
+
+/* Center the hero section */
+.hero-section-wrapper {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* Center all main content sections */
+article > * {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* Center headings */
+article h2 {
+  text-align: center;
+}
+
+/* Center CTAs */
+.hero-ctas {
+  justify-content: center;
+}
+
+/* Comparison grid should be centered */
+.comparison-grid {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Tables should be centered with max width */
+article table {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1024px;
+}
+
+/* Code blocks should have max width */
+article pre {
+  max-width: 1024px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Hide BlowFish's auto-generated hero title to prevent duplicate "Aixgo" */
+.hero-title {
+  display: none !important;
+}
+
+/* Also try hiding by article title class */
+article.hero .article-title {
+  display: none !important;
+}
+
+/* And header title in hero layout */
+.hero header h1:first-child {
+  display: none !important;
+}
+/* Hide BlowFish's auto-generated hero H1 (lines 70-80 in hero.html template) */
+article.prose > div > div > div > div > div > h1.mb-2.text-4xl {
+  display: none !important;
+}
+
+/* Also hide the author headline H2 if present */
+article.prose > div > div > div > div > div > h2.mt-0.mb-0.text-xl {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Code Section Improvements - Inline Labels
+   ========================================================================== */
+
+.code-section {
+  margin: 2rem 0;
+  text-align: left;
+  max-width: 1024px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 2rem;
+}
+
+.code-label {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+  text-align: left;
+  width: fit-content;
+}
+
+.code-section pre {
+  margin-top: 0.75rem !important;
+}
+
+/* ==========================================================================
+   Comparison Table Enhancement
+   ========================================================================== */
+
+.comparison-table-section {
+  max-width: 1200px;
+  margin: 4rem auto;
+  padding: 0 2rem;
+}
+
+.comparison-intro {
+  text-align: center;
+  font-size: 1.25rem;
+  line-height: 1.7;
+  max-width: 900px;
+  margin: 0 auto 3rem;
+  opacity: 0.9;
+}
+
+.comparison-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.comparison-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.comparison-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.comparison-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.comparison-card .comparison-item {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.comparison-card .comparison-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+}
+
+.comparison-card .comparison-value {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.comparison-card .comparison-impact {
+  display: block;
+  font-size: 0.9rem;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Features List - Left Aligned
+   ========================================================================== */
+
+.features-section {
+  max-width: 900px;
+  margin: 4rem auto;
+  padding: 0 2rem;
+}
+
+.features-intro {
+  font-size: 1.25rem;
+  line-height: 1.7;
+  margin-bottom: 3rem;
+  opacity: 0.9;
+}
+
+.feature-item {
+  margin: 2.5rem 0;
+  padding-left: 0;
+}
+
+.feature-item h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  text-align: left;
+}
+
+.feature-item p {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  opacity: 0.85;
+  margin: 0;
+}
+
+/* ==========================================================================
+   Roadmap Layout - Clean & Professional
+   ========================================================================== */
+
+.timeline-section {
+  max-width: 900px;
+  margin: 4rem auto;
+  padding: 0 2rem;
+}
+
+.timeline {
+  margin-top: 3rem;
+}
+
+.timeline-item {
+  margin-bottom: 3rem;
+}
+
+.timeline-period {
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.timeline-content ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.timeline-content li {
+  margin: 0.5rem 0;
+  font-size: 1.125rem;
+  line-height: 1.7;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   Section Title Improvements
+   ========================================================================== */
+
+.section-title-reduced {
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+  margin: 3rem 0 2rem 0 !important;
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  opacity: 0.7;
+  font-weight: 400;
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+}
+
+/* ==========================================================================
+   Mobile Responsive for New Components
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .comparison-cards {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .timeline-item {
+    margin-bottom: 2rem;
+  }
+
+  .timeline-period {
+    font-size: 1.125rem;
+  }
+
+  .timeline-content li {
+    font-size: 1rem;
+  }
+
+  .section-title-reduced {
+    font-size: 2rem !important;
+  }
+}
+

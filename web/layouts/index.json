@@ -1,0 +1,12 @@
+{{- $.Scratch.Add "index" slice -}}
+{{- range .Site.RegularPages -}}
+  {{- $.Scratch.Add "index" (dict "content" .Plain "date" (.Date.Format "02 January 2006") "externalUrl" .Params.externalUrl "permalink" .Permalink "section" .Section "summary" .Summary "title" .Title "type" .Type) -}}
+{{- end -}}
+{{- range .Site.Taxonomies -}}
+  {{- range . -}}
+    {{- range .Pages -}}
+      {{- $.Scratch.Add "index" (dict "content" "" "date" "" "externalUrl" .Params.externalUrl "permalink" .Permalink "section" .Section "summary" "" "title" .Title "type" .Type) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $.Scratch.Get "index" | jsonify -}}

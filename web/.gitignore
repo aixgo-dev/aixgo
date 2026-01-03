@@ -1,0 +1,25 @@
+# Hugo build directories
+/public/
+/resources/_gen/
+/assets/jsconfig.json
+
+# Hugo cache
+.hugo_build.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node modules (if using npm/yarn)
+node_modules/
+
+# Temporary files
+*.tmp
+*.log

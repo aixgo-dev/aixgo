@@ -1,0 +1,77 @@
+# Security Configuration: Disabled (Development Only)
+# WARNING: Never use this configuration in production!
+# For local development and testing only.
+
+environment: development
+auth_mode: disabled
+
+# No authentication required
+# All requests are accepted without identity verification
+# Use only on localhost or isolated development environments
+
+authorization:
+  enabled: false
+  default_deny: false
+  # No access control - all operations allowed
+
+audit:
+  enabled: false
+  backend: memory
+  log_auth_decisions: false
+  # Minimal logging to reduce development noise
+
+# Agent configuration with no security
+agents:
+  - name: dev-agent
+    role: react
+    model: gpt-4
+    prompt: "You are a development assistant with unrestricted access."
+    inputs:
+      - source: dev-input
+    outputs:
+      - target: dev-output
+
+  - name: dev-input
+    role: producer
+    interval: 10s
+    outputs:
+      - target: dev-agent
+
+  - name: dev-output
+    role: logger
+    inputs:
+      - source: dev-agent
+
+# Use Cases:
+# - Local development on laptop
+# - Unit testing
+# - Integration testing (isolated environment)
+# - Prototyping and experimentation
+
+# Security Warnings:
+# 1. NEVER expose this configuration to the internet
+# 2. NEVER use in production, staging, or any shared environment
+# 3. NEVER commit API keys with this config
+# 4. ONLY use on localhost or isolated networks
+
+# How to Use Safely:
+# 1. Run only on localhost (127.0.0.1)
+# 2. Use firewall to block external access
+# 3. Don't commit sensitive data to git
+# 4. Switch to proper auth before deployment
+# 5. Use environment-specific configs
+
+# Migration to Production:
+# Before deploying:
+# 1. Change environment to "production"
+# 2. Set auth_mode to "builtin", "delegated", or "hybrid"
+# 3. Enable authorization with default_deny: true
+# 4. Enable audit logging with appropriate backend
+# 5. Test authentication and authorization thoroughly
+
+# Notes:
+# - This is the simplest configuration possible
+# - Ideal for rapid development iteration
+# - No overhead from auth checks
+# - Fast startup and testing
+# - Remember to switch to secure config before any deployment

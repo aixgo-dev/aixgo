@@ -1,0 +1,280 @@
+# xAI Grok Provider Configuration
+# Access to Grok models from xAI (X.AI / Twitter)
+# OpenAI-compatible API interface
+
+agents:
+  - name: grok-agent
+    role: react
+
+    # xAI Grok model selection
+    # Available: grok-beta, grok-1
+    model: grok-beta
+
+    prompt: |
+      You are Grok, xAI's conversational AI assistant.
+      You have a witty, helpful personality and can access real-time information.
+      Provide accurate, engaging, and sometimes humorous responses.
+
+    tools:
+      - name: search_web
+        description: "Search the web for current information"
+        input_schema:
+          type: object
+          properties:
+            query:
+              type: string
+              description: "Search query"
+            max_results:
+              type: number
+              description: "Maximum results to return"
+              default: 5
+          required: [query]
+
+      - name: analyze_trends
+        description: "Analyze current trends and discussions"
+        input_schema:
+          type: object
+          properties:
+            topic:
+              type: string
+              description: "Topic to analyze"
+            platform:
+              type: string
+              enum: ["twitter", "web", "news"]
+              default: "web"
+          required: [topic]
+
+    inputs:
+      - source: user-queries
+    outputs:
+      - target: grok-responses
+
+# Example: Real-time information assistant
+  - name: grok-realtime-agent
+    role: react
+    model: grok-beta
+
+    prompt: |
+      You are a real-time information assistant with access to current data.
+      Provide up-to-date information on current events, trends, and discussions.
+      Always cite sources and indicate when information is time-sensitive.
+
+    tools:
+      - name: get_current_events
+        description: "Get latest news and events"
+        input_schema:
+          type: object
+          properties:
+            category:
+              type: string
+              enum: ["tech", "business", "science", "general"]
+            region:
+              type: string
+              description: "Geographic region"
+          required: [category]
+
+    inputs:
+      - source: news-queries
+    outputs:
+      - target: realtime-responses
+
+# Example: Conversational agent with personality
+  - name: grok-conversational-agent
+    role: react
+    model: grok-beta
+
+    prompt: |
+      You are Grok with a distinctive personality: witty, insightful, and slightly irreverent.
+      Engage in natural conversation while being helpful and informative.
+      Don't be afraid to inject humor when appropriate.
+
+    inputs:
+      - source: chat-stream
+    outputs:
+      - target: chat-responses
+
+# Supporting agents
+  - name: user-queries
+    role: producer
+    interval: 15s
+    outputs:
+      - target: grok-agent
+
+  - name: grok-responses
+    role: logger
+    inputs:
+      - source: grok-agent
+
+# Environment variables required:
+# - XAI_API_KEY: Your xAI API key (required)
+#     Get from: https://console.x.ai
+#
+# - XAI_BASE_URL: Custom base URL (optional)
+#     Default: https://api.x.ai/v1
+
+# Configuration via environment:
+# export XAI_API_KEY="xai-..."
+# export XAI_BASE_URL="https://api.x.ai/v1"  # optional
+
+# Model Information:
+#
+# Grok-Beta:
+#   - Latest model with ongoing improvements
+#   - Real-time information access
+#   - Conversational and witty personality
+#   - Context: Large context window
+#   - Speed: Fast responses (2-4 seconds typical)
+#   - Use for: General tasks, real-time info, conversation
+#
+# Grok-1:
+#   - Stable version of Grok
+#   - Consistent performance
+#   - Same capabilities as beta
+#   - Use for: Production deployments requiring stability
+
+# Key Features:
+# - Real-time Information: Access to current web data
+# - X (Twitter) Integration: Can reference recent posts/trends
+# - Conversational: Natural, engaging dialogue style
+# - OpenAI Compatible: Uses OpenAI-style API
+# - Function Calling: Tool use capabilities
+# - Streaming: Real-time response generation
+# - Personality: Distinctive witty character
+
+# Pricing:
+# - Contact xAI for current pricing
+# - Usage-based pricing model
+# - Different tiers available
+# - Check console.x.ai for details
+
+# Rate Limits:
+# - Varies by account tier
+# - Check your dashboard for current limits
+# - Implement retry logic for rate limit errors
+
+# Best Practices:
+# 1. Leverage real-time capabilities for current information
+# 2. Use witty personality appropriately for use case
+# 3. Implement streaming for better UX
+# 4. Cache responses when appropriate
+# 5. Monitor rate limits and usage
+# 6. Use function calling for structured outputs
+# 7. Test personality fit for your application
+# 8. Implement error handling for API failures
+# 9. Consider fallback to other providers
+# 10. Document xAI-specific behaviors for your team
+
+# Real-time Information Access:
+# Grok has unique capabilities for current information:
+# - Recent web content (within hours/days)
+# - X (Twitter) posts and trends
+# - News and current events
+# - Market data and trends
+# - Breaking news
+#
+# This makes Grok particularly useful for:
+# - News aggregation and analysis
+# - Trend analysis and reporting
+# - Current event Q&A
+# - Social media monitoring
+# - Real-time fact-checking
+
+# OpenAI API Compatibility:
+# Grok uses OpenAI-compatible endpoints:
+# - Same request/response format
+# - Function calling works the same
+# - Streaming uses SSE
+# - Easy migration from/to OpenAI
+# - Minimal code changes needed
+
+# Personality Considerations:
+# Grok has a distinctive personality:
+# - Witty and sometimes humorous
+# - Direct and honest
+# - Slightly irreverent
+# - Engaging conversational style
+#
+# This personality:
+# + Makes interactions more engaging
+# + Can improve user experience
+# + Memorable brand association
+# - May not suit all professional contexts
+# - Requires consideration for enterprise use
+# - Test thoroughly for your audience
+
+# Use Cases:
+#
+# Excellent for:
+# - News and current events
+# - Social media analysis
+# - Trend monitoring
+# - Conversational interfaces
+# - Real-time Q&A
+# - Market analysis
+# - Breaking news alerts
+#
+# Consider alternatives for:
+# - Highly formal/serious contexts
+# - Maximum token efficiency
+# - Extensive tool ecosystems
+# - Long-document analysis (if context limited)
+# - Mission-critical accuracy (always verify)
+
+# Comparison with Other Providers:
+#
+# vs OpenAI GPT-4:
+# + Real-time information access
+# + Distinctive personality
+# - Smaller ecosystem
+# - Less mature platform
+#
+# vs Anthropic Claude:
+# + Real-time web access
+# + More engaging personality
+# - Shorter context window
+# - Less sophisticated reasoning
+#
+# vs Google Gemini:
+# + Better real-time information
+# + More personality
+# = Similar API compatibility
+
+# Integration Notes:
+# - API is OpenAI-compatible
+# - Drop-in replacement for OpenAI in many cases
+# - Function calling format matches OpenAI
+# - Streaming response format compatible
+# - Easy to add as alternative provider
+# - Minimal configuration changes needed
+
+# Error Handling:
+# Implement robust error handling:
+# - Rate limit errors (429)
+# - API errors (5xx)
+# - Invalid requests (400)
+# - Authentication errors (401)
+# - Timeout handling
+# - Retry with exponential backoff
+# - Fallback to alternative providers
+
+# Monitoring and Observability:
+# Track key metrics:
+# - Request latency
+# - Token usage
+# - Error rates
+# - Rate limit hits
+# - Cost per request
+# - User satisfaction
+# - Real-time info accuracy
+
+# Notes:
+# - API key automatically loaded from XAI_API_KEY
+# - Provider auto-detected from model name (grok-*)
+# - OpenAI-compatible API makes integration easy
+# - Real-time information is a key differentiator
+# - Personality may need testing for your use case
+# - Streaming recommended for better UX
+# - Function calling supported
+# - Monitor for rate limits and costs
+# - Consider as complement to other providers
+# - Unique for X (Twitter) integration

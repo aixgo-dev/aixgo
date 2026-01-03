@@ -1,0 +1,30 @@
+# Multi-Expert Consensus: Multiple experts reach consensus
+agents:
+  - name: expert-1
+    role: react
+    model: gpt-4
+    prompt: "You are a technical expert."
+    outputs:
+      - target: consensus-builder
+  - name: expert-2
+    role: react
+    model: claude-3-opus
+    prompt: "You are a business expert."
+    outputs:
+      - target: consensus-builder
+  - name: expert-3
+    role: react
+    model: gpt-4
+    prompt: "You are a domain specialist."
+    outputs:
+      - target: consensus-builder
+  - name: consensus-builder
+    role: aggregator
+    model: gpt-4-turbo
+    aggregator_config:
+      aggregation_strategy: consensus
+      consensus_threshold: 0.8
+    inputs:
+      - source: expert-1
+      - source: expert-2
+      - source: expert-3

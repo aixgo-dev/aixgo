@@ -1,0 +1,78 @@
+# MapReduce Orchestration Pattern
+# Distributes work across multiple agents, then aggregates results
+# Use case: Parallel processing of large datasets, distributed analysis
+
+supervisor:
+  name: mapreduce-supervisor
+  model: gpt-4-turbo
+  pattern: mapreduce
+  max_rounds: 10
+
+agents:
+  # Map phase: Multiple workers process different data partitions
+  - name: mapper-1
+    role: react
+    model: gpt-4
+    prompt: |
+      You are a mapper agent processing partition 1 of the data.
+      Analyze your partition and extract key insights.
+    inputs:
+      - source: data-stream
+    outputs:
+      - target: reducer
+
+  - name: mapper-2
+    role: react
+    model: gpt-4
+    prompt: |
+      You are a mapper agent processing partition 2 of the data.
+      Analyze your partition and extract key insights.
+    inputs:
+      - source: data-stream
+    outputs:
+      - target: reducer
+
+  - name: mapper-3
+    role: react
+    model: gpt-4
+    prompt: |
+      You are a mapper agent processing partition 3 of the data.
+      Analyze your partition and extract key insights.
+    inputs:
+      - source: data-stream
+    outputs:
+      - target: reducer
+
+  # Reduce phase: Aggregate results from all mappers
+  - name: reducer
+    role: aggregator
+    model: gpt-4-turbo
+    aggregator_config:
+      aggregation_strategy: hierarchical
+      timeout_ms: 5000
+      summarization_enabled: true
+    inputs:
+      - source: mapper-1
+      - source: mapper-2
+      - source: mapper-3
+    outputs:
+      - target: final-results
+
+  - name: data-stream
+    role: producer
+    interval: 20s
+    outputs:
+      - target: mapper-1
+      - target: mapper-2
+      - target: mapper-3
+
+  - name: final-results
+    role: logger
+    inputs:
+      - source: reducer
+
+# MapReduce Pattern:
+# - Map: Distribute work to multiple agents in parallel
+# - Reduce: Aggregate results from all mappers
+# - Scales horizontally by adding more mappers
+# - Ideal for data-parallel workloads

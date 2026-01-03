@@ -1,0 +1,12 @@
+# Parallel Orchestration: Multiple agents work independently
+supervisor:
+  pattern: parallel
+agents:
+  - name: parallel-agent-1
+    role: react
+    model: gpt-4
+    prompt: "Independent analysis agent 1"
+  - name: parallel-agent-2
+    role: react
+    model: gpt-4
+    prompt: "Independent analysis agent 2"

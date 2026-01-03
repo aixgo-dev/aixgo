@@ -1,0 +1,63 @@
+# -- Main Menu --
+
+[[main]]
+  name = "Home"
+  url = "/"
+  weight = 5
+
+[[main]]
+  name = "Docs"
+  url = "/docs"
+  weight = 7
+
+[[main]]
+  name = "Features"
+  pageRef = "features"
+  weight = 10
+
+[[main]]
+  name = "Why Aixgo"
+  pageRef = "why-aixgo"
+  weight = 15
+
+[[main]]
+  name = "Blog"
+  pageRef = "blog"
+  weight = 20
+
+[[main]]
+  name = "GitHub"
+  url = "https://github.com/aixgo-dev/aixgo"
+  weight = 25
+
+# -- Footer Menu --
+
+[[footer]]
+  name = "Proverbs"
+  pageRef = "proverbs"
+  weight = 3
+
+[[footer]]
+  name = "Features"
+  pageRef = "features"
+  weight = 5
+
+[[footer]]
+  name = "GitHub"
+  url = "https://github.com/aixgo-dev/aixgo"
+  weight = 10
+
+[[footer]]
+  name = "Discussions"
+  url = "https://github.com/aixgo-dev/aixgo/discussions"
+  weight = 20
+
+[[footer]]
+  name = "Roadmap"
+  url = "https://github.com/orgs/aixgo-dev/projects/1"
+  weight = 30
+
+[[footer]]
+  name = "Report an Issue"
+  url = "https://github.com/aixgo-dev/aixgo/issues"
+  weight = 40

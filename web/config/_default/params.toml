@@ -1,0 +1,11 @@
+# -- Aixgo Site Parameters --
+
+# Site description
+description = "Production-grade AI agent framework built for Go developers"
+author = "Charles Green"
+
+# Social links
+github = "https://github.com/aixgo-dev/aixgo"
+
+# Footer text
+footerText = "MIT Licensed · Open Source · Community Driven"

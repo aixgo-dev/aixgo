@@ -1,0 +1,139 @@
+# RAG Chatbot: Knowledge-based question answering using vector search
+# This example demonstrates using vector databases for retrieval-augmented generation
+# to answer questions with factual information from a knowledge base.
+
+# Supervisor coordinates indexing and query operations
+supervisor:
+  name: rag-coordinator
+  model: gpt-4-turbo
+  max_rounds: 5
+
+# Embedding configuration for generating vector representations
+embeddings:
+  provider: openai
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    model: text-embedding-3-small  # 1536 dimensions, cost-efficient
+
+# Vector store for persistent document storage
+vectorstore:
+  provider: firestore  # Use 'memory' for development
+  embedding_dimensions: 1536  # Must match embedding model
+  default_top_k: 5
+  firestore:
+    project_id: ${GCP_PROJECT}
+    collection: knowledge_base
+    # credentials_file: /path/to/service-account.json  # Optional: uses ADC if not set
+
+agents:
+  # Agent 1: Document indexer for ingesting knowledge
+  - name: knowledge-indexer
+    role: indexer
+    description: Prepares and indexes documents into the vector database
+    tools:
+      - name: chunk_document
+        description: "Break large documents into semantic chunks for better retrieval"
+        input_schema:
+          type: object
+          properties:
+            document:
+              type: string
+              description: "The full document text to chunk"
+            chunk_size:
+              type: number
+              default: 500
+              description: "Target size for each chunk in tokens"
+            overlap:
+              type: number
+              default: 50
+              description: "Number of tokens to overlap between chunks"
+          required: [document]
+
+      - name: index_document
+        description: "Store a document chunk in the vector database with embeddings"
+        vectorstore:
+          collection: knowledge_base
+          generate_embedding: true  # Automatically embed content
+        input_schema:
+          type: object
+          properties:
+            id:
+              type: string
+              description: "Unique document identifier"
+            content:
+              type: string
+              description: "Document content to index"
+            metadata:
+              type: object
+              description: "Additional metadata (source, category, date, etc.)"
+              properties:
+                source: { type: string }
+                category: { type: string }
+                author: { type: string }
+                date: { type: string }
+          required: [id, content]
+
+  # Agent 2: RAG chatbot for answering questions
+  - name: rag-chatbot
+    role: react
+    model: gpt-4-turbo
+    prompt: |
+      You are a knowledgeable AI assistant with access to a comprehensive knowledge base.
+
+      When answering questions:
+      1. ALWAYS search the knowledge base first using the search_knowledge tool
+      2. Base your answers on the retrieved information
+      3. Cite specific document IDs as sources (e.g., "According to doc-123...")
+      4. If the knowledge base lacks relevant information, clearly state this
+      5. Provide accurate, well-structured answers
+
+      Do not make up information. Only use what you retrieve from the knowledge base.
+    tools:
+      - name: search_knowledge
+        description: "Search the vector database for relevant documents using semantic similarity"
+        vectorstore:
+          collection: knowledge_base
+          top_k: 5  # Number of most similar documents to retrieve
+          min_score: 0.7  # Minimum similarity threshold (0.0-1.0)
+          generate_embedding: true  # Automatically embed the query
+        input_schema:
+          type: object
+          properties:
+            query:
+              type: string
+              description: "The search query or question"
+            filters:
+              type: object
+              description: "Optional metadata filters"
+              properties:
+                category: { type: string }
+                source: { type: string }
+                date_after: { type: string }
+          required: [query]
+
+      - name: get_document
+        description: "Retrieve the full content of a specific document by ID"
+        vectorstore:
+          collection: knowledge_base
+        input_schema:
+          type: object
+          properties:
+            document_id:
+              type: string
+              description: "The unique ID of the document to retrieve"
+          required: [document_id]
+
+    inputs:
+      - source: user
+        description: "User questions and requests"
+    outputs:
+      - target: user
+        description: "AI-generated answers with citations"
+
+  # Agent 3: Interaction logger for observability
+  - name: interaction-logger
+    role: logger
+    description: Logs all interactions for debugging and analytics
+    inputs:
+      - source: rag-chatbot
+      - source: user

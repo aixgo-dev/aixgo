@@ -1,0 +1,133 @@
+# Classifier Agent Configuration
+# AI-powered content classification with semantic understanding
+# Supports multi-label classification, few-shot learning, and confidence scoring
+
+agents:
+  - name: content-classifier
+    role: classifier
+
+    # LLM model for semantic classification
+    # Lower temperature (0.3) recommended for consistent categorization
+    model: gpt-4-turbo
+
+    # System prompt for classification context
+    prompt: |
+      You are an expert content classifier with deep semantic understanding.
+      Analyze content carefully and assign the most appropriate category.
+      Consider context, intent, and subtle nuances in the text.
+
+    # Classifier-specific configuration
+    classifier_config:
+      # Available categories with descriptions and examples
+      categories:
+        - name: technical
+          description: "Technical documentation, code, engineering topics"
+          keywords: ["api", "code", "architecture", "implementation", "debugging"]
+          examples:
+            - "How to implement OAuth 2.0 authentication"
+            - "Database indexing strategies for performance"
+
+        - name: business
+          description: "Business strategy, market analysis, financial topics"
+          keywords: ["revenue", "market", "strategy", "roi", "stakeholder"]
+          examples:
+            - "Q4 revenue projections and market trends"
+            - "Competitive analysis of SaaS pricing models"
+
+        - name: support
+          description: "Customer support, troubleshooting, help requests"
+          keywords: ["help", "issue", "problem", "error", "not working"]
+          examples:
+            - "I can't log into my account"
+            - "The application crashes when I upload files"
+
+        - name: feedback
+          description: "User feedback, feature requests, suggestions"
+          keywords: ["suggest", "would be nice", "feature request", "improvement"]
+          examples:
+            - "It would be great to have dark mode"
+            - "The search functionality could be faster"
+
+        - name: general
+          description: "General inquiries, greetings, uncategorized content"
+          keywords: ["hello", "hi", "thanks", "information", "about"]
+          examples:
+            - "Hello, I'd like to know more about your product"
+            - "Thank you for the quick response"
+
+      # Use embeddings for semantic similarity (requires embedding-capable model)
+      use_embeddings: false
+
+      # Confidence threshold for accepting classification (0.0 - 1.0)
+      # Classifications below this threshold may return alternatives
+      confidence_threshold: 0.7
+
+      # Allow multiple labels per input
+      multi_label: false
+
+      # Few-shot examples to improve classification accuracy
+      few_shot_examples:
+        - input: "Our API is returning 500 errors intermittently"
+          category: technical
+          reason: "Describes a technical API issue requiring engineering investigation"
+
+        - input: "What's the pricing for enterprise customers?"
+          category: business
+          reason: "Business inquiry about pricing and commercial terms"
+
+        - input: "The app keeps freezing on my iPhone"
+          category: support
+          reason: "User experiencing a technical problem needing support"
+
+      # LLM parameters for classification
+      temperature: 0.3  # Low temperature for consistent classification
+      max_tokens: 500   # Sufficient for classification + reasoning
+
+    inputs:
+      - source: content-stream
+
+    outputs:
+      - target: classification-router
+      - target: analytics-logger
+
+# Supporting pipeline agents
+  - name: content-stream
+    role: producer
+    interval: 5s
+    outputs:
+      - target: content-classifier
+
+  - name: classification-router
+    role: logger
+    inputs:
+      - source: content-classifier
+
+  - name: analytics-logger
+    role: logger
+    inputs:
+      - source: content-classifier
+
+# Environment variables required:
+# - OPENAI_API_KEY: For GPT models
+# - ANTHROPIC_API_KEY: If using Claude models
+
+# Output format (JSON):
+# {
+#   "category": "technical",
+#   "confidence": 0.92,
+#   "reasoning": "The content discusses API implementation details and authentication protocols",
+#   "alternatives": [
+#     {"category": "support", "confidence": 0.45}
+#   ],
+#   "tokens_used": 234,
+#   "prompt_strategy": "few-shot"
+# }
+
+# Notes:
+# - Few-shot examples significantly improve accuracy
+# - Confidence threshold filters uncertain classifications
+# - Categories should be mutually exclusive unless multi_label is enabled
+# - The agent tracks performance metrics (accuracy, token usage)
+# - Use structured output for reliable JSON responses
+# - Keywords and examples help the LLM understand category boundaries
+# - Temperature should be low (0.2-0.4) for consistent results
