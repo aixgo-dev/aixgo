@@ -12,42 +12,27 @@ showAuthor: true
 
 Your AI agent doesn't need 1.5GB to say hello.
 
-Python-based agent frameworks produce massive containers—1GB+, 30-second cold starts, and dependency hell. They're built for research and rapid prototyping, not for production
-systems that need to ship, scale, and stay running.
+Python frameworks produce massive containers—1GB+, 30-second cold starts, and dependency hell. They're built for research, not production systems that need to ship and scale.
 
 Today, we're launching **Aixgo alpha**—an AI agent framework built for Go developers who refuse to compromise on performance, security, or simplicity.
 
-## The Python Problem
+## Why Aixgo?
 
-I've spent the last decade building production systems in Go. Fast, secure, simple—everything compiles to a single binary that just works. Then came the AI revolution, and suddenly
-everyone said: "Just rewrite the AI layer in Python."
-
-That meant trading a 5MB binary for a 1.5GB container. Sacrificing type safety for runtime errors. Accepting 45-second cold starts instead of instant startup. And dealing with
-dependency conflicts that would make any DevOps engineer weep.
-
-**There had to be a better way.**
-
-## Why We Built Aixgo
-
-Python excels at AI research and prototyping. Libraries like LangChain, CrewAI, and AutoGen make it trivial to experiment with multi-agent workflows. But when it's time to ship to
-production, these frameworks reveal their limitations:
+Python excels at AI research and prototyping, but production deployments reveal critical limitations:
 
 - **Bloated deployments** - 1GB+ containers with 200+ dependencies
-- **Runtime surprises** - Type errors that should have been caught at compile time
-- **GIL limitations** - No true parallelism, even with multi-threading
-- **Scaling complexity** - Manual queue management, service orchestration headaches
-- **Security vulnerabilities** - Large attack surface from extensive dependency trees
+- **Runtime surprises** - Type errors caught in production, not compile time
+- **GIL limitations** - No true parallelism
+- **Scaling complexity** - Manual orchestration overhead
+- **Security vulnerabilities** - Large attack surface
 
-Aixgo exists because **production AI deserves production tooling.** Go developers shouldn't have to abandon their stack's strengths—speed, security, simplicity, and
-scalability—just to build AI agents.
+Aixgo exists because **production AI deserves production tooling.** Go developers shouldn't abandon their stack's strengths just to build AI agents.
 
-## What is Aixgo?
-
-Aixgo is a multi-agent framework for Go that brings production-grade orchestration to AI systems. It's built on three core principles:
+## Core Principles
 
 ### 1. Single Binary Simplicity
 
-Deploy AI agents in <10MB binaries with zero runtime dependencies. No Python interpreter, no virtual environments, no Docker required (though it works great with containers).
+Deploy AI agents in <10MB binaries with zero runtime dependencies.
 
 ```bash
 # Python AI service
@@ -65,7 +50,7 @@ CMD ["/aixgo-agent"]  # 8MB total
 
 ### 2. Type-Safe Architecture
 
-Catch errors at compile time, not in production. Go's type system enforces contracts between agents, tools, and workflows—your IDE tells you what's broken before your customers do.
+Catch errors at compile time. Go's type system enforces contracts between agents, tools, and workflows.
 
 ```go
 // This won't compile - caught before deployment
@@ -77,7 +62,7 @@ agent := aixgo.NewAgent(
 
 ### 3. Seamless Scaling
 
-Start with Go channels for local development. Scale to distributed agents with gRPC. **Same code, zero changes.** The runtime abstraction handles transport automatically.
+Start with Go channels locally. Scale to distributed agents with gRPC. **Same code, zero changes.**
 
 ```go
 // This code works locally AND distributed
@@ -88,8 +73,6 @@ supervisor.Run()  // Local: channels, Distributed: gRPC
 ```
 
 ## Quick Example
-
-Here's a three-agent data pipeline—producer, analyzer, logger—orchestrated by a supervisor:
 
 ```go
 package main
@@ -106,40 +89,9 @@ func main() {
 }
 ```
 
-Configure agents declaratively in YAML, run with `go run main.go`, and deploy as a single binary. That's it.
-
-See the [Quick Start Guide](/guides/quick-start) for the complete walkthrough.
-
-## How It Works
-
-Aixgo uses a message-based multi-agent architecture with seven specialized agent types:
-
-**Producer**, **ReAct**, **Classifier**, **Aggregator**, **Planner**, **Logger**, and **Custom** agents—each with multiple strategies for different scenarios. A supervisor orchestrates message routing, lifecycle management, and execution constraints.
-
-Here's a ReAct agent with tool calling:
-
-```yaml
-agents:
-  - name: analyst
-    role: react
-    model: gpt-4-turbo
-    prompt: 'You are an expert data analyst.'
-    tools:
-      - name: query_database
-        description: 'Query the database'
-        input_schema:
-          type: object
-          properties:
-            query: { type: string }
-```
-
-The runtime abstracts communication: **Go channels** for local development, **gRPC/MCP** for distributed production. Same code, zero changes when you scale.
-
-For complete architecture details, patterns, and examples, see our [Core Concepts Guide](/guides/core-concepts).
+Configure agents declaratively in YAML. See the [Quick Start Guide](/guides/quick-start) for details.
 
 ## Production Performance
-
-Here's how Aixgo compares to equivalent Python frameworks in production workloads:
 
 <div class="advantage-table-wrapper">
 
@@ -154,19 +106,15 @@ Here's how Aixgo compares to equivalent Python frameworks in production workload
 
 </div>
 
-These aren't synthetic benchmarks—these are the characteristics you get when running production AI systems at scale.
-
 ## Production Features
 
-Aixgo ships production-ready features out of the box—no plugins or add-ons required.
+**Observability:** OpenTelemetry integration, Langfuse, Prometheus, distributed tracing, health checks, structured logging.
 
-**Observability:** Full OpenTelemetry integration with Langfuse, Prometheus, distributed tracing, health checks, and structured logging. Works with Grafana, Datadog, and New Relic.
+**Security:** Auth framework, RBAC, rate limiting, prompt injection protection, TLS/mTLS, audit logging, JWT verification.
 
-**Security:** Enterprise-grade security with auth framework, RBAC, rate limiting, prompt injection protection, TLS/mTLS support, audit logging, and JWT verification.
+**Infrastructure:** Model Context Protocol (MCP) support with local and gRPC transports, service discovery, dynamic tool registration.
 
-**Infrastructure:** Model Context Protocol (MCP) support with local and gRPC transports, service discovery, cluster coordination, and dynamic tool registration.
-
-**Reliability:** Circuit breakers, retry with exponential backoff, graceful degradation, and workflow persistence.
+**Reliability:** Circuit breakers, retry with exponential backoff, graceful degradation, workflow persistence.
 
 No instrumentation code required—configure and deploy:
 
@@ -175,7 +123,6 @@ observability:
   tracing: true
   service_name: 'my-agent-system'
   exporter: 'otlp'
-  endpoint: 'localhost:4317'
 
 security:
   auth:
@@ -188,144 +135,94 @@ security:
 
 ## Supported Integrations
 
-**LLM Providers** (all with streaming support):
-- OpenAI (GPT-4, GPT-4 Turbo, GPT-3.5)
-- Anthropic (Claude 3.5 Sonnet, Claude 3 Opus/Sonnet/Haiku)
-- Google (Vertex AI, Gemini)
-- xAI (Grok)
-- HuggingFace (Inference API, custom models)
+**LLM Providers:** OpenAI, Anthropic (Claude), Google (Vertex AI, Gemini), xAI (Grok), HuggingFace
 
-**Vector Databases:**
-- Firestore Vector Search ✅
-- In-Memory Storage ✅
-- Qdrant 🚧 (in progress)
-- pgvector 🚧 (in progress)
+**Vector Databases:** Firestore Vector Search, In-Memory Storage, Qdrant (in progress), pgvector (in progress)
 
-**Observability Platforms:**
-- OpenTelemetry (native)
-- Langfuse (LLM observability)
-- Prometheus (metrics)
-- Grafana, Datadog, New Relic (via OTLP)
+**Observability:** OpenTelemetry, Langfuse, Prometheus, Grafana, Datadog, New Relic
 
 ## Use Cases
 
-Aixgo is purpose-built for production AI scenarios:
+- **Data Pipelines** - High-throughput ETL with inline AI classification and enrichment
+- **Production APIs** - Sub-millisecond P99 latency AI endpoints
+- **Edge Deployment** - Run on IoT gateways, edge servers, embedded systems
+- **Multi-Agent Research** - Coordinate complex workflows with supervisor orchestration
+- **Distributed Networks** - Scale from single instance to multi-region deployment
 
-### Data Pipelines with AI Enrichment
-
-Process high-throughput ETL workflows with inline AI agents for classification, enrichment, and routing—all in pure Go.
-
-### Production API Services
-
-Ship AI endpoints with Go's performance characteristics: sub-millisecond P99 latency, predictable memory usage, efficient resource utilization.
-
-### Edge Deployment
-
-Run AI agents on resource-constrained devices: IoT gateways, edge servers, embedded systems—anywhere you need minimal footprint and instant startup.
-
-### Multi-Agent Research Systems
-
-Coordinate complex workflows: research assistants, data analysis pipelines, autonomous decision-making systems with supervisor orchestration.
-
-### Distributed Agent Networks
-
-Scale from single instance to multi-region deployment with automatic transport selection—Go channels locally, gRPC for distributed.
-
-## Current Status: Alpha Release
-
-Aixgo is currently in **alpha release**. We're building in public and shipping features as they stabilize.
+## Current Status: Alpha
 
 **What's ready today:**
 
-- Multi-agent orchestration with supervisor pattern and 13 orchestration patterns (supervisor, sequential, parallel, router, swarm, hierarchical, RAG, reflection, ensemble, classifier, aggregation, planning, MapReduce)
-- Seven agent types: Producer, ReAct, Logger, Classifier, Aggregator, Planner, and custom agents
-- Multiple strategies per agent type (ZeroShot, Consensus, Chain-of-Thought, Tree-of-Thought, etc.)
+- Multi-agent orchestration with 13 patterns (supervisor, sequential, parallel, router, swarm, hierarchical, RAG, reflection, ensemble, classifier, aggregation, planning, MapReduce)
+- Seven agent types: Producer, ReAct, Logger, Classifier, Aggregator, Planner, Custom
 - YAML-based declarative configuration with validation
-- Local execution with Go channels and distributed mode with gRPC/MCP transport
-- Complete observability suite: OpenTelemetry, Langfuse, Prometheus, distributed tracing
-- Enterprise security: Auth framework, RBAC, rate limiting, injection protection, TLS/mTLS
-- Production deployment: Docker, Cloud Run, Kubernetes manifests
-- 6 LLM providers with streaming: OpenAI, Anthropic, Google Gemini, xAI, Vertex AI, HuggingFace
-- Vector databases: Firestore Vector Search (complete), Memory storage (complete)
-- Circuit breakers, retry with exponential backoff, workflow persistence
+- Local and distributed execution (Go channels, gRPC/MCP)
+- Complete observability suite: OpenTelemetry, Langfuse, Prometheus
+- Enterprise security: Auth, RBAC, rate limiting, TLS/mTLS
+- Production deployment: Docker, Cloud Run, Kubernetes
+- 6 LLM providers with streaming support
+- Circuit breakers, retry logic, workflow persistence
 
 **In active development:**
 
-- Vector database integrations: Qdrant and pgvector
-- Long-term memory and personalization features
+- Vector database integrations (Qdrant, pgvector)
+- Long-term memory and personalization
 - Multi-modal capabilities (vision, audio, document parsing)
 
-We're shipping early because we believe production AI developers need this tool now. Expect breaking changes as we evolve the API based on community feedback.
+Expect breaking changes as we evolve the API based on feedback.
 
-## When to Choose Aixgo Over Python
+## When to Choose Aixgo
 
-Aixgo isn't trying to replace Python for AI research. Choose Aixgo when:
+Choose Aixgo when:
 
-- You're deploying AI agents to production, not experimenting
-- Your team already uses Go for backend services
-- Container size and cold start time matter (serverless, edge)
+- Deploying AI agents to production, not experimenting
+- Your team uses Go for backend services
+- Container size and cold start time matter
 - You need type safety and compile-time error detection
-- You want to avoid the operational overhead of managing Python dependencies
-- You're building distributed multi-agent systems that need to scale
+- You want to avoid Python dependency overhead
+- You're building distributed multi-agent systems
 
 Choose Python frameworks when:
 
-- You're doing exploratory research or rapid prototyping
-- You need access to Python's ML ecosystem (training, data analysis)
-- Your team doesn't have Go experience and isn't willing to learn
-- You need features that Aixgo doesn't support yet
+- Doing exploratory research or rapid prototyping
+- Need access to Python's ML ecosystem
+- Your team doesn't have Go experience
+- You need features Aixgo doesn't support yet
 
 ## Getting Started
 
-Ready to try Aixgo? Follow our [Quick Start Guide](/guides/quick-start) to get running in 5 minutes, explore the [Features](/features) to see what's available, and join the conversation in [GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions).
+Follow our [Quick Start Guide](/guides/quick-start) to get running in 5 minutes. Explore the [Features](/features) and join [GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions).
 
 ## Roadmap
 
-We're building toward production stability with a clear path to v1.0.
-
 ### Beta Release (Q4 2025)
 
-**Focus: Feature completion and stability**
 - Complete vector database integrations (Qdrant, pgvector)
 - Long-term memory and personalization
 - Enhanced error handling and validation
-- Comprehensive test coverage
-- Production battle-testing and hardening
+- Production battle-testing
 
 ### v1.0 Production Release (Q1 2026)
 
-**Focus: API stability and enterprise readiness**
 - API stability guarantees with semantic versioning
-- Kubernetes operator for production orchestration
+- Kubernetes operator
 - Multi-region deployment with state replication
-- Terraform and IaC modules for infrastructure
-- Multi-modal capabilities (vision, audio, document parsing)
+- Terraform modules
+- Multi-modal capabilities
 - Performance benchmarking suite
 - Production SLA commitments
 
-See our [v1.0 Compatibility Guarantee](/v1-compatibility) for our commitment to API stability.
-
-### Beyond v1.0
-
-- Plugin marketplace for community extensions
-- Advanced deployment patterns (blue/green, canary)
-- Enterprise support tier (optional)
-- Extended LLM provider ecosystem
+See our [v1.0 Compatibility Guarantee](/v1-compatibility) for API stability details.
 
 ## Our Philosophy
 
 Aixgo is built on a simple belief: **production AI deserves production tooling.**
 
-We're not trying to out-prototype Python. We're trying to out-ship it. Production-first design, single binary simplicity, type safety, Go-native patterns, observable by default, and open source (MIT licensed).
+We're not trying to out-prototype Python. We're trying to out-ship it. Production-first design, single binary simplicity, type safety, Go-native patterns, observable by default, open source (MIT licensed).
 
-Read our complete [Philosophy](/why-aixgo) to understand our design principles, when to choose Aixgo, and our commitment to production-grade AI tooling.
+Read our complete [Philosophy](/why-aixgo) for design principles and decision criteria.
 
 ## Join Us
-
-Aixgo is just getting started. We're building this in the open, learning from the community, and evolving based on real-world production usage.
-
-If you're tired of wrestling with Python in production, if you believe AI agents should ship with the same simplicity as the rest of your Go services, or if you just want to see
-what production-grade AI looks like in pure Go—join us.
 
 **Links:**
 
@@ -333,9 +230,7 @@ what production-grade AI looks like in pure Go—join us.
 - Discussions: [github.com/aixgo-dev/aixgo/discussions](https://github.com/aixgo-dev/aixgo/discussions)
 - Documentation: [aixgo.dev](https://aixgo.dev)
 
-**Questions? Feedback? Ideas?**
-
-Drop into [GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions) and let's talk. We're listening, learning, and shipping.
+Drop into [GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions) with questions or feedback.
 
 ---
 
