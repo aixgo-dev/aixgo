@@ -11,7 +11,7 @@ on:
       - 'web/**'
 
 env:
-  GO_VERSION: '1.23'
+  GO_VERSION: '1.24'
 
 permissions:
   contents: read
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.22', '1.23']
+        go-version: ['1.24']
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
@@ -52,7 +52,7 @@ jobs:
         go-version: ${{ matrix.go-version }}
 
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
