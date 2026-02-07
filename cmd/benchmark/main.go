@@ -94,7 +94,7 @@ func run(modelName, providerName, outputFile, outputFormat, baseline string, tim
 	format := evaluation.OutputFormat(outputFormat)
 	var writer *os.File
 	if outputFile != "" {
-		f, err := os.Create(outputFile)
+		f, err := os.Create(outputFile) // #nosec G304 - user-provided CLI argument
 		if err != nil {
 			return fmt.Errorf("create output file: %w", err)
 		}

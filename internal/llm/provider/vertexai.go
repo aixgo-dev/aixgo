@@ -468,7 +468,15 @@ func isRetryableGenAIError(err error) bool {
 // calculateBackoff returns the backoff duration with jitter for a given attempt
 func (p *VertexAIProvider) calculateBackoff(attempt int) time.Duration {
 	// Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at maxDelay)
-	delay := time.Duration(1<<uint(attempt-1)) * vertexAIBaseDelay
+	// Guard against negative or zero attempt to prevent uint overflow
+	shift := attempt - 1
+	if shift < 0 {
+		shift = 0
+	}
+	if shift > 31 { // Prevent overflow for large values
+		shift = 31
+	}
+	delay := time.Duration(1<<uint(shift)) * vertexAIBaseDelay
 	if delay > vertexAIMaxDelay {
 		delay = vertexAIMaxDelay
 	}

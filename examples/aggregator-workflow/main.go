@@ -132,7 +132,7 @@ func main() {
 
 // loadConfig loads and parses the YAML configuration
 func loadConfig(path string) (*WorkflowConfig, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 - user-provided config path
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}

@@ -329,6 +329,10 @@ func (v *Validator) toInt(value any, targetType reflect.Type) (any, error) {
 	// Convert to the target type with bounds checking
 	switch targetType.Kind() {
 	case reflect.Int:
+		// On 32-bit systems, int is 32 bits, so check bounds
+		if i64 < math.MinInt || i64 > math.MaxInt {
+			return nil, fmt.Errorf("value %d overflows int", i64)
+		}
 		return int(i64), nil
 	case reflect.Int8:
 		if i64 < math.MinInt8 || i64 > math.MaxInt8 {

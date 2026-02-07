@@ -67,7 +67,7 @@ type FileReader interface {
 type OSFileReader struct{}
 
 func (r *OSFileReader) ReadFile(path string) ([]byte, error) {
-	return os.ReadFile(path)
+	return os.ReadFile(path) // #nosec G304 - path is from trusted config file input
 }
 
 // ConfigLoader loads configuration from a file
