@@ -92,12 +92,12 @@ type FileStore struct {
 
 // NewFileStore creates a new file-based workflow store
 func NewFileStore(baseDir string) (*FileStore, error) {
-	if err := os.MkdirAll(baseDir, 0755); err != nil {
+	if err := os.MkdirAll(baseDir, 0700); err != nil {
 		return nil, fmt.Errorf("create store directory: %w", err)
 	}
 
 	checkpointDir := filepath.Join(baseDir, "checkpoints")
-	if err := os.MkdirAll(checkpointDir, 0755); err != nil {
+	if err := os.MkdirAll(checkpointDir, 0700); err != nil {
 		return nil, fmt.Errorf("create checkpoints directory: %w", err)
 	}
 
@@ -121,7 +121,7 @@ func (s *FileStore) Save(state *State) error {
 	}
 
 	filePath := s.statePath(state.ID)
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
 		return fmt.Errorf("write state file: %w", err)
 	}
 
@@ -227,7 +227,7 @@ func (s *FileStore) SaveCheckpoint(executionID string, checkpoint *Checkpoint) e
 	checkpoint.CreatedAt = time.Now()
 
 	checkpointDir := filepath.Join(s.baseDir, "checkpoints", executionID)
-	if err := os.MkdirAll(checkpointDir, 0755); err != nil {
+	if err := os.MkdirAll(checkpointDir, 0700); err != nil {
 		return fmt.Errorf("create checkpoint directory: %w", err)
 	}
 
@@ -237,7 +237,7 @@ func (s *FileStore) SaveCheckpoint(executionID string, checkpoint *Checkpoint) e
 	}
 
 	filePath := filepath.Join(checkpointDir, checkpoint.ID+".json")
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
 		return fmt.Errorf("write checkpoint file: %w", err)
 	}
 

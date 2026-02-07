@@ -39,7 +39,7 @@ func SaveReport(report *BenchmarkReport, path string) error {
 	if err != nil {
 		return fmt.Errorf("marshal report: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // LoadReport loads benchmark report from JSON file

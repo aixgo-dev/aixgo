@@ -2,11 +2,13 @@ package provider
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -14,9 +16,9 @@ import (
 	"google.golang.org/genai"
 )
 
-// Note: As of Go 1.20+, math/rand is automatically seeded with a random value.
-// No explicit rand.Seed() call is needed. For cryptographically secure random
-// numbers, use crypto/rand instead.
+// Note: This package uses crypto/rand for jitter generation to satisfy security
+// scanners and provide better entropy. For non-security-critical randomness,
+// math/rand would be sufficient, but crypto/rand is used for defense in depth.
 
 const (
 	vertexAIMaxRetries   = 5
@@ -110,7 +112,7 @@ func (p *VertexAIProvider) CreateCompletion(ctx context.Context, req CompletionR
 	// Always set temperature - 0 is a valid value for deterministic output
 	// Use -1 as sentinel for "not set" if needed, but typically callers set explicit values
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if req.MaxTokens != 0 {
+	if req.MaxTokens > 0 && req.MaxTokens <= math.MaxInt32 {
 		config.MaxOutputTokens = int32(req.MaxTokens)
 	}
 
@@ -172,7 +174,7 @@ func (p *VertexAIProvider) CreateStructured(ctx context.Context, req StructuredR
 	}
 	// Always set temperature - 0 is a valid value for deterministic output
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if req.MaxTokens != 0 {
+	if req.MaxTokens > 0 && req.MaxTokens <= math.MaxInt32 {
 		config.MaxOutputTokens = int32(req.MaxTokens)
 	}
 
@@ -242,7 +244,7 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 	config := &genai.GenerateContentConfig{}
 	// Always set temperature - 0 is a valid value for deterministic output
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if req.MaxTokens != 0 {
+	if req.MaxTokens > 0 && req.MaxTokens <= math.MaxInt32 {
 		config.MaxOutputTokens = int32(req.MaxTokens)
 	}
 
@@ -470,9 +472,20 @@ func (p *VertexAIProvider) calculateBackoff(attempt int) time.Duration {
 	if delay > vertexAIMaxDelay {
 		delay = vertexAIMaxDelay
 	}
-	// Add jitter: delay ± 30%
-	jitter := time.Duration(float64(delay) * vertexAIJitterFactor * (rand.Float64()*2 - 1))
+	// Add jitter: delay ± 30% using crypto/rand for security compliance
+	jitter := time.Duration(float64(delay) * vertexAIJitterFactor * (cryptoRandFloat64()*2 - 1))
 	return delay + jitter
+}
+
+// cryptoRandFloat64 returns a cryptographically secure random float64 in [0.0, 1.0)
+func cryptoRandFloat64() float64 {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		// Fallback to deterministic value on error (should never happen)
+		return 0.5
+	}
+	// Use top 53 bits to create a float64 in [0, 1)
+	return float64(binary.BigEndian.Uint64(b[:])>>11) / (1 << 53)
 }
 
 // vertexAIStream implements Stream for Vertex AI using Gen AI SDK
