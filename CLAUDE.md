@@ -297,6 +297,29 @@ parser := security.NewSafeYAMLParser(security.YAMLLimits{
 })
 ```
 
+### Example Secrets in Documentation
+
+**IMPORTANT**: When writing examples that include API keys, tokens, or credentials:
+
+1. **Use placeholder patterns** - Never use realistic-looking secrets
+
+```yaml
+# GOOD - Use placeholder patterns
+OPENAI_API_KEY=<your-openai-api-key>
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
+API_KEY=<your-api-key-here>
+
+# GOOD - Use test fixture markers in Go tests
+apiKey := "test-fixture-not-a-real-key-1"
+
+# BAD - Looks like real secrets (triggers security scanners)
+OPENAI_API_KEY=sk-1234567890abcdef
+API_KEY=sk-secret123456789
+```
+
+2. **Scanner configuration** - The repository uses `.gitleaks.toml` to reduce false positives
+3. **Test files** - Use `test-fixture-` prefix for test API keys
+
 ---
 
 ## Key Concepts

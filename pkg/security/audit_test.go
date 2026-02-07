@@ -47,10 +47,10 @@ func TestAuditEvent_SensitiveDataMasking(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Log event with potentially sensitive data
+	// Log event with potentially sensitive data (test fixtures, not real secrets)
 	args := map[string]interface{}{
-		"api_key":  "sk-secret123456789",
-		"password": "mysecretpassword",
+		"api_key":  "<example-api-key>",
+		"password": "<example-password>",
 		"username": "john",
 	}
 
@@ -389,8 +389,8 @@ func TestSanitizeErrorMessage(t *testing.T) {
 		},
 		{
 			name:             "remove API keys",
-			input:            "authentication failed with key sk-1234567890abcdef",
-			shouldNotContain: []string{"sk-1234567890abcdef"},
+			input:            "authentication failed with key sk-example-test-key",
+			shouldNotContain: []string{"sk-example-test-key"},
 		},
 	}
 
@@ -611,7 +611,7 @@ func BenchmarkInMemoryAuditLogger_LogToolExecution(b *testing.B) {
 }
 
 func BenchmarkSanitizeErrorMessage(b *testing.B) {
-	msg := "error at /home/user/file.txt with IP 192.168.1.1 and key sk-1234567890"
+	msg := "error at /home/user/file.txt with IP 192.168.1.1 and key <example-key>"
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

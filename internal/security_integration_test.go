@@ -17,7 +17,7 @@ func TestSecurityIntegration_AuthenticationFlow(t *testing.T) {
 	auditLogger := security.NewInMemoryAuditLogger()
 
 	// Create user
-	apiKey := "test-api-key-12345678901234567890"
+	apiKey := "test-fixture-not-a-real-key-1"
 	principal := &security.Principal{
 		ID:    "user123",
 		Name:  "Test User",
@@ -80,7 +80,7 @@ func TestSecurityIntegration_MultipleSecurityLayers(t *testing.T) {
 	auditLogger := security.NewInMemoryAuditLogger()
 
 	// Setup user
-	apiKey := "secure-key-123456789012345678901234"
+	apiKey := "test-fixture-not-a-real-key-2"
 	principal := &security.Principal{
 		ID:    "user123",
 		Name:  "Test User",
@@ -210,7 +210,7 @@ func TestSecurityIntegration_BruteForceAttack(t *testing.T) {
 	auditLogger := security.NewInMemoryAuditLogger()
 
 	// Setup valid user
-	validKey := "valid-key-123456789012345678901234"
+	validKey := "test-fixture-not-a-real-key-3"
 	principal := &security.Principal{
 		ID:   "user123",
 		Name: "Test User",
@@ -390,7 +390,7 @@ func TestSecurityIntegration_ContextPropagation(t *testing.T) {
 	authenticator := security.NewAPIKeyAuthenticator()
 	auditLogger := security.NewInMemoryAuditLogger()
 
-	apiKey := "test-key-12345678901234567890"
+	apiKey := "test-fixture-not-a-real-key-4"
 	principal := &security.Principal{
 		ID:    "user123",
 		Name:  "Test User",
@@ -458,7 +458,7 @@ func BenchmarkSecurityIntegration_FullAuthFlow(b *testing.B) {
 	authorizer := security.NewRBACAuthorizer()
 	auditLogger := security.NewInMemoryAuditLogger()
 
-	apiKey := "test-key-12345678901234567890"
+	apiKey := "test-fixture-not-a-real-key-5"
 	principal := &security.Principal{
 		ID:    "user123",
 		Name:  "Test User",

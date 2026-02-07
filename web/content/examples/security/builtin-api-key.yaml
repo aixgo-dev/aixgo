@@ -34,12 +34,12 @@ audit:
   #   endpoint: https://siem.example.com/events
 
 # Environment Variables Required:
-# AIXGO_API_KEY_service1=sk-1234567890abcdef
-# AIXGO_API_KEY_service2=sk-abcdef1234567890
-# AIXGO_API_KEY_admin=sk-admin_secure_key_here
+# AIXGO_API_KEY_service1=<your-service1-api-key>
+# AIXGO_API_KEY_service2=<your-service2-api-key>
+# AIXGO_API_KEY_admin=<your-admin-api-key>
 
 # API Key Format in Requests:
-# Authorization: Bearer sk-1234567890abcdef
+# Authorization: Bearer <your-api-key>
 
 # Example: API Key Usage
 agents:

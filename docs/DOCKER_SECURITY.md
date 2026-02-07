@@ -291,7 +291,7 @@ restart: unless-stopped # Not "always"
 
 ```yaml
 environment:
-  - API_KEY=sk-1234567890abcdef # BAD!
+  - API_KEY=<your-api-key-here> # BAD! Don't put secrets in compose files
 ```
 
 **Do (Docker Compose - Recommended):**
@@ -318,7 +318,7 @@ secrets:
 
 ```bash
 # Use Docker secrets (Swarm mode only)
-echo "sk-1234567890abcdef" | docker secret create api_key -
+echo "<your-actual-secret>" | docker secret create api_key -
 
 docker service create \
   --secret api_key \

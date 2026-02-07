@@ -1,0 +1,58 @@
+# Gitleaks Configuration for AIxGo
+# This configuration reduces false positives from example secrets in documentation and tests
+
+title = "AIxGo Secret Scanning Configuration"
+
+[allowlist]
+description = "Allowlist for example/test secrets and documentation"
+
+# Paths that commonly contain example/test secrets
+paths = [
+    '''.*_test\.go$''',
+    '''.*testutil\.go$''',
+    '''web/content/examples/.*''',
+    '''docs/.*\.md$''',
+    '''examples/.*''',
+    '''config/.*\.yaml$''',
+    '''\.github/.*''',
+]
+
+# Regex patterns for obviously fake/example secrets
+regexes = [
+    '''<.*?>''',                    # Placeholder patterns like <your-api-key>
+    '''test-fixture-.*''',          # Test fixture markers
+    '''EXAMPLE''',                  # EXAMPLE markers
+    '''REPLACE.*''',                # REPLACE_WITH patterns
+    '''your-.*-key''',              # your-xxx-key patterns
+    '''your-.*-here''',             # your-xxx-here patterns
+    '''example-.*''',               # example-xxx patterns
+]
+
+# Specific commits to ignore (if needed)
+commits = []
+
+# Stop words - if these appear in a secret, it's likely a false positive
+stopwords = [
+    "example",
+    "test",
+    "fixture",
+    "placeholder",
+    "replace",
+    "your-",
+    "fake",
+    "dummy",
+    "sample",
+]
+
+# Custom rules to override defaults
+[[rules]]
+id = "example-api-keys"
+description = "Ignore obviously example API keys"
+regex = '''(?i)(example|test|fixture|placeholder|your[-_]|fake|dummy|sample)'''
+allowlist = { regexes = ['''.*'''] }
+
+[[rules]]
+id = "placeholder-secrets"
+description = "Ignore placeholder patterns in angle brackets"
+regex = '''<[^>]+>'''
+allowlist = { regexes = ['''.*'''] }
