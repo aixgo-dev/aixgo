@@ -3,6 +3,7 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -325,15 +326,24 @@ func (v *Validator) toInt(value any, targetType reflect.Type) (any, error) {
 		return nil, fmt.Errorf("cannot convert %T to int", value)
 	}
 
-	// Convert to the target type
+	// Convert to the target type with bounds checking
 	switch targetType.Kind() {
 	case reflect.Int:
 		return int(i64), nil
 	case reflect.Int8:
+		if i64 < math.MinInt8 || i64 > math.MaxInt8 {
+			return nil, fmt.Errorf("value %d overflows int8", i64)
+		}
 		return int8(i64), nil
 	case reflect.Int16:
+		if i64 < math.MinInt16 || i64 > math.MaxInt16 {
+			return nil, fmt.Errorf("value %d overflows int16", i64)
+		}
 		return int16(i64), nil
 	case reflect.Int32:
+		if i64 < math.MinInt32 || i64 > math.MaxInt32 {
+			return nil, fmt.Errorf("value %d overflows int32", i64)
+		}
 		return int32(i64), nil
 	case reflect.Int64:
 		return i64, nil

@@ -663,7 +663,7 @@ func (s *ResearchSynthesisSystem) saveResults(synthesis map[string]interface{}) 
 		return fmt.Errorf("failed to marshal results: %w", err)
 	}
 
-	return os.WriteFile(s.config.OutputConfig.FilePath, data, 0644)
+	return os.WriteFile(s.config.OutputConfig.FilePath, data, 0600)
 }
 
 func initializeLLMProvider(config LLMConfig) (provider.Provider, error) {

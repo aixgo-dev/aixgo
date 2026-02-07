@@ -514,7 +514,7 @@ func main() {
 	if err != nil {
 		log.Printf("Failed to marshal results: %v", err)
 	} else {
-		if err := os.WriteFile(resultsFile, resultsJSON, 0644); err != nil {
+		if err := os.WriteFile(resultsFile, resultsJSON, 0600); err != nil {
 			log.Printf("Failed to save results: %v", err)
 		} else {
 			fmt.Printf("\nResults saved to %s\n", resultsFile)
