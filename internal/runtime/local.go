@@ -18,6 +18,11 @@ import (
 
 // LocalRuntime provides in-process agent execution using Go channels.
 // All agents run in the same process, ideal for single-binary deployments.
+//
+// Deprecated: Use aixgo.Runtime instead. LocalRuntime is kept for internal
+// compatibility but will be removed in a future version. The unified Runtime
+// in the main aixgo package provides all features of LocalRuntime plus
+// session support.
 type LocalRuntime struct {
 	agents       map[string]agent.Agent
 	channels     map[string]chan *agent.Message
@@ -30,7 +35,10 @@ type LocalRuntime struct {
 	messagesSent uint64        // Atomic counter for metrics
 }
 
-// NewLocalRuntime creates a new LocalRuntime with the given options
+// NewLocalRuntime creates a new LocalRuntime with the given options.
+//
+// Deprecated: Use aixgo.NewRuntime() instead. This function is kept for
+// internal compatibility but will be removed in a future version.
 func NewLocalRuntime(opts ...Option) *LocalRuntime {
 	cfg := DefaultConfig()
 	for _, opt := range opts {

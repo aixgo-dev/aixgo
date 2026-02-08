@@ -1,0 +1,16 @@
+# Session-enabled agent configuration
+session:
+  enabled: true
+  store: file
+  base_dir: ""  # Uses default ~/.aixgo/sessions
+  checkpoint:
+    auto_save: false
+    interval: "5m"
+
+agents:
+  - name: assistant
+    role: react
+    model: gpt-4-turbo
+    prompt: |
+      You are a helpful assistant. You can remember previous conversations
+      because sessions are enabled. Be concise and helpful.

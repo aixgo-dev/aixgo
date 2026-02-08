@@ -1,6 +1,7 @@
 package aixgo
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -9,11 +10,11 @@ import (
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
-func TestNewSimpleRuntime(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestNewRuntime(t *testing.T) {
+	rt := NewRuntime()
 
 	if rt == nil {
-		t.Fatal("NewSimpleRuntime returned nil")
+		t.Fatal("NewRuntime returned nil")
 		return
 	}
 
@@ -26,8 +27,8 @@ func TestNewSimpleRuntime(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_Send_CreateChannel(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_Send_CreateChannel(t *testing.T) {
+	rt := NewRuntime()
 	target := "test-channel"
 
 	msg := &agent.Message{
@@ -67,8 +68,8 @@ func TestSimpleRuntime_Send_CreateChannel(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_Send_ExistingChannel(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_Send_ExistingChannel(t *testing.T) {
+	rt := NewRuntime()
 	target := "existing-channel"
 
 	// Send first message to create channel
@@ -107,8 +108,9 @@ func TestSimpleRuntime_Send_ExistingChannel(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_Send_FullChannel(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_Send_FullChannel(t *testing.T) {
+	// Use a short timeout to make test fast
+	rt := NewRuntime(WithSendTimeout(50 * time.Millisecond))
 	target := "full-channel"
 
 	// Fill the channel (capacity is 100)
@@ -120,7 +122,7 @@ func TestSimpleRuntime_Send_FullChannel(t *testing.T) {
 		}
 	}
 
-	// Try to send one more message (should fail)
+	// Try to send one more message (should timeout)
 	msg := &agent.Message{Message: &pb.Message{Id: "overflow"}}
 	err := rt.Send(target, msg)
 
@@ -128,14 +130,14 @@ func TestSimpleRuntime_Send_FullChannel(t *testing.T) {
 		t.Error("expected error when channel is full, got nil")
 	}
 
-	expectedErr := "channel full-channel is full"
-	if err.Error() != expectedErr {
-		t.Errorf("error = %v, want %v", err, expectedErr)
+	// Check that error contains expected text
+	if !strings.Contains(err.Error(), "timeout") || !strings.Contains(err.Error(), target) {
+		t.Errorf("error = %v, want timeout error for %s", err, target)
 	}
 }
 
-func TestSimpleRuntime_Recv_CreateChannel(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_Recv_CreateChannel(t *testing.T) {
+	rt := NewRuntime()
 	source := "test-source"
 
 	ch, err := rt.Recv(source)
@@ -157,8 +159,8 @@ func TestSimpleRuntime_Recv_CreateChannel(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_Recv_ExistingChannel(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_Recv_ExistingChannel(t *testing.T) {
+	rt := NewRuntime()
 	source := "existing-source"
 
 	// Create channel via Send
@@ -185,8 +187,8 @@ func TestSimpleRuntime_Recv_ExistingChannel(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_Recv_SameChannelTwice(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_Recv_SameChannelTwice(t *testing.T) {
+	rt := NewRuntime()
 	source := "same-source"
 
 	ch1, err1 := rt.Recv(source)
@@ -227,8 +229,8 @@ func TestSimpleRuntime_Recv_SameChannelTwice(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_ConcurrentSend(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_ConcurrentSend(t *testing.T) {
+	rt := NewRuntime()
 	target := "concurrent-target"
 	numSenders := 10
 	messagesPerSender := 10
@@ -270,8 +272,8 @@ func TestSimpleRuntime_ConcurrentSend(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_ConcurrentRecv(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_ConcurrentRecv(t *testing.T) {
+	rt := NewRuntime()
 	source := "concurrent-source"
 	numReceivers := 5
 
@@ -307,8 +309,8 @@ func TestSimpleRuntime_ConcurrentRecv(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_ConcurrentSendRecv(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_ConcurrentSendRecv(t *testing.T) {
+	rt := NewRuntime()
 	channel := "mixed-channel"
 	numOperations := 20
 
@@ -334,8 +336,8 @@ func TestSimpleRuntime_ConcurrentSendRecv(t *testing.T) {
 	wg.Wait()
 }
 
-func TestSimpleRuntime_MultipleChannels(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_MultipleChannels(t *testing.T) {
+	rt := NewRuntime()
 
 	channels := []string{"channel1", "channel2", "channel3", "channel4", "channel5"}
 
@@ -378,8 +380,8 @@ func TestSimpleRuntime_MultipleChannels(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_MessageOrdering(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_MessageOrdering(t *testing.T) {
+	rt := NewRuntime()
 	target := "ordered-channel"
 
 	// Send messages in order
@@ -410,8 +412,8 @@ func TestSimpleRuntime_MessageOrdering(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_EmptyMessages(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_EmptyMessages(t *testing.T) {
+	rt := NewRuntime()
 	target := "empty-msg-channel"
 
 	// Send empty message
@@ -432,8 +434,8 @@ func TestSimpleRuntime_EmptyMessages(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_NilMessage(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_NilMessage(t *testing.T) {
+	rt := NewRuntime()
 	target := "nil-msg-channel"
 
 	// Send nil message (should not panic)
@@ -453,8 +455,8 @@ func TestSimpleRuntime_NilMessage(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_ChannelCapacity(t *testing.T) {
-	rt := NewSimpleRuntime()
+func TestRuntime_ChannelCapacity(t *testing.T) {
+	rt := NewRuntime()
 	target := "capacity-test"
 
 	// Verify channel capacity is 100
@@ -475,12 +477,12 @@ func TestSimpleRuntime_ChannelCapacity(t *testing.T) {
 	}
 }
 
-func TestSimpleRuntime_StressTest(t *testing.T) {
+func TestRuntime_StressTest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping stress test in short mode")
 	}
 
-	rt := NewSimpleRuntime()
+	rt := NewRuntime()
 	numChannels := 10
 	messagesPerChannel := 100
 

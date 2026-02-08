@@ -87,6 +87,7 @@ This catalog contains:
 | **Runtime Migration** | ✅ Implemented | Seamless migration from local to distributed with zero code changes | `runtime.go`, `internal/runtime/` |
 | **Message Protocol** | ✅ Implemented | Protocol buffer-based message passing between agents | `proto/message.proto` |
 | **State Persistence** | ✅ Implemented | Workflow state checkpointing and resumption | `internal/workflow/persistence.go` |
+| **Session Persistence** | ✅ Implemented | Session management with JSONL storage, checkpoints, and resume | `pkg/session/` |
 | **Phased Agent Startup** | ✅ Implemented | Dependency-aware startup ordering using topological sort | `internal/graph/`, `runtime.go` |
 
 **Phased Startup Features** (v0.2.3+):
@@ -112,9 +113,54 @@ agents:
     depends_on: [database, cache]
 ```
 
-**Supported Runtimes**: LocalRuntime, SimpleRuntime, DistributedRuntime
+**Supported Runtimes**: LocalRuntime, Runtime, DistributedRuntime
 
 **Keywords**: runtime, local runtime, distributed runtime, gRPC, channels, message passing, state management, phased startup, dependency ordering, topological sort
+
+### Session Persistence (v0.3.0+)
+
+| Feature | Status | Description | Code Reference |
+|---------|--------|-------------|----------------|
+| **Session Manager** | ✅ Implemented | Create, get, list, delete sessions with lifecycle management | `pkg/session/manager.go` |
+| **Session Interface** | ✅ Implemented | AppendMessage, GetMessages, Checkpoint, Restore operations | `pkg/session/session.go` |
+| **File Backend** | ✅ Implemented | JSONL file-based storage with append-only writes | `pkg/session/file_backend.go` |
+| **Checkpoint/Restore** | ✅ Implemented | Create snapshots and restore to previous states | `pkg/session/session.go` |
+| **Context Helpers** | ✅ Implemented | SessionFromContext, ContextWithSession utilities | `pkg/session/context.go` |
+| **Runtime Integration** | ✅ Implemented | CallWithSession for session-aware agent execution | `runtime.go` |
+
+**Session Features**:
+- **GetOrCreate Pattern**: Automatically resume or create sessions by user ID
+- **Message History**: Full conversation history with timestamps
+- **Checkpoint Integrity**: SHA256 checksums for entry verification
+- **Thread-Safe**: All operations safe for concurrent use
+- **Default Enabled**: Sessions enabled by default (opt-out via `session_mode: disabled`)
+
+**Configuration Example**:
+
+```yaml
+session:
+  enabled: true
+  store: file
+  base_dir: ~/.aixgo/sessions
+  checkpoint:
+    auto_save: false
+    interval: 5m
+```
+
+**Usage Example**:
+
+```go
+backend, _ := session.NewFileBackend("")
+mgr := session.NewManager(backend)
+
+sess, _ := mgr.GetOrCreate(ctx, "assistant", "user-123")
+sess.AppendMessage(ctx, agent.NewMessage("user", "Hello"))
+
+checkpoint, _ := sess.Checkpoint(ctx)
+// Later: sess.Restore(ctx, checkpoint.ID)
+```
+
+**Keywords**: session, persistence, checkpoint, restore, conversation history, memory, JSONL, file storage
 
 ### Deployment Characteristics
 

@@ -416,7 +416,7 @@ Closes #42
 ```text
 fix(runtime): prevent deadlock in channel send
 
-Fixed race condition in SimpleRuntime.Send() that could cause
+Fixed race condition in Runtime.Send() that could cause
 deadlock under high concurrency. Added mutex protection around
 channel map access.
 

@@ -22,6 +22,35 @@ type Config struct {
 	MCPServers    []MCPServerDef    `yaml:"mcp_servers,omitempty"`
 	ModelServices []ModelServiceDef `yaml:"model_services,omitempty"`
 	Agents        []agent.AgentDef  `yaml:"agents"`
+	Session       SessionConfig     `yaml:"session,omitempty"`
+}
+
+// SessionConfig configures session persistence.
+type SessionConfig struct {
+	// Enabled determines whether sessions are active.
+	// Default: true (sessions are enabled by default).
+	Enabled bool `yaml:"enabled"`
+
+	// Store specifies the storage backend type.
+	// Options: "file", "firestore", "postgres"
+	// Default: "file"
+	Store string `yaml:"store"`
+
+	// BaseDir is the base directory for file-based storage.
+	// Default: ~/.aixgo/sessions
+	BaseDir string `yaml:"base_dir"`
+
+	// Checkpoint contains checkpoint configuration.
+	Checkpoint CheckpointConfig `yaml:"checkpoint,omitempty"`
+}
+
+// CheckpointConfig holds checkpoint-specific settings.
+type CheckpointConfig struct {
+	// AutoSave enables automatic checkpoint creation.
+	AutoSave bool `yaml:"auto_save"`
+
+	// Interval is the auto-save interval (e.g., "5m").
+	Interval string `yaml:"interval"`
 }
 
 // SupervisorDef represents supervisor configuration
@@ -140,7 +169,7 @@ func RunWithMCP(configPath string, servers ...*mcp.Server) error {
 
 // RunWithConfig starts the aixgo agent system with the provided config
 func RunWithConfig(config *Config) error {
-	return RunWithConfigAndRuntime(config, NewSimpleRuntime())
+	return RunWithConfigAndRuntime(config, NewRuntime())
 }
 
 // RunWithConfigAndRuntime starts the system with a custom runtime (useful for testing)

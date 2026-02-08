@@ -103,7 +103,7 @@ Observability & Security (OpenTelemetry, Auth, Rate Limiting)
 **Local Runtime** (`runtime.go`):
 - In-process communication via Go channels
 - Single binary deployment
-- Use: `NewSimpleRuntime()`
+- Use: `NewRuntime()`
 
 **Distributed Runtime** (`internal/runtime/`):
 - Multi-node orchestration via gRPC
@@ -114,7 +114,7 @@ Observability & Security (OpenTelemetry, Auth, Rate Limiting)
 
 **Core**:
 - `aixgo.go` - Entry point, config loading
-- `runtime.go` - Local runtime (SimpleRuntime)
+- `runtime.go` - Local runtime (Runtime)
 
 **Agents** (`agents/`):
 - `react.go` - LLM + tool calling
@@ -161,7 +161,7 @@ Follow [Effective Go](https://golang.org/doc/effective_go.html) and [Go Code Rev
 type Agent interface { ... }
 
 // Constructors: New* prefix
-func NewSimpleRuntime() *SimpleRuntime
+func NewRuntime() *Runtime
 
 // Factory: Create* prefix
 func CreateAgent(def AgentDef, rt Runtime) (Agent, error)

@@ -205,7 +205,7 @@ func TestRegistry(t *testing.T) {
 func TestRuntimeConcurrency(t *testing.T) {
     t.Parallel()
 
-    rt := aixgo.NewSimpleRuntime()
+    rt := aixgo.NewRuntime()
 
     // Launch concurrent senders
     var wg sync.WaitGroup

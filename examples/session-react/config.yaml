@@ -1,0 +1,27 @@
+# Session-enabled ReAct agent configuration
+#
+# This configuration demonstrates session support for ReAct agents.
+# Sessions automatically persist conversation history, enabling
+# multi-turn interactions with full context retention.
+
+session:
+  enabled: true
+  store: file
+  base_dir: ~/.aixgo/sessions
+  checkpoint:
+    auto_save: false
+
+agents:
+  - name: assistant
+    role: react
+    model: gpt-4-turbo
+    prompt: |
+      You are a helpful AI assistant with memory of our conversation.
+      You remember previous exchanges and can reference earlier context.
+      Be friendly, concise, and helpful.
+
+    # Session mode: enabled (default), lightweight, or disabled
+    # - enabled: Full persistence with checkpoints
+    # - lightweight: In-memory only, fast but not durable
+    # - disabled: Stateless, no session overhead
+    session_mode: enabled

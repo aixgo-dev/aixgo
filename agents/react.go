@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	publicAgent "github.com/aixgo-dev/aixgo/agent"
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/llm"
 	"github.com/aixgo-dev/aixgo/internal/llm/provider"
@@ -520,4 +521,200 @@ func mustMarshal(v any) []byte {
 		return []byte("{}")
 	}
 	return b
+}
+
+// ExecuteWithSession performs session-aware execution with conversation history.
+// This implements the session.SessionAwareAgent interface.
+func (r *ReActAgent) ExecuteWithSession(ctx context.Context, input *agent.Message, sess SessionProvider) (*agent.Message, error) {
+	if !r.Ready() {
+		return nil, fmt.Errorf("agent not ready")
+	}
+
+	// Extract input string
+	inputStr := ""
+	if input != nil && input.Message != nil {
+		inputStr = input.Payload
+	}
+
+	// Load conversation history from session
+	history, err := sess.GetMessages(ctx)
+	if err != nil {
+		log.Printf("Warning: Failed to load session history: %v", err)
+		// Continue without history
+		history = nil
+	}
+
+	// Execute with conversation history
+	result, err := r.thinkWithHistory(ctx, inputStr, history)
+	if err != nil {
+		return nil, err
+	}
+
+	return &agent.Message{
+		Message: &pb.Message{
+			Type:      "react_response",
+			Payload:   result,
+			Timestamp: time.Now().Format(time.RFC3339),
+		},
+	}, nil
+}
+
+// SessionProvider is a minimal interface for session access during execution.
+// This avoids import cycles with pkg/session.
+type SessionProvider interface {
+	GetMessages(ctx context.Context) ([]*publicAgent.Message, error)
+}
+
+// thinkWithHistory performs LLM reasoning with conversation history.
+func (r *ReActAgent) thinkWithHistory(ctx context.Context, input string, history []*publicAgent.Message) (string, error) {
+	// Use provider if available
+	if r.provider != nil {
+		return r.thinkWithProviderAndHistory(ctx, input, history)
+	}
+
+	// Fall back to OpenAI client
+	if r.client == nil {
+		return "", fmt.Errorf("no LLM client or provider configured")
+	}
+
+	return r.thinkWithOpenAIAndHistory(ctx, input, history)
+}
+
+// thinkWithProviderAndHistory performs provider-based reasoning with history.
+func (r *ReActAgent) thinkWithProviderAndHistory(ctx context.Context, input string, history []*publicAgent.Message) (string, error) {
+	allTools := r.buildProviderTools()
+
+	// Build messages including history
+	messages := []provider.Message{
+		{Role: "system", Content: r.def.Prompt},
+	}
+
+	// Add conversation history
+	for _, msg := range history {
+		role := "user"
+		if msg.Type == "assistant" || msg.Type == "react_response" {
+			role = "assistant"
+		}
+		// Extract content from payload
+		content := msg.Payload
+		if content == "" {
+			// Try to extract from structured payload
+			var payload map[string]string
+			if err := msg.UnmarshalPayload(&payload); err == nil {
+				if c, ok := payload["content"]; ok {
+					content = c
+				}
+			}
+		}
+		if content != "" {
+			messages = append(messages, provider.Message{Role: role, Content: content})
+		}
+	}
+
+	// Add current input
+	messages = append(messages, provider.Message{Role: "user", Content: input})
+
+	req := provider.CompletionRequest{
+		Messages:    messages,
+		Model:       r.model,
+		Tools:       allTools,
+		Temperature: 0.7,
+		MaxTokens:   2000,
+	}
+
+	resp, err := r.provider.CreateCompletion(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("provider completion: %w", err)
+	}
+
+	// Handle tool calls
+	if len(resp.ToolCalls) > 0 {
+		call := resp.ToolCalls[0]
+		result, err := r.executeProviderTool(ctx, call)
+		if err != nil {
+			return "", fmt.Errorf("tool execution: %w", err)
+		}
+		return fmt.Sprintf("Tool %s → %v", call.Function.Name, result), nil
+	}
+
+	return resp.Content, nil
+}
+
+// thinkWithOpenAIAndHistory performs OpenAI reasoning with history.
+func (r *ReActAgent) thinkWithOpenAIAndHistory(ctx context.Context, input string, history []*publicAgent.Message) (string, error) {
+	tools := make([]openai.Tool, len(r.def.Tools))
+	for i, t := range r.def.Tools {
+		tools[i] = openai.Tool{
+			Type: "function",
+			Function: &openai.FunctionDefinition{
+				Name:        t.Name,
+				Description: t.Description,
+				Parameters:  json.RawMessage(mustMarshal(t.InputSchema)),
+			},
+		}
+	}
+
+	// Build messages including history
+	messages := []openai.ChatCompletionMessage{
+		{Role: "system", Content: r.def.Prompt},
+	}
+
+	// Add conversation history
+	for _, msg := range history {
+		role := "user"
+		if msg.Type == "assistant" || msg.Type == "react_response" {
+			role = "assistant"
+		}
+		content := msg.Payload
+		if content == "" {
+			var payload map[string]string
+			if err := msg.UnmarshalPayload(&payload); err == nil {
+				if c, ok := payload["content"]; ok {
+					content = c
+				}
+			}
+		}
+		if content != "" {
+			messages = append(messages, openai.ChatCompletionMessage{Role: role, Content: content})
+		}
+	}
+
+	// Add current input
+	messages = append(messages, openai.ChatCompletionMessage{Role: "user", Content: input})
+
+	req := openai.ChatCompletionRequest{
+		Model:    r.model,
+		Messages: messages,
+		Tools:    tools,
+	}
+
+	resp, err := r.client.CreateChatCompletion(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	if len(resp.Choices) == 0 {
+		return "", fmt.Errorf("no choices in response")
+	}
+
+	if len(resp.Choices[0].Message.ToolCalls) > 0 {
+		call := resp.Choices[0].Message.ToolCalls[0]
+		var args map[string]any
+		if err := json.Unmarshal([]byte(call.Function.Arguments), &args); err != nil {
+			return "", fmt.Errorf("failed to unmarshal tool arguments: %w", err)
+		}
+
+		toolFunc, ok := r.tools[call.Function.Name]
+		if !ok {
+			return "", fmt.Errorf("unknown tool: %s", call.Function.Name)
+		}
+
+		result, err := toolFunc(ctx, args)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("Tool %s → %v", call.Function.Name, result), nil
+	}
+
+	return resp.Choices[0].Message.Content, nil
 }

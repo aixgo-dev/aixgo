@@ -606,7 +606,7 @@ circular dependency detected: agent-a -> agent-b -> agent-a
 Phased startup works across all runtime implementations:
 
 - **LocalRuntime**: Single-process deployments
-- **SimpleRuntime**: Lightweight runtime
+- **Runtime**: Lightweight runtime
 - **DistributedRuntime**: Multi-node gRPC-based deployments
 
 ### Message-Based Dependencies (Legacy)
