@@ -212,6 +212,9 @@ func TestGRPCServer_Creation(t *testing.T) {
 }
 
 func TestGRPCServer_WithTLS(t *testing.T) {
+	// Set ENVIRONMENT to allow InsecureSkipVerify=true in tests
+	t.Setenv("ENVIRONMENT", "test")
+
 	mcpServer := NewServer("test-server")
 	tlsConfig := &TLSConfig{
 		Enabled:            true,
@@ -229,6 +232,9 @@ func TestGRPCServer_WithTLS(t *testing.T) {
 }
 
 func TestTLSConfig_BuildClientConfig(t *testing.T) {
+	// Set ENVIRONMENT to allow InsecureSkipVerify=true in tests
+	t.Setenv("ENVIRONMENT", "test")
+
 	transport, err := NewGRPCTransportWithConfig(GRPCTransportConfig{
 		Address: "localhost:50051",
 		TLS: &TLSConfig{

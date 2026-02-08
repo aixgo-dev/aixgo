@@ -230,7 +230,7 @@ func (r *DistributedRuntime) buildDialOptions() ([]grpc.DialOption, error) {
 
 		tlsCfg := &tls.Config{
 			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: r.tlsConfig.InsecureSkipVerify, //nolint:gosec // G402: intentionally configurable for dev/test with env guard
+			InsecureSkipVerify: r.tlsConfig.InsecureSkipVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
 		}
 
 		// Set server name for SNI

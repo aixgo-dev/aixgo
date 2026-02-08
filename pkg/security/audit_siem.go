@@ -342,7 +342,7 @@ func newElasticsearchBackend(config *ElasticsearchConfig, batchSize int, flushIn
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test with env guard
+			InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
 		},
 	}
 
@@ -480,7 +480,7 @@ func newSplunkBackend(config *SplunkConfig, batchSize int, flushInterval time.Du
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test with env guard
+			InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
 		},
 	}
 
@@ -615,7 +615,7 @@ func newWebhookBackend(config *WebhookConfig, batchSize int, flushInterval time.
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test with env guard
+			InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
 		},
 	}
 

@@ -11,6 +11,9 @@ import (
 )
 
 func TestElasticsearchBackend(t *testing.T) {
+	// Set ENVIRONMENT to allow TLSVerify=false in tests
+	t.Setenv("ENVIRONMENT", "test")
+
 	var receivedRequests [][]byte
 	var mu sync.Mutex
 
@@ -73,6 +76,9 @@ func TestElasticsearchBackend(t *testing.T) {
 }
 
 func TestSplunkBackend(t *testing.T) {
+	// Set ENVIRONMENT to allow TLSVerify=false in tests
+	t.Setenv("ENVIRONMENT", "test")
+
 	var receivedEvents []SplunkEvent
 	var mu sync.Mutex
 
@@ -133,6 +139,9 @@ func TestSplunkBackend(t *testing.T) {
 }
 
 func TestWebhookBackend(t *testing.T) {
+	// Set ENVIRONMENT to allow TLSVerify=false in tests
+	t.Setenv("ENVIRONMENT", "test")
+
 	var receivedPayloads []WebhookPayload
 	var mu sync.Mutex
 
@@ -227,6 +236,9 @@ func TestBackendValidation(t *testing.T) {
 }
 
 func TestBatchFlushOnInterval(t *testing.T) {
+	// Set ENVIRONMENT to allow TLSVerify=false in tests
+	t.Setenv("ENVIRONMENT", "test")
+
 	var requestCount int
 	var mu sync.Mutex
 
@@ -277,6 +289,9 @@ func TestBatchFlushOnInterval(t *testing.T) {
 }
 
 func TestConnectionFailureGraceful(t *testing.T) {
+	// Set ENVIRONMENT to allow TLSVerify=false in tests
+	t.Setenv("ENVIRONMENT", "test")
+
 	// Point to non-existent server
 	config := &WebhookConfig{
 		URL:       "http://localhost:59999/nonexistent",
@@ -323,6 +338,9 @@ func TestDefaultSIEMConfig(t *testing.T) {
 }
 
 func TestWriteAfterClose(t *testing.T) {
+	// Set ENVIRONMENT to allow TLSVerify=false in tests
+	t.Setenv("ENVIRONMENT", "test")
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
