@@ -4,12 +4,12 @@
 <section class="hero">
   <div class="container">
     <h1 class="hero-title">
-      The Future of AI Agents is <span class="highlight">Go</span>
+      {{ .Site.Data.version.tagline }}
     </h1>
     <p class="hero-subtitle">
-      Build and test AI systems as single binaries. Alpha release - production features coming late 2025.
+      {{ .Site.Data.version.subheadline }}
     </p>
-    <a href="/guides" class="btn btn-cta">Try Alpha Version →</a>
+    <a href="{{ .Site.Data.version.cta_url }}" class="btn btn-cta">{{ .Site.Data.version.cta_text }} →</a>
   </div>
 </section>
 
@@ -45,7 +45,7 @@
           </button>
           <pre><code>supervisor:
   name: coordinator
-  model: grok-beta
+  model: gpt-4o-mini  # OpenAI - fast orchestration
   max_rounds: 10
 
 agents:
@@ -57,7 +57,7 @@ agents:
 
   - name: analyzer
     role: react
-    model: grok-beta
+    model: claude-3-5-haiku  # Anthropic - strong reasoning
     prompt: |
       You are a data analyst. Analyze incoming data and provide insights.
     inputs:
@@ -348,12 +348,12 @@ go build -o agent
 <section class="cta-section">
   <div class="container">
     <h2 class="cta-title">
-      Join the <span class="highlight">Alpha</span>
+      Try <span class="highlight">{{ .Site.Data.version.current }}</span>
     </h2>
     <p class="cta-subtitle">
       The AI infrastructure built on Python is reaching its limits. Aixgo is what comes next. Join us in building it.
     </p>
-    <a href="/guides" class="btn btn-cta">Try Alpha Version →</a>
+    <a href="{{ .Site.Data.version.cta_url }}" class="btn btn-cta">{{ .Site.Data.version.cta_text }} →</a>
   </div>
 </section>
 

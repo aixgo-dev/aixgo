@@ -38,6 +38,8 @@ Get your key from:
 
 ## 3. Create `config/agents.yaml`
 
+This configuration file sets up a simple automated pipeline with three connected agents. The first agent generates sample data every second, the second agent uses AI to analyze that data, and the third agent logs the results. Think of it like an assembly line where each station performs a specific task.
+
 ```yaml
 supervisor:
   name: coordinator
@@ -68,6 +70,8 @@ agents:
 ```
 
 ## 4. Create `main.go`
+
+This is the entry point for your application. It loads your agent configuration and starts the system. The `agents` import registers all built-in agent types so they're available for use.
 
 ```go
 package main

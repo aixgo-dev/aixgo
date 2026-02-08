@@ -173,6 +173,33 @@ categories:
               content: "PostgreSQL extension for vector similarity search, combining relational and vector data."
               roadmap: "Complete CRUD operations and index optimization support."
 
+      - title: "Session Persistence"
+        features:
+          - name: "Session Manager"
+            status: "complete"
+            tooltip:
+              content: "Full session lifecycle management with Create, GetOrCreate, List, and Delete operations. Thread-safe for concurrent access."
+          - name: "JSONL File Storage"
+            status: "complete"
+            tooltip:
+              content: "Lightweight append-only JSONL storage at ~/.aixgo/sessions/ with automatic directory creation and 0700/0600 permissions."
+          - name: "Redis Backend"
+            status: "complete"
+            tooltip:
+              content: "Distributed session storage for multi-node deployments with configurable key prefix and connection pooling."
+          - name: "Checkpoint/Restore"
+            status: "complete"
+            tooltip:
+              content: "Save conversation state snapshots and rollback when needed. Includes checksum validation for data integrity."
+          - name: "CallWithSession()"
+            status: "complete"
+            tooltip:
+              content: "Runtime integration that automatically appends messages to sessions and provides session context to agents."
+          - name: "Context Helpers"
+            status: "complete"
+            tooltip:
+              content: "SessionFromContext() and ContextWithSession() for seamless context.Context-based session passing between components."
+
       - title: "Memory & Context"
         features:
           - name: "Conversation History"

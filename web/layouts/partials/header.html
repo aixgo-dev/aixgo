@@ -37,8 +37,8 @@
           </li>
         {{ end }}
         <li class="nav-cta">
-          <a href="/guides/quick-start" class="btn-get-started">Get Started</a>
-          <span class="alpha-badge">Alpha v0.1</span>
+          <a href="{{ .Site.Data.version.cta_url }}" class="btn-get-started">{{ .Site.Data.version.cta_text }}</a>
+          <span class="alpha-badge">{{ .Site.Data.version.stage }} {{ .Site.Data.version.current }}</span>
         </li>
       </ul>
     </div>
