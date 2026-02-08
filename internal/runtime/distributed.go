@@ -2,22 +2,30 @@ package runtime
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log"
+	"net"
+	"os"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	publicAgent "github.com/aixgo-dev/aixgo/agent"
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/graph"
 	"github.com/aixgo-dev/aixgo/internal/observability"
+	"github.com/aixgo-dev/aixgo/pkg/session"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
@@ -25,17 +33,37 @@ import (
 // DistributedRuntime provides distributed agent execution using gRPC.
 // Agents can run in separate processes or on different machines.
 type DistributedRuntime struct {
-	localAgents  map[string]agent.Agent         // Agents running in this process
-	remoteAgents map[string]*remoteAgentClient  // Remote agent connections
-	channels     map[string]chan *agent.Message // Local message channels
-	config       *RuntimeConfig
-	mu           sync.RWMutex
-	started      bool
-	ctx          context.Context
-	cancel       context.CancelFunc
-	server       *grpc.Server
-	listenAddr   string
-	semaphore    chan struct{} // For limiting concurrent calls
+	localAgents    map[string]agent.Agent         // Agents running in this process
+	remoteAgents   map[string]*remoteAgentClient  // Remote agent connections
+	channels       map[string]chan *agent.Message // Local message channels
+	config         *RuntimeConfig
+	tlsConfig      *TLSConfig      // TLS configuration for secure connections
+	sessionManager session.Manager // Session manager for persistence
+	mu             sync.RWMutex
+	started        bool
+	ctx            context.Context
+	cancel         context.CancelFunc
+	server         *grpc.Server
+	listener       net.Listener  // gRPC listener
+	listenAddr     string
+	semaphore      chan struct{} // For limiting concurrent calls
+	messagesSent   uint64        // Atomic counter for metrics
+}
+
+// TLSConfig holds TLS configuration for gRPC connections.
+type TLSConfig struct {
+	// Enabled turns on TLS encryption.
+	Enabled bool
+	// CertFile is the path to the server certificate.
+	CertFile string
+	// KeyFile is the path to the server private key.
+	KeyFile string
+	// CAFile is the path to the CA certificate (for mTLS).
+	CAFile string
+	// ServerName is used for SNI verification.
+	ServerName string
+	// InsecureSkipVerify skips certificate verification (development only).
+	InsecureSkipVerify bool
 }
 
 // remoteAgentClient represents a connection to a remote agent
@@ -49,22 +77,39 @@ type remoteAgentClient struct {
 // DistributedRuntimeConfig extends RuntimeConfig with distributed-specific options
 type DistributedRuntimeConfig struct {
 	*RuntimeConfig
-	ListenAddr string // Address to listen for gRPC connections (e.g., ":50051")
+	ListenAddr string     // Address to listen for gRPC connections (e.g., ":50051")
+	TLS        *TLSConfig // TLS configuration for secure connections
 }
 
-// NewDistributedRuntime creates a new DistributedRuntime
-func NewDistributedRuntime(listenAddr string, opts ...Option) *DistributedRuntime {
-	cfg := DefaultConfig()
-	for _, opt := range opts {
-		opt(cfg)
+// DistributedOption configures a DistributedRuntime.
+type DistributedOption func(*DistributedRuntime)
+
+// WithTLS configures TLS for secure gRPC connections.
+func WithTLS(cfg *TLSConfig) DistributedOption {
+	return func(r *DistributedRuntime) {
+		r.tlsConfig = cfg
 	}
+}
+
+// WithDistributedSessionManager sets the session manager for the distributed runtime.
+func WithDistributedSessionManager(sm session.Manager) DistributedOption {
+	return func(r *DistributedRuntime) {
+		r.sessionManager = sm
+	}
+}
+
+// NewDistributedRuntime creates a new DistributedRuntime.
+// The listenAddr is the address to listen for incoming gRPC connections (e.g., ":50051").
+// Use DistributedOption to configure TLS and session management.
+func NewDistributedRuntime(listenAddr string, opts ...any) *DistributedRuntime {
+	cfg := DefaultConfig()
 
 	var sem chan struct{}
 	if cfg.MaxConcurrentCalls > 0 {
 		sem = make(chan struct{}, cfg.MaxConcurrentCalls)
 	}
 
-	return &DistributedRuntime{
+	r := &DistributedRuntime{
 		localAgents:  make(map[string]agent.Agent),
 		remoteAgents: make(map[string]*remoteAgentClient),
 		channels:     make(map[string]chan *agent.Message),
@@ -72,6 +117,18 @@ func NewDistributedRuntime(listenAddr string, opts ...Option) *DistributedRuntim
 		listenAddr:   listenAddr,
 		semaphore:    sem,
 	}
+
+	// Apply options (supports both Option and DistributedOption)
+	for _, opt := range opts {
+		switch o := opt.(type) {
+		case Option:
+			o(r.config)
+		case DistributedOption:
+			o(r)
+		}
+	}
+
+	return r
 }
 
 // Register registers a local agent with the runtime
@@ -93,7 +150,8 @@ func (r *DistributedRuntime) Register(a agent.Agent) error {
 	return nil
 }
 
-// Connect establishes a connection to a remote agent
+// Connect establishes a connection to a remote agent.
+// Uses TLS if configured, otherwise falls back to insecure connection.
 func (r *DistributedRuntime) Connect(name, addr string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -105,8 +163,14 @@ func (r *DistributedRuntime) Connect(name, addr string) error {
 		return fmt.Errorf("%w: %s", ErrAgentAlreadyRegistered, name)
 	}
 
+	// Build dial options
+	dialOpts, err := r.buildDialOptions()
+	if err != nil {
+		return fmt.Errorf("failed to build dial options: %w", err)
+	}
+
 	// Create gRPC connection
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(addr, dialOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to connect to remote agent %s at %s: %w", name, addr, err)
 	}
@@ -119,6 +183,51 @@ func (r *DistributedRuntime) Connect(name, addr string) error {
 	}
 
 	return nil
+}
+
+// buildDialOptions creates gRPC dial options based on TLS configuration.
+func (r *DistributedRuntime) buildDialOptions() ([]grpc.DialOption, error) {
+	var opts []grpc.DialOption
+
+	if r.tlsConfig != nil && r.tlsConfig.Enabled {
+		tlsCfg := &tls.Config{
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: r.tlsConfig.InsecureSkipVerify,
+		}
+
+		// Set server name for SNI
+		if r.tlsConfig.ServerName != "" {
+			tlsCfg.ServerName = r.tlsConfig.ServerName
+		}
+
+		// Load CA certificate if provided
+		if r.tlsConfig.CAFile != "" {
+			caData, err := os.ReadFile(r.tlsConfig.CAFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read CA file: %w", err)
+			}
+			caPool := x509.NewCertPool()
+			if !caPool.AppendCertsFromPEM(caData) {
+				return nil, fmt.Errorf("failed to parse CA certificate")
+			}
+			tlsCfg.RootCAs = caPool
+		}
+
+		// Load client certificate for mTLS if provided
+		if r.tlsConfig.CertFile != "" && r.tlsConfig.KeyFile != "" {
+			cert, err := tls.LoadX509KeyPair(r.tlsConfig.CertFile, r.tlsConfig.KeyFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load client certificate: %w", err)
+			}
+			tlsCfg.Certificates = []tls.Certificate{cert}
+		}
+
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+
+	return opts, nil
 }
 
 // Unregister removes an agent from the runtime
@@ -180,11 +289,27 @@ func (r *DistributedRuntime) Send(target string, msg *agent.Message) error {
 	// Check local agents
 	if ch, exists := r.channels[target]; exists {
 		r.mu.RUnlock()
+
+		// Warn if channel is getting full
+		if r.config.EnableMetrics && cap(ch) > 0 {
+			utilization := len(ch) * 100 / cap(ch)
+			if utilization > r.config.ChannelFullWarningThreshold {
+				log.Printf("[DistributedRuntime] WARNING: Channel %s is %d%% full (%d/%d messages)",
+					target, utilization, len(ch), cap(ch))
+			}
+		}
+
+		timeout := r.config.SendTimeout
+		if timeout == 0 {
+			timeout = 5 * time.Second
+		}
+
 		select {
 		case ch <- msg:
+			atomic.AddUint64(&r.messagesSent, 1)
 			return nil
-		case <-time.After(5 * time.Second):
-			return fmt.Errorf("timeout sending message to %s", target)
+		case <-time.After(timeout):
+			return fmt.Errorf("timeout sending message to %s (channel full)", target)
 		}
 	}
 
@@ -197,25 +322,78 @@ func (r *DistributedRuntime) Send(target string, msg *agent.Message) error {
 	}
 
 	// Send to remote agent via gRPC
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	timeout := r.config.SendTimeout
+	if timeout == 0 {
+		timeout = 5 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	_, err := remote.client.Send(ctx, &pb.SendRequest{
 		Message: msg.Message,
 	})
 
+	if err == nil {
+		atomic.AddUint64(&r.messagesSent, 1)
+	}
+
 	return err
 }
 
-// Recv returns a channel to receive messages from a source agent
+// Recv returns a channel to receive messages from a source agent.
+// For local agents, returns the local channel directly.
+// For remote agents, establishes a gRPC streaming connection.
 func (r *DistributedRuntime) Recv(source string) (<-chan *agent.Message, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
 
-	ch, exists := r.channels[source]
-	if !exists {
-		return nil, fmt.Errorf("%w: %s (Recv only works for local agents)", ErrAgentNotFound, source)
+	// Check local agents first
+	if ch, exists := r.channels[source]; exists {
+		r.mu.RUnlock()
+		return ch, nil
 	}
+
+	// Check remote agents
+	remote, exists := r.remoteAgents[source]
+	r.mu.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("%w: %s", ErrAgentNotFound, source)
+	}
+
+	// Create streaming connection to remote agent
+	return r.remoteRecv(remote, source)
+}
+
+// remoteRecv establishes a streaming connection to a remote agent.
+func (r *DistributedRuntime) remoteRecv(remote *remoteAgentClient, source string) (<-chan *agent.Message, error) {
+	if r.ctx == nil {
+		return nil, errors.New("runtime not started: context is nil")
+	}
+
+	stream, err := remote.client.Listen(r.ctx, &pb.ListenRequest{AgentName: source})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to remote agent stream: %w", err)
+	}
+
+	ch := make(chan *agent.Message, r.config.ChannelBufferSize)
+
+	go func() {
+		defer close(ch)
+		for {
+			resp, err := stream.Recv()
+			if err != nil {
+				// Stream closed or error
+				log.Printf("[DistributedRuntime] Stream from %s closed: %v", source, err)
+				return
+			}
+
+			select {
+			case ch <- &agent.Message{Message: resp.Message}:
+			case <-r.ctx.Done():
+				return
+			}
+		}
+	}()
 
 	return ch, nil
 }
@@ -377,7 +555,8 @@ func (r *DistributedRuntime) Broadcast(msg *agent.Message) error {
 	return firstErr
 }
 
-// Start starts the runtime and gRPC server
+// Start starts the runtime and gRPC server.
+// The gRPC server will listen on the address provided during construction.
 func (r *DistributedRuntime) Start(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -387,18 +566,73 @@ func (r *DistributedRuntime) Start(ctx context.Context) error {
 	}
 
 	r.ctx, r.cancel = context.WithCancel(ctx)
-	r.started = true
 
-	// Start gRPC server
+	// Start gRPC server if listen address is configured
 	if r.listenAddr != "" {
-		r.server = grpc.NewServer()
+		// Create listener
+		lis, err := net.Listen("tcp", r.listenAddr)
+		if err != nil {
+			return fmt.Errorf("failed to listen on %s: %w", r.listenAddr, err)
+		}
+		r.listener = lis
+
+		// Configure server options (TLS if enabled)
+		serverOpts, err := r.buildServerOptions()
+		if err != nil {
+			_ = lis.Close()
+			return fmt.Errorf("failed to configure server: %w", err)
+		}
+
+		r.server = grpc.NewServer(serverOpts...)
 		pb.RegisterAgentServiceServer(r.server, &agentServiceServer{runtime: r})
 
-		// TODO: Start listening in a goroutine
-		// This requires implementing the gRPC service methods
+		// Start gRPC server in goroutine
+		go func() {
+			log.Printf("[DistributedRuntime] gRPC server listening on %s", r.listenAddr)
+			if err := r.server.Serve(lis); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+				log.Printf("[DistributedRuntime] gRPC server error: %v", err)
+			}
+		}()
 	}
 
+	r.started = true
 	return nil
+}
+
+// buildServerOptions creates gRPC server options based on TLS configuration.
+func (r *DistributedRuntime) buildServerOptions() ([]grpc.ServerOption, error) {
+	var opts []grpc.ServerOption
+
+	if r.tlsConfig != nil && r.tlsConfig.Enabled {
+		// Load server certificate
+		cert, err := tls.LoadX509KeyPair(r.tlsConfig.CertFile, r.tlsConfig.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load server certificate: %w", err)
+		}
+
+		tlsCfg := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		}
+
+		// Load CA for mTLS if provided
+		if r.tlsConfig.CAFile != "" {
+			caData, err := os.ReadFile(r.tlsConfig.CAFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read CA file: %w", err)
+			}
+			caPool := x509.NewCertPool()
+			if !caPool.AppendCertsFromPEM(caData) {
+				return nil, fmt.Errorf("failed to parse CA certificate")
+			}
+			tlsCfg.ClientCAs = caPool
+			tlsCfg.ClientAuth = tls.RequireAndVerifyClientCert
+		}
+
+		opts = append(opts, grpc.Creds(credentials.NewTLS(tlsCfg)))
+	}
+
+	return opts, nil
 }
 
 // Stop gracefully shuts down the runtime
@@ -452,6 +686,176 @@ func (r *DistributedRuntime) Stop(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+// SetSessionManager sets the session manager for this runtime.
+func (r *DistributedRuntime) SetSessionManager(sm session.Manager) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.sessionManager = sm
+}
+
+// SessionManager returns the configured session manager.
+func (r *DistributedRuntime) SessionManager() session.Manager {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.sessionManager
+}
+
+// CallWithSession invokes an agent with session context.
+// The input message is appended to the session before execution,
+// and the result is appended after execution.
+//
+// If the agent implements sessionAwareAgent, it will receive
+// the full conversation history during execution.
+func (r *DistributedRuntime) CallWithSession(
+	ctx context.Context,
+	target string,
+	input *publicAgent.Message,
+	sessionID string,
+) (*publicAgent.Message, error) {
+	if r.sessionManager == nil {
+		return nil, errors.New("session manager not configured")
+	}
+
+	// Get the session
+	sess, err := r.sessionManager.Get(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("get session: %w", err)
+	}
+
+	// Append input to session
+	if err := sess.AppendMessage(ctx, input); err != nil {
+		return nil, fmt.Errorf("append input: %w", err)
+	}
+
+	// Add session to context
+	ctx = session.ContextWithSession(ctx, sess)
+
+	// Get the agent (local only for session-aware execution)
+	r.mu.RLock()
+	a, isLocal := r.localAgents[target]
+	r.mu.RUnlock()
+
+	var result *publicAgent.Message
+
+	if isLocal {
+		if !a.Ready() {
+			return nil, fmt.Errorf("%w: %s", ErrAgentNotReady, target)
+		}
+
+		// Check if agent supports session-aware execution
+		if sessionAware, ok := a.(sessionAwareAgent); ok {
+			// Use session-aware execution path
+			result, err = sessionAware.ExecuteWithSession(ctx, input, sess)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Fall back to standard execution
+			internalInput := publicToInternalMessage(input)
+			internalResult, err := a.Execute(ctx, internalInput)
+			if err != nil {
+				return nil, err
+			}
+			result = internalToPublicMessage(internalResult)
+		}
+	} else {
+		// Remote agent - use standard Call path
+		internalInput := publicToInternalMessage(input)
+		internalResult, err := r.Call(ctx, target, internalInput)
+		if err != nil {
+			return nil, err
+		}
+		result = internalToPublicMessage(internalResult)
+	}
+
+	// Append result to session
+	if err := sess.AppendMessage(ctx, result); err != nil {
+		return nil, fmt.Errorf("append result: %w", err)
+	}
+
+	return result, nil
+}
+
+// sessionAwareAgent is the interface for agents that support session-aware execution.
+type sessionAwareAgent interface {
+	ExecuteWithSession(ctx context.Context, input *publicAgent.Message, sess session.Session) (*publicAgent.Message, error)
+}
+
+// internalToPublicMessage converts an internal agent.Message to a public agent.Message.
+func internalToPublicMessage(msg *agent.Message) *publicAgent.Message {
+	if msg == nil || msg.Message == nil {
+		return nil
+	}
+
+	// Copy metadata if present, otherwise create empty map
+	metadata := make(map[string]interface{})
+	if msg.Metadata != nil {
+		for k, v := range msg.Metadata {
+			metadata[k] = v
+		}
+	}
+
+	return &publicAgent.Message{
+		ID:        msg.Id,
+		Type:      msg.Type,
+		Payload:   msg.Payload,
+		Timestamp: msg.Timestamp,
+		Metadata:  metadata,
+	}
+}
+
+// publicToInternalMessage converts a public agent.Message to an internal agent.Message.
+func publicToInternalMessage(msg *publicAgent.Message) *agent.Message {
+	if msg == nil {
+		return nil
+	}
+	return &agent.Message{
+		Message: &pb.Message{
+			Id:        msg.ID,
+			Type:      msg.Type,
+			Payload:   msg.Payload,
+			Timestamp: msg.Timestamp,
+		},
+	}
+}
+
+// ListenAddr returns the address the gRPC server is listening on.
+// Returns empty string if server is not started.
+func (r *DistributedRuntime) ListenAddr() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.listener != nil {
+		return r.listener.Addr().String()
+	}
+	return r.listenAddr
+}
+
+// --- Metrics ---
+
+// Config returns a copy of the runtime configuration.
+func (r *DistributedRuntime) Config() RuntimeConfig {
+	return *r.config
+}
+
+// GetChannelStats returns statistics for a channel.
+// Returns capacity, current length, and an error if the channel doesn't exist.
+func (r *DistributedRuntime) GetChannelStats(name string) (capacity, length int, err error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	ch, exists := r.channels[name]
+	if !exists {
+		return 0, 0, ErrAgentNotFound
+	}
+
+	return cap(ch), len(ch), nil
+}
+
+// MessagesSent returns the total number of messages sent via Send().
+func (r *DistributedRuntime) MessagesSent() uint64 {
+	return atomic.LoadUint64(&r.messagesSent)
 }
 
 // agentServiceServer implements the gRPC AgentService
@@ -515,6 +919,45 @@ func (s *agentServiceServer) Send(ctx context.Context, req *pb.SendRequest) (*pb
 	}
 
 	return &pb.SendResponse{Success: true}, nil
+}
+
+// Listen implements server-side streaming for receiving messages from an agent.
+// This allows remote clients to subscribe to messages from a local agent.
+func (s *agentServiceServer) Listen(req *pb.ListenRequest, stream pb.AgentService_ListenServer) error {
+	// Validate
+	if req.AgentName == "" {
+		return status.Errorf(codes.InvalidArgument, "agent_name is required")
+	}
+
+	if !isValidAgentNameGRPC(req.AgentName) {
+		return status.Errorf(codes.InvalidArgument, "invalid agent name format")
+	}
+
+	// Get the channel for this agent
+	ch, err := s.runtime.Recv(req.AgentName)
+	if err != nil {
+		if errors.Is(err, ErrAgentNotFound) {
+			return status.Errorf(codes.NotFound, "agent not found: %s", req.AgentName)
+		}
+		return status.Errorf(codes.Internal, "failed to get channel: %v", err)
+	}
+
+	// Stream messages until context is cancelled
+	ctx := stream.Context()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case msg, ok := <-ch:
+			if !ok {
+				// Channel closed
+				return nil
+			}
+			if err := stream.Send(&pb.ListenResponse{Message: msg.Message}); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 // isValidAgentNameGRPC validates agent name for gRPC requests

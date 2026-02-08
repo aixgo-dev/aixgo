@@ -24,7 +24,7 @@ var (
 
 // RuntimeConfig contains configuration options for creating a runtime
 type RuntimeConfig struct {
-	// ChannelBufferSize sets the buffer size for message channels (LocalRuntime only)
+	// ChannelBufferSize sets the buffer size for message channels
 	// Default: 100
 	ChannelBufferSize int
 
@@ -36,18 +36,33 @@ type RuntimeConfig struct {
 	// Default: true
 	EnableMetrics bool
 
+	// EnableTracing enables OpenTelemetry tracing
+	// Default: false
+	EnableTracing bool
+
 	// AgentStartTimeout is the maximum time to wait for an agent to become ready
 	// Default: 30 seconds
 	AgentStartTimeout time.Duration
+
+	// SendTimeout is the timeout for Send operations
+	// Default: 5 seconds
+	SendTimeout time.Duration
+
+	// ChannelFullWarningThreshold triggers a warning when channel utilization exceeds this percentage
+	// Default: 80
+	ChannelFullWarningThreshold int
 }
 
 // DefaultConfig returns a RuntimeConfig with sensible defaults
 func DefaultConfig() *RuntimeConfig {
 	return &RuntimeConfig{
-		ChannelBufferSize:  100,
-		MaxConcurrentCalls: 0,
-		EnableMetrics:      true,
-		AgentStartTimeout:  30 * time.Second,
+		ChannelBufferSize:           100,
+		MaxConcurrentCalls:          0,
+		EnableMetrics:               true,
+		EnableTracing:               false,
+		AgentStartTimeout:           30 * time.Second,
+		SendTimeout:                 5 * time.Second,
+		ChannelFullWarningThreshold: 80,
 	}
 }
 
@@ -79,5 +94,19 @@ func WithMetrics(enabled bool) Option {
 func WithAgentStartTimeout(timeout time.Duration) Option {
 	return func(cfg *RuntimeConfig) {
 		cfg.AgentStartTimeout = timeout
+	}
+}
+
+// WithSendTimeout sets the timeout for Send operations
+func WithSendTimeout(timeout time.Duration) Option {
+	return func(cfg *RuntimeConfig) {
+		cfg.SendTimeout = timeout
+	}
+}
+
+// WithTracing enables or disables OpenTelemetry tracing
+func WithTracing(enabled bool) Option {
+	return func(cfg *RuntimeConfig) {
+		cfg.EnableTracing = enabled
 	}
 }
