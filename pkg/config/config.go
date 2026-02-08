@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -64,7 +66,13 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("config file too large: %d bytes (max %d)", info.Size(), maxConfigSize)
 	}
 
-	data, err := os.ReadFile(path)
+	// G304: Validate file path to prevent path traversal
+	cleanPath := filepath.Clean(path)
+	if strings.Contains(cleanPath, "..") {
+		return nil, fmt.Errorf("path traversal detected in config file path")
+	}
+
+	data, err := os.ReadFile(cleanPath) //nolint:gosec // Path validated above
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}

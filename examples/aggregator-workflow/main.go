@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aixgo-dev/aixgo"
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/llm/provider"
-	"github.com/aixgo-dev/aixgo/internal/runtime"
 	"github.com/aixgo-dev/aixgo/pkg/memory"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"gopkg.in/yaml.v3"
@@ -165,7 +165,7 @@ func NewResearchSynthesisSystem(config *WorkflowConfig) (*ResearchSynthesisSyste
 	}
 
 	// Initialize runtime
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 
 	// Initialize semantic memory for enhanced analysis
 	mem := memory.NewSemanticMemory(memory.Config{

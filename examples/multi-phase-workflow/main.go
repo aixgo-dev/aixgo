@@ -7,9 +7,9 @@ import (
 	"log"
 	"strings"
 
+	"github.com/aixgo-dev/aixgo"
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/orchestration"
-	"github.com/aixgo-dev/aixgo/internal/runtime"
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
@@ -75,7 +75,7 @@ func runPolicyAnalysisWorkflow() {
 	ctx := context.Background()
 
 	// Create runtime
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 	if err := rt.Start(ctx); err != nil {
 		log.Fatalf("Failed to start runtime: %v", err)
 	}
@@ -178,7 +178,7 @@ func runProductEnrichmentWorkflow() {
 	ctx := context.Background()
 
 	// Create runtime
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 	if err := rt.Start(ctx); err != nil {
 		log.Fatalf("Failed to start runtime: %v", err)
 	}

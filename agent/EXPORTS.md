@@ -70,10 +70,12 @@ func NewMessage(msgType string, payload interface{}) *Message
 
 Creates a new message with the given type and payload. The payload is automatically serialized to JSON.
 
-### NewLocalRuntime
+### NewLocalRuntime (Deprecated)
 ```go
 func NewLocalRuntime() *LocalRuntime
 ```
+
+**Deprecated**: Use `aixgo.NewRuntime()` instead. This function is kept for internal compatibility but will be removed in a future version. The unified Runtime in the main aixgo package provides all features plus session support.
 
 Creates a new local runtime for single-process agent coordination.
 
@@ -149,7 +151,7 @@ The `Start()` method initializes all registered agents with the following guaran
 **Example:**
 
 ```go
-rt := agent.NewLocalRuntime()
+rt := aixgo.NewRuntime()
 rt.Register(agent1)
 rt.Register(agent2)
 
@@ -188,6 +190,7 @@ package main
 
 import (
     "context"
+    "github.com/aixgo-dev/aixgo"
     "github.com/aixgo-dev/aixgo/agent"
 )
 
@@ -217,7 +220,7 @@ func (a *MyAgent) Stop(ctx context.Context) error {
 }
 
 func main() {
-    rt := agent.NewLocalRuntime()
+    rt := aixgo.NewRuntime()
     rt.Register(&MyAgent{name: "myagent"})
 
     ctx := context.Background()

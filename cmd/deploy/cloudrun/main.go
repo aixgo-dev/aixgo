@@ -199,7 +199,8 @@ func createRepository(ctx context.Context, cfg *Config) error {
 	logInfo("Creating Artifact Registry repository...")
 
 	// Check if repository exists
-	cmd := exec.Command("gcloud", "artifacts", "repositories", "describe", cfg.Repository,
+	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+	cmd := exec.Command("gcloud", "artifacts", "repositories", "describe", cfg.Repository, //nolint:gosec
 		"--location="+cfg.Region)
 	if err := cmd.Run(); err == nil {
 		logWarn("Repository %s already exists", cfg.Repository)
@@ -218,7 +219,8 @@ func createServiceAccount(ctx context.Context, cfg *Config) error {
 	serviceAccount := fmt.Sprintf("aixgo-mcp@%s.iam.gserviceaccount.com", cfg.ProjectID)
 
 	// Check if service account exists
-	cmd := exec.Command("gcloud", "iam", "service-accounts", "describe", serviceAccount)
+	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+	cmd := exec.Command("gcloud", "iam", "service-accounts", "describe", serviceAccount) //nolint:gosec
 	if err := cmd.Run(); err == nil {
 		logWarn("Service account already exists")
 	} else {
@@ -265,13 +267,15 @@ func createSecrets(ctx context.Context, cfg *Config) error {
 		}
 
 		// Try to create secret
-		cmd := exec.Command("gcloud", "secrets", "create", name,
+		// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+		cmd := exec.Command("gcloud", "secrets", "create", name, //nolint:gosec
 			"--replication-policy=automatic")
 		cmd.Stdin = strings.NewReader(value)
 
 		if err := cmd.Run(); err != nil {
 			// Secret might exist, try to add a new version
-			cmd = exec.Command("gcloud", "secrets", "versions", "add", name,
+			// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+			cmd = exec.Command("gcloud", "secrets", "versions", "add", name, //nolint:gosec
 				"--data-file=-")
 			cmd.Stdin = strings.NewReader(value)
 			if err := cmd.Run(); err != nil {
@@ -353,7 +357,8 @@ func deployService(ctx context.Context, cfg *Config) error {
 	logInfo("Deployment complete!")
 
 	// Get service URL
-	cmd := exec.Command("gcloud", "run", "services", "describe", cfg.ServiceName,
+	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+	cmd := exec.Command("gcloud", "run", "services", "describe", cfg.ServiceName, //nolint:gosec
 		"--platform=managed",
 		"--region="+cfg.Region,
 		"--format=value(status.url)")
@@ -372,7 +377,8 @@ func testDeployment(ctx context.Context, cfg *Config) error {
 	logInfo("Testing deployment...")
 
 	// Get service URL
-	cmd := exec.Command("gcloud", "run", "services", "describe", cfg.ServiceName,
+	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+	cmd := exec.Command("gcloud", "run", "services", "describe", cfg.ServiceName, //nolint:gosec
 		"--platform=managed",
 		"--region="+cfg.Region,
 		"--format=value(status.url)")

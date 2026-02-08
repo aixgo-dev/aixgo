@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -44,7 +45,13 @@ func SaveReport(report *BenchmarkReport, path string) error {
 
 // LoadReport loads benchmark report from JSON file
 func LoadReport(path string) (*BenchmarkReport, error) {
-	data, err := os.ReadFile(path)
+	// G304: Validate file path to prevent path traversal
+	cleanPath := filepath.Clean(path)
+	if strings.Contains(cleanPath, "..") {
+		return nil, fmt.Errorf("path traversal detected in report file path")
+	}
+
+	data, err := os.ReadFile(cleanPath) //nolint:gosec // Path validated above
 	if err != nil {
 		return nil, fmt.Errorf("read report: %w", err)
 	}

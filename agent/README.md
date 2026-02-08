@@ -60,12 +60,13 @@ package main
 
 import (
     "context"
+    "github.com/aixgo-dev/aixgo"
     "github.com/aixgo-dev/aixgo/agent"
 )
 
 func main() {
-    // Create a local runtime
-    rt := agent.NewLocalRuntime()
+    // Create a runtime
+    rt := aixgo.NewRuntime()
 
     // Register agents
     rt.Register(NewMyAgent("agent1"))
@@ -118,9 +119,9 @@ type Runtime interface {
 }
 ```
 
-#### LocalRuntime Behavior
+#### Runtime Behavior
 
-The `LocalRuntime` implementation provides important guarantees for agent startup:
+The `Runtime` implementation provides important guarantees for agent startup:
 
 **Start() Method:**
 
@@ -133,7 +134,7 @@ The `LocalRuntime` implementation provides important guarantees for agent startu
 **Example:**
 
 ```go
-rt := agent.NewLocalRuntime()
+rt := aixgo.NewRuntime()
 rt.Register(agent1)
 rt.Register(agent2)
 

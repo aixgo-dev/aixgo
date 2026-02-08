@@ -35,7 +35,7 @@ agent/
 
 ### Functions (2)
 - `NewMessage(msgType string, payload interface{}) *Message`
-- `NewLocalRuntime() *LocalRuntime`
+- `NewLocalRuntime() *LocalRuntime` (Deprecated: Use `aixgo.NewRuntime()` instead)
 
 ### Methods (18)
 Message methods: 8 (WithMetadata, GetMetadata, GetMetadataString, UnmarshalPayload, MarshalPayload, Clone, String)

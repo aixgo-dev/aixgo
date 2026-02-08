@@ -96,6 +96,7 @@ package myapp
 
 import (
     "context"
+    "github.com/aixgo-dev/aixgo"
     "github.com/aixgo-dev/aixgo/agent"
 )
 
@@ -159,6 +160,7 @@ package myapp
 
 import (
     "context"
+    "github.com/aixgo-dev/aixgo"
     "github.com/aixgo-dev/aixgo/agent"
 )
 
@@ -169,7 +171,7 @@ type ProcessingService struct {
 
 func NewProcessingService(processor DataProcessor) *ProcessingService {
     // Create runtime
-    rt := agent.NewLocalRuntime()
+    rt := aixgo.NewRuntime()
 
     // Register agents
     rt.Register(NewDataProcessorAgent("data-processor", processor))
@@ -243,7 +245,7 @@ func (s *Service) Process(ctx context.Context, req *Request) (*Result, error) {
 }
 
 // New agent-based code alongside
-rt := agent.NewLocalRuntime()
+rt := aixgo.NewRuntime()
 ```
 
 ### Phase 2: Wrap Existing Code
@@ -280,6 +282,7 @@ package myapp_test
 import (
     "context"
     "testing"
+    "github.com/aixgo-dev/aixgo"
     "github.com/aixgo-dev/aixgo/agent"
 )
 
@@ -291,7 +294,7 @@ func TestDataProcessor(t *testing.T) {
     processor := NewDataProcessorAgent("test-processor", mockProc)
 
     // Create runtime
-    rt := agent.NewLocalRuntime()
+    rt := aixgo.NewRuntime()
     rt.Register(processor)
 
     ctx := context.Background()
@@ -336,12 +339,12 @@ for name, err := range errors {
 
 ## Runtime Lifecycle Management
 
-The `LocalRuntime` provides strong guarantees for agent lifecycle:
+The `Runtime` provides strong guarantees for agent lifecycle:
 
 ### Startup Behavior
 
 ```go
-rt := agent.NewLocalRuntime()
+rt := aixgo.NewRuntime()
 rt.Register(agent1)
 rt.Register(agent2)
 rt.Register(agent3)

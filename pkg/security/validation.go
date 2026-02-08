@@ -442,3 +442,48 @@ func ValidateDeploymentInputs(projectID, region, serviceName, repoName, imageNam
 	}
 	return nil
 }
+
+// SafeIntToInt32 safely converts an int to int32 with bounds checking
+// Returns an error if the value would overflow or underflow
+func SafeIntToInt32(val int) (int32, error) {
+	const (
+		maxInt32 = int(^uint32(0) >> 1)  // 2147483647
+		minInt32 = -maxInt32 - 1          // -2147483648
+	)
+
+	if val > maxInt32 {
+		return 0, fmt.Errorf("integer overflow: %d exceeds int32 max value %d", val, maxInt32)
+	}
+	if val < minInt32 {
+		return 0, fmt.Errorf("integer underflow: %d is less than int32 min value %d", val, minInt32)
+	}
+
+	return int32(val), nil
+}
+
+// SafeIntToUint safely converts an int to uint with bounds checking
+// Returns an error if the value is negative
+func SafeIntToUint(val int) (uint, error) {
+	if val < 0 {
+		return 0, fmt.Errorf("cannot convert negative value %d to unsigned integer", val)
+	}
+	return uint(val), nil
+}
+
+// ValidateSafeFilePath validates a file path and returns the cleaned version
+// This helper combines path validation and cleaning for safe file operations
+// It prevents path traversal, null byte injection, and other file-based attacks
+func ValidateSafeFilePath(path string, baseDir string) (string, error) {
+	// First validate the raw path
+	if err := ValidateFilePath(path); err != nil {
+		return "", err
+	}
+
+	// Then sanitize it within the base directory if provided
+	if baseDir != "" {
+		return SanitizeFilePath(path, baseDir)
+	}
+
+	// Otherwise just clean it
+	return filepath.Clean(path), nil
+}

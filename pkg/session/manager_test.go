@@ -16,7 +16,7 @@ func TestNewManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	if mgr == nil {
@@ -30,7 +30,7 @@ func TestManagerCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -86,7 +86,7 @@ func TestManagerGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -120,7 +120,7 @@ func TestManagerGetOrCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -158,7 +158,7 @@ func TestManagerList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -213,7 +213,7 @@ func TestManagerDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -243,7 +243,7 @@ func TestSessionAppendMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -281,7 +281,7 @@ func TestSessionCheckpointRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -345,7 +345,7 @@ func TestSessionPersistence(t *testing.T) {
 		if err != nil {
 			t.Fatalf("NewFileBackend() error = %v", err)
 		}
-		defer backend.Close()
+		defer func() { _ = backend.Close() }()
 
 		mgr := NewManager(backend)
 		ctx := context.Background()
@@ -368,7 +368,7 @@ func TestSessionPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -405,7 +405,7 @@ func TestFileBackendBasics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	ctx := context.Background()
 
@@ -495,7 +495,7 @@ func TestFileBackendDefaultDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	home, _ := os.UserHomeDir()
 	expectedDir := filepath.Join(home, ".aixgo", "sessions")
@@ -511,7 +511,7 @@ func TestContextHelpers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -554,7 +554,7 @@ func TestSessionClose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -663,7 +663,7 @@ func TestListOptionsOffset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -701,7 +701,7 @@ func TestSessionRestoreErrors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	mgr := NewManager(backend)
 	ctx := context.Background()
@@ -777,7 +777,7 @@ func TestPathTraversalPrevention(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileBackend() error = %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	ctx := context.Background()
 

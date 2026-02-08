@@ -64,7 +64,11 @@ func NewHuggingFaceTEI(config Config) (EmbeddingService, error) {
 		log.Printf("Warning: HuggingFace TEI dimension probe failed: %v (dimensions will be determined on first embedding)", err)
 		atomic.StoreInt32(&tei.dimensions, 0)
 	} else {
-		atomic.StoreInt32(&tei.dimensions, int32(dims))
+		// G115: Safe conversion - dimensions are bounded by model architecture (typically < 10000)
+		if dims > 32767 { // int32 max safe value for embeddings
+			return nil, fmt.Errorf("dimension size %d exceeds maximum supported value", dims)
+		}
+		atomic.StoreInt32(&tei.dimensions, int32(dims)) //nolint:gosec
 	}
 
 	return tei, nil
@@ -95,7 +99,12 @@ func (t *HuggingFaceTEIEmbeddings) Embed(ctx context.Context, text string) ([]fl
 
 	// Update dimensions if not set (using atomic operation to prevent race condition)
 	if atomic.LoadInt32(&t.dimensions) == 0 && len(embeddings) > 0 && len(embeddings[0]) > 0 {
-		atomic.StoreInt32(&t.dimensions, int32(len(embeddings[0])))
+		// G115: Safe conversion - embedding dimensions are bounded by model architecture (typically < 10000)
+		dim := len(embeddings[0])
+		if dim > 32767 { // int32 max safe value for embeddings
+			return nil, fmt.Errorf("dimension size %d exceeds maximum supported value", dim)
+		}
+		atomic.StoreInt32(&t.dimensions, int32(dim)) //nolint:gosec
 	}
 
 	return embeddings[0], nil
@@ -122,7 +131,12 @@ func (t *HuggingFaceTEIEmbeddings) EmbedBatch(ctx context.Context, texts []strin
 
 	// Update dimensions if not set (using atomic operation to prevent race condition)
 	if atomic.LoadInt32(&t.dimensions) == 0 && len(embeddings) > 0 && len(embeddings[0]) > 0 {
-		atomic.StoreInt32(&t.dimensions, int32(len(embeddings[0])))
+		// G115: Safe conversion - embedding dimensions are bounded by model architecture (typically < 10000)
+		dim := len(embeddings[0])
+		if dim > 32767 { // int32 max safe value for embeddings
+			return nil, fmt.Errorf("dimension size %d exceeds maximum supported value", dim)
+		}
+		atomic.StoreInt32(&t.dimensions, int32(dim)) //nolint:gosec
 	}
 
 	return embeddings, nil

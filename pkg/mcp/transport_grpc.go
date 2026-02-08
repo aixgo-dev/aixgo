@@ -137,7 +137,7 @@ func (t *GRPCTransport) buildTLSConfig() (*tls.Config, error) {
 
 	config := &tls.Config{
 		MinVersion:         tls.VersionTLS12,
-		InsecureSkipVerify: tlsCfg.InsecureSkipVerify,
+		InsecureSkipVerify: tlsCfg.InsecureSkipVerify, //nolint:gosec // G402: intentionally configurable for dev/test environments
 		ServerName:         tlsCfg.ServerName,
 		CipherSuites: []uint16{
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,

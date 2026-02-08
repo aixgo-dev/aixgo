@@ -2,15 +2,16 @@ package agents
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
+	"log"
 	"sync"
+	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"github.com/google/uuid"
-	"log"
-	"math/rand"
-	"time"
 )
 
 type Producer struct {
@@ -61,7 +62,8 @@ func (p *Producer) Start(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				e := 100 + rand.Float64()*900
+				// G404: Use crypto/rand for generating random values
+				e := 100 + cryptoRandFloat64()*900
 				m := &agent.Message{Message: &pb.Message{
 					Id:        uuid.NewString(),
 					Type:      "ray_burst",
@@ -80,4 +82,15 @@ func (p *Producer) Start(ctx context.Context) error {
 
 	<-ctx.Done()
 	return nil
+}
+
+// cryptoRandFloat64 returns a cryptographically secure random float64 in [0.0, 1.0)
+func cryptoRandFloat64() float64 {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		// Fallback to deterministic value on error (should never happen)
+		return 0.5
+	}
+	// Use top 53 bits to create a float64 in [0, 1)
+	return float64(binary.BigEndian.Uint64(b[:])>>11) / (1 << 53)
 }

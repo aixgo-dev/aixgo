@@ -28,18 +28,18 @@ func main() {
 	if err := os.MkdirAll(tmpDir, 0700); err != nil {
 		log.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tmpDir) // Cleanup after example
+	defer func() { _ = os.RemoveAll(tmpDir) }() // Cleanup after example
 
 	// Create file-based storage backend
 	backend, err := session.NewFileBackend(tmpDir)
 	if err != nil {
 		log.Fatalf("Failed to create storage backend: %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	// Create session manager
 	mgr := session.NewManager(backend)
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	fmt.Println("=== Aixgo Sessions Example ===")
 	fmt.Println()

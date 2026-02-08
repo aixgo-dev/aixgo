@@ -29,7 +29,7 @@ func main() {
 	if err := os.MkdirAll(tmpDir, 0700); err != nil {
 		log.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	fmt.Println("=== Aixgo Session-Aware ReAct Example ===")
 	fmt.Println()
@@ -40,10 +40,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create storage backend: %v", err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	sessionMgr := session.NewManager(backend)
-	defer sessionMgr.Close()
+	defer func() { _ = sessionMgr.Close() }()
 	fmt.Println("   Session manager created with file-based storage")
 
 	// Step 2: Create and configure runtime
@@ -52,7 +52,7 @@ func main() {
 	if err := rt.Start(ctx); err != nil {
 		log.Fatalf("Failed to start runtime: %v", err)
 	}
-	defer rt.Stop(ctx)
+	defer func() { _ = rt.Stop(ctx) }()
 
 	// Connect session manager to runtime
 	rt.SetSessionManager(sessionMgr)

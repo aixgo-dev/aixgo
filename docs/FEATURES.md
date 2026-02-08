@@ -1,7 +1,7 @@
 # Aixgo Features Reference
 
-**Version**: 0.2.3
-**Last Updated**: 2026-01-02
+**Version**: 0.3.0
+**Last Updated**: 2026-02-08
 
 ---
 
@@ -82,12 +82,15 @@ This catalog contains:
 
 | Feature | Status | Description | Code Reference |
 |---------|--------|-------------|----------------|
+| **Unified Runtime** | ✅ Implemented | Consolidated runtime with functional options (v0.3.0+) | `runtime.go` |
 | **Local Runtime** | ✅ Implemented | In-process communication using Go channels for single-binary deployment | `runtime.go` |
 | **Distributed Runtime** | ✅ Implemented | Multi-node orchestration using gRPC for distributed deployment | `internal/runtime/` |
+| **Distributed TLS/mTLS** | ✅ Implemented | Secure gRPC with TLS/mTLS and service mesh support (v0.3.0+) | `internal/runtime/distributed.go` |
+| **Distributed Streaming** | ✅ Implemented | gRPC streaming for long-running remote agent operations (v0.3.0+) | `internal/runtime/distributed.go` |
 | **Runtime Migration** | ✅ Implemented | Seamless migration from local to distributed with zero code changes | `runtime.go`, `internal/runtime/` |
 | **Message Protocol** | ✅ Implemented | Protocol buffer-based message passing between agents | `proto/message.proto` |
 | **State Persistence** | ✅ Implemented | Workflow state checkpointing and resumption | `internal/workflow/persistence.go` |
-| **Session Persistence** | ✅ Implemented | Session management with JSONL storage, checkpoints, and resume | `pkg/session/` |
+| **Session Persistence** | ✅ Implemented | Session management with JSONL and Redis storage (v0.3.0+) | `pkg/session/` |
 | **Phased Agent Startup** | ✅ Implemented | Dependency-aware startup ordering using topological sort | `internal/graph/`, `runtime.go` |
 
 **Phased Startup Features** (v0.2.3+):
@@ -123,10 +126,12 @@ agents:
 |---------|--------|-------------|----------------|
 | **Session Manager** | ✅ Implemented | Create, get, list, delete sessions with lifecycle management | `pkg/session/manager.go` |
 | **Session Interface** | ✅ Implemented | AppendMessage, GetMessages, Checkpoint, Restore operations | `pkg/session/session.go` |
-| **File Backend** | ✅ Implemented | JSONL file-based storage with append-only writes | `pkg/session/file_backend.go` |
-| **Checkpoint/Restore** | ✅ Implemented | Create snapshots and restore to previous states | `pkg/session/session.go` |
+| **File Backend** | ✅ Implemented | JSONL file-based storage with append-only writes and path traversal protection | `pkg/session/file_backend.go` |
+| **Redis Backend** | ✅ Implemented | Distributed session storage for multi-node deployments | `pkg/session/redis_backend.go` |
+| **Checkpoint/Restore** | ✅ Implemented | Create snapshots and restore to previous states with integrity checksums | `pkg/session/session.go` |
 | **Context Helpers** | ✅ Implemented | SessionFromContext, ContextWithSession utilities | `pkg/session/context.go` |
 | **Runtime Integration** | ✅ Implemented | CallWithSession for session-aware agent execution | `runtime.go` |
+| **SessionAware Agents** | ✅ Implemented | ReAct agents with conversation history access | `agents/react.go` |
 
 **Session Features**:
 - **GetOrCreate Pattern**: Automatically resume or create sessions by user ID
@@ -739,7 +744,10 @@ security:
 | **Error Sanitization** | ✅ Implemented | Masks file paths, IPs, and sensitive info in error messages | `pkg/security/sanitize.go` |
 | **Prompt Injection Protection** | ✅ Implemented | Detection and mitigation | `pkg/security/prompt_injection.go` |
 | **SSRF Protection** | ✅ Implemented | URL validation, private IP blocking, metadata service blocking, DNS rebinding prevention | `pkg/security/ssrf.go` |
-| **Path Traversal Prevention** | ✅ Implemented | File path validation | `pkg/security/validation.go` |
+| **Path Traversal Prevention** | ✅ Implemented | File path validation with allowlist checking (v0.3.0+) | `pkg/security/validation.go`, `pkg/session/file_backend.go` |
+| **Subprocess Injection Prevention** | ✅ Implemented | Validated deployment inputs with strict allowlists (v0.3.0+) | `cmd/deploy/` |
+| **Safe Integer Conversion** | ✅ Implemented | Bounds checking for int to int32 conversions (v0.3.0+) | `internal/llm/provider/vertexai.go` |
+| **Cryptographic RNG** | ✅ Implemented | crypto/rand for session IDs and security-critical operations (v0.3.0+) | `pkg/session/` |
 | **SQL Injection Prevention** | ✅ Implemented | Parameterized queries | Best practices |
 | **Timing Attack Prevention** | ✅ Implemented | Constant-time comparison for API keys | `pkg/security/auth.go` |
 
@@ -760,7 +768,17 @@ security:
 - Environment variable support (`OLLAMA_ALLOWED_HOSTS`)
 - Default Ollama allowlist: localhost, 127.0.0.1, ::1, ollama, ollama-service
 
-**Keywords**: input validation, sanitization, prompt injection, ssrf, path traversal, injection prevention, error sanitization, timing attacks
+**Security Hardening (v0.3.0+)**:
+- **29 Code Scanning Alerts Fixed**: Comprehensive security audit and remediation
+- **G204 Mitigation**: Subprocess injection prevention via input validation
+- **G304 Mitigation**: Path traversal prevention with component validation
+- **G402 Warnings**: TLS security warnings and best practices documentation
+- **G115 Mitigation**: Safe integer conversion with bounds checking
+- **G404 Mitigation**: crypto/rand for security-critical randomness
+- **Example Secrets**: Placeholder patterns throughout documentation
+- **File Permissions**: Restrictive 0700/0600 for session storage
+
+**Keywords**: input validation, sanitization, prompt injection, ssrf, path traversal, injection prevention, error sanitization, timing attacks, security hardening, code scanning
 
 ### Rate Limiting & Throttling
 

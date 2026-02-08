@@ -2,9 +2,10 @@ package mcp
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -322,7 +323,9 @@ func (c *Cluster) leastConnectionsSelect(nodes []*ClusterNode) *ClusterNode {
 }
 
 func (c *Cluster) randomSelect(nodes []*ClusterNode) *ClusterNode {
-	return nodes[rand.Intn(len(nodes))]
+	// G404: Use crypto/rand for node selection to prevent predictable load balancing
+	idx := cryptoRandIntn(len(nodes))
+	return nodes[idx]
 }
 
 func (c *Cluster) weightedRandomSelect(nodes []*ClusterNode) *ClusterNode {
@@ -335,7 +338,8 @@ func (c *Cluster) weightedRandomSelect(nodes []*ClusterNode) *ClusterNode {
 		totalWeight += weight
 	}
 
-	r := rand.Intn(totalWeight)
+	// G404: Use crypto/rand for weighted selection to prevent predictable load balancing
+	r := cryptoRandIntn(totalWeight)
 	for _, node := range nodes {
 		weight := node.Instance.Weight
 		if weight <= 0 {
@@ -568,3 +572,18 @@ func (t *ClusterTransport) Close() error {
 
 // Interface compliance
 var _ Transport = (*ClusterTransport)(nil)
+
+// cryptoRandIntn returns a cryptographically secure random integer in [0, n)
+// This is used for load balancing to prevent predictable node selection
+func cryptoRandIntn(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		// Fallback to 0 on error (should never happen)
+		return 0
+	}
+	// Use modulo to get a value in [0, n)
+	return int(binary.BigEndian.Uint64(b[:]) % uint64(n))
+}

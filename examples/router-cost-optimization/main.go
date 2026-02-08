@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/aixgo-dev/aixgo"
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/orchestration"
-	"github.com/aixgo-dev/aixgo/internal/runtime"
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
@@ -25,8 +25,8 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// Create local runtime
-	rt := runtime.NewLocalRuntime()
+	// Create runtime
+	rt := aixgo.NewRuntime()
 
 	// Start runtime
 	if err := rt.Start(ctx); err != nil {

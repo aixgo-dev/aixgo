@@ -112,7 +112,8 @@ func NewFileAuditBackend(path string) (*FileAuditBackend, error) {
 		return nil, fmt.Errorf("invalid audit file path: %w", err)
 	}
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	// G304: Path is validated above using ValidateFilePath
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("failed to open audit file: %w", err)
 	}

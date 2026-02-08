@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -311,9 +312,16 @@ func newElasticsearchBackend(config *ElasticsearchConfig, batchSize int, flushIn
 		}
 	}
 
+	// Log warning if TLS verification is disabled
+	if !config.TLSVerify {
+		log.Printf("WARNING: Elasticsearch TLS certificate verification is disabled (TLSVerify=false). "+
+			"This is a security risk and should NEVER be used in production. "+
+			"Connections are vulnerable to man-in-the-middle attacks.")
+	}
+
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: !config.TLSVerify,
+			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test
 		},
 	}
 
@@ -423,9 +431,16 @@ func newSplunkBackend(config *SplunkConfig, batchSize int, flushInterval time.Du
 		}
 	}
 
+	// Log warning if TLS verification is disabled
+	if !config.TLSVerify {
+		log.Printf("WARNING: Splunk TLS certificate verification is disabled (TLSVerify=false). "+
+			"This is a security risk and should NEVER be used in production. "+
+			"Connections are vulnerable to man-in-the-middle attacks.")
+	}
+
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: !config.TLSVerify,
+			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test
 		},
 	}
 
@@ -532,9 +547,16 @@ func newWebhookBackend(config *WebhookConfig, batchSize int, flushInterval time.
 		}
 	}
 
+	// Log warning if TLS verification is disabled
+	if !config.TLSVerify {
+		log.Printf("WARNING: Webhook TLS certificate verification is disabled (TLSVerify=false). "+
+			"This is a security risk and should NEVER be used in production. "+
+			"Connections are vulnerable to man-in-the-middle attacks.")
+	}
+
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: !config.TLSVerify,
+			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test
 		},
 	}
 

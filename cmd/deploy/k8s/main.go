@@ -236,7 +236,8 @@ func createSecrets(ctx context.Context, cfg *Config) error {
 	logInfo("Creating Kubernetes secrets...")
 
 	// Create namespace if it doesn't exist
-	cmd := exec.Command("kubectl", "get", "namespace", cfg.Namespace)
+	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+	cmd := exec.Command("kubectl", "get", "namespace", cfg.Namespace) //nolint:gosec
 	if err := cmd.Run(); err != nil {
 		logInfo("Creating namespace %s...", cfg.Namespace)
 		if err := runCommand("kubectl", "create", "namespace", cfg.Namespace); err != nil {
@@ -251,7 +252,8 @@ func createSecrets(ctx context.Context, cfg *Config) error {
 	}
 
 	// Delete existing secret if it exists
-	cmd = exec.Command("kubectl", "delete", "secret", "api-keys", "-n", cfg.Namespace)
+	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+	cmd = exec.Command("kubectl", "delete", "secret", "api-keys", "-n", cfg.Namespace) //nolint:gosec
 	_ = cmd.Run() // Ignore error if secret doesn't exist
 
 	// Build the create secret command
@@ -369,7 +371,8 @@ func runSmokeTests(ctx context.Context, cfg *Config) error {
 	logInfo("Running smoke tests...")
 
 	// Port forward for testing
-	portForwardCmd := exec.Command("kubectl", "port-forward",
+	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
+	portForwardCmd := exec.Command("kubectl", "port-forward", //nolint:gosec
 		"-n", cfg.Namespace,
 		"svc/aixgo-service", "8080:8080")
 
@@ -389,7 +392,8 @@ func runSmokeTests(ctx context.Context, cfg *Config) error {
 
 	for _, endpoint := range endpoints {
 		logInfo("Testing endpoint: %s", endpoint)
-		cmd := exec.Command("curl", "-f", endpoint)
+		// G204: Using validated endpoint (localhost only) - safe for subprocess execution
+		cmd := exec.Command("curl", "-f", endpoint) //nolint:gosec
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("health check failed for %s", endpoint)
 		}

@@ -24,11 +24,37 @@ Python AI frameworks excel at prototyping but struggle in production. Aixgo is b
 - **6 Agent Types** - ReAct, Classifier, Aggregator, Planner, Producer, Logger
 - **13 Orchestration Patterns** - All production-proven patterns implemented
 - **6+ LLM Providers** - OpenAI, Anthropic, Gemini, xAI, Vertex AI, HuggingFace, plus local inference
-- **Enterprise Security** - 4 auth modes, RBAC, rate limiting, SSRF protection
+- **Session Persistence** - Built-in conversation memory with JSONL and Redis storage (v0.3.0+)
+- **Enterprise Security** - 4 auth modes, RBAC, rate limiting, SSRF protection, comprehensive hardening
 - **Full Observability** - OpenTelemetry, Prometheus, Langfuse, cost tracking
 - **Cost Optimization** - 25-50% savings with Router pattern, 70% token reduction with RAG
 
 > 📖 **Complete Feature Catalog**: See [docs/FEATURES.md](docs/FEATURES.md) for all features with code references and technical details.
+
+### What's New in v0.3.0
+
+**Session Persistence** - AI agents now remember conversations with built-in session management:
+
+```go
+// Sessions are automatic - agents remember context
+sess, _ := mgr.GetOrCreate(ctx, "assistant", "user-123")
+result, _ := rt.CallWithSession(ctx, "assistant", msg, sess.ID())
+```
+
+**Runtime Consolidation** - Unified API with functional options:
+
+```go
+rt := aixgo.NewRuntime(
+    aixgo.WithSessionManager(sessionMgr),
+    aixgo.WithMetrics(metricsCollector),
+)
+```
+
+**Distributed Runtime Parity** - TLS/mTLS, streaming, and Redis sessions for multi-node deployments.
+
+**Security Hardening** - 29 code scanning alerts fixed including path traversal, subprocess injection, and safe integer conversions.
+
+Read the full release notes: [v0.3.0 Release Blog Post](https://aixgo.dev/blog/v0.3.0-session-persistence/)
 
 ## Quick Start
 

@@ -175,6 +175,7 @@ package main
 import (
     "context"
     "fmt"
+    "github.com/aixgo-dev/aixgo"
     "github.com/aixgo-dev/aixgo/agent"
 )
 
@@ -182,7 +183,7 @@ func main() {
     ctx := context.Background()
 
     // Create runtime
-    rt := agent.NewLocalRuntime()
+    rt := aixgo.NewRuntime()
 
     // Register agents
     rt.Register(NewAnalyzerAgent("analyzer-1"))
@@ -266,6 +267,7 @@ import (
     "context"
     "encoding/json"
     "net/http"
+    "github.com/aixgo-dev/aixgo"
     "github.com/aixgo-dev/aixgo/agent"
 )
 
@@ -274,7 +276,7 @@ type AgentService struct {
 }
 
 func NewAgentService() *AgentService {
-    rt := agent.NewLocalRuntime()
+    rt := aixgo.NewRuntime()
     rt.Register(NewAnalyzerAgent("analyzer"))
 
     ctx := context.Background()
@@ -398,6 +400,7 @@ package myagent_test
 import (
     "context"
     "testing"
+    "github.com/aixgo-dev/aixgo"
     "github.com/aixgo-dev/aixgo/agent"
 )
 
@@ -433,7 +436,7 @@ func TestAnalyzerAgent(t *testing.T) {
 
 func TestWithRuntime(t *testing.T) {
     ctx := context.Background()
-    rt := agent.NewLocalRuntime()
+    rt := aixgo.NewRuntime()
 
     // Register test agents
     rt.Register(NewAnalyzerAgent("analyzer"))
@@ -479,7 +482,7 @@ import (
 )
 
 // Your custom agents continue to work
-rt := agent.NewLocalRuntime()
+rt := aixgo.NewRuntime()
 rt.Register(yourCustomAgent)
 
 // Add framework agents alongside

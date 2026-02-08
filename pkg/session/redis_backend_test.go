@@ -21,7 +21,7 @@ func setupMiniredis(t *testing.T) (*miniredis.Miniredis, *RedisBackend) {
 	backend := NewRedisBackendFromClient(client, "test:", 0)
 
 	t.Cleanup(func() {
-		backend.Close()
+		_ = backend.Close()
 	})
 
 	return mr, backend
@@ -310,7 +310,7 @@ func TestRedisBackend_TTL(t *testing.T) {
 
 	// Create backend with 1 hour TTL
 	backend := NewRedisBackendFromClient(client, "test:", 1*time.Hour)
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 
 	ctx := context.Background()
 

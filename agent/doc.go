@@ -34,9 +34,9 @@
 //
 // # Runtime Usage
 //
-// Use LocalRuntime to coordinate multiple agents:
+// Use aixgo.NewRuntime() to coordinate multiple agents:
 //
-//	rt := agent.NewLocalRuntime()
+//	rt := aixgo.NewRuntime()
 //	rt.Register(myAgent)
 //	rt.Start(ctx)
 //

@@ -293,7 +293,7 @@ func (f *FileBackend) AppendEntry(ctx context.Context, sessionID string, entry *
 	if err != nil {
 		return fmt.Errorf("open entries file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Write entry as JSON line
 	data, err := json.Marshal(entry)
@@ -333,7 +333,7 @@ func (f *FileBackend) LoadEntries(ctx context.Context, sessionID string) ([]*Ses
 		}
 		return nil, fmt.Errorf("open entries file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var entries []*SessionEntry
 	scanner := bufio.NewScanner(file)

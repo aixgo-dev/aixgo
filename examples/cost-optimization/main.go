@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aixgo-dev/aixgo"
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/orchestration"
-	"github.com/aixgo-dev/aixgo/internal/runtime"
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
@@ -337,7 +337,7 @@ func demoBudgetMonitoring() {
 	budget := NewBudgetMonitor(0.10, metrics) // $0.10 budget
 
 	ctx := context.Background()
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 	_ = rt.Start(ctx)
 	defer func() { _ = rt.Stop(ctx) }()
 
@@ -391,7 +391,7 @@ func demoBudgetMonitoring() {
 
 func demoRouterOptimization() {
 	ctx := context.Background()
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 	_ = rt.Start(ctx)
 	defer func() { _ = rt.Stop(ctx) }()
 

@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/aixgo-dev/aixgo"
 	"github.com/aixgo-dev/aixgo/agents"
 	"github.com/aixgo-dev/aixgo/internal/agent"
-	"github.com/aixgo-dev/aixgo/internal/runtime"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"gopkg.in/yaml.v3"
 )
@@ -68,7 +69,7 @@ func main() {
 	inputs := createAgentInputs(config.Experts)
 
 	// Initialize runtime
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 
 	// Test each voting strategy
 	fmt.Println("\n=================================================")
@@ -166,7 +167,14 @@ func createAggregatorDef(strategy string) *agent.AgentDef {
 }
 
 func loadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+	// G304: Validate file path to prevent path traversal
+	// This example uses user-provided paths, so validation is essential
+	cleanPath := filepath.Clean(path)
+	if strings.Contains(cleanPath, "..") {
+		return nil, fmt.Errorf("path traversal detected in config file path")
+	}
+
+	data, err := os.ReadFile(cleanPath) //nolint:gosec // Path validated above
 	if err != nil {
 		return nil, err
 	}

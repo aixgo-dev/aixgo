@@ -7,9 +7,9 @@ import (
 	"log"
 	"strings"
 
+	"github.com/aixgo-dev/aixgo"
 	"github.com/aixgo-dev/aixgo/agents"
 	"github.com/aixgo-dev/aixgo/internal/agent"
-	"github.com/aixgo-dev/aixgo/internal/runtime"
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
 
@@ -46,7 +46,7 @@ func demoAllStrategies() {
 	fmt.Println("=== Demonstrating All 9 Aggregation Strategies ===\n")
 
 	ctx := context.Background()
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 	_ = rt.Start(ctx)
 	defer func() { _ = rt.Stop(ctx) }()
 
@@ -193,7 +193,7 @@ func demoResilienceFeatures() {
 	fmt.Println("=== Demonstrating Resilience Features ===\n")
 
 	ctx := context.Background()
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 	_ = rt.Start(ctx)
 	defer func() { _ = rt.Stop(ctx) }()
 

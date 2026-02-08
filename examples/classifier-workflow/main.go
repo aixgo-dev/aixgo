@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aixgo-dev/aixgo"
 	"github.com/aixgo-dev/aixgo/internal/agent"
-	"github.com/aixgo-dev/aixgo/internal/runtime"
 	"github.com/aixgo-dev/aixgo/pkg/config"
 	pb "github.com/aixgo-dev/aixgo/proto"
 )
@@ -141,7 +141,7 @@ func NewWorkflowOrchestrator(configPath string) (*WorkflowOrchestrator, error) {
 	}
 
 	// Initialize runtime
-	rt := runtime.NewLocalRuntime()
+	rt := aixgo.NewRuntime()
 
 	// Initialize agents
 	agents := make(map[string]agent.Agent)
