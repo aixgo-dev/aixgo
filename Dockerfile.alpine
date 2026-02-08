@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -trimpath \
     -ldflags="-w -s -X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo 'dev') -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     -o /build/aixgo \
-    ./cmd/orchestrator
+    ./cmd/aixgo
 
 # Stage 2: Runtime (Alpine - minimal but with shell)
 FROM alpine:3.19

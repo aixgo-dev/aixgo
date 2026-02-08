@@ -20,7 +20,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -trimpath \
     -ldflags="-w -s" \
     -a -installsuffix cgo \
-    -o aixgo ./cmd/orchestrator
+    -o aixgo ./cmd/aixgo
 
 # Final stage - minimal and secure
 FROM alpine:3.19

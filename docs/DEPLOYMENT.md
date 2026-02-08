@@ -56,7 +56,7 @@ The deployment infrastructure provides:
 
 ### Components
 
-1. **Aixgo Orchestrator** (`cmd/orchestrator/`)
+1. **Aixgo Orchestrator** (`cmd/aixgo/`)
 
    - Agent coordination and message routing
    - HTTP API (port 8080) and gRPC (port 9090)
@@ -127,7 +127,7 @@ docker run -p 11434:11434 ollama/ollama:latest
 go run cmd/mcp-server/main.go
 
 # Terminal 3: Start Orchestrator
-go run cmd/orchestrator/main.go -config examples/huggingface-mcp/config.yaml
+go run cmd/aixgo/main.go -config examples/huggingface-mcp/config.yaml
 ```
 
 ### 3. Test Endpoints
