@@ -4,12 +4,29 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 )
+
+// ErrInvalidPathComponent is returned when a path component contains unsafe characters.
+var ErrInvalidPathComponent = errors.New("invalid path component: contains path separator or traversal sequence")
+
+// validatePathComponent checks that a string is safe to use as a path component.
+// It rejects empty strings, path separators, and traversal sequences.
+func validatePathComponent(s string) error {
+	if s == "" {
+		return errors.New("path component cannot be empty")
+	}
+	if strings.ContainsAny(s, `/\`) || strings.Contains(s, "..") {
+		return ErrInvalidPathComponent
+	}
+	return nil
+}
 
 // FileBackend implements StorageBackend using JSONL files.
 // Storage layout:
@@ -56,6 +73,14 @@ func (f *FileBackend) SaveSession(ctx context.Context, meta *SessionMetadata) er
 		return ErrStorageClosed
 	}
 
+	// Validate path components to prevent path traversal
+	if err := validatePathComponent(meta.AgentName); err != nil {
+		return fmt.Errorf("invalid agent name: %w", err)
+	}
+	if err := validatePathComponent(meta.ID); err != nil {
+		return fmt.Errorf("invalid session ID: %w", err)
+	}
+
 	// Ensure agent directory exists
 	agentDir := filepath.Join(f.baseDir, meta.AgentName)
 	if err := os.MkdirAll(agentDir, 0700); err != nil {
@@ -66,7 +91,7 @@ func (f *FileBackend) SaveSession(ctx context.Context, meta *SessionMetadata) er
 	indexPath := filepath.Join(agentDir, "sessions.json")
 	index := make(map[string]*SessionMetadata)
 
-	data, err := os.ReadFile(indexPath) // #nosec G304 - path is constructed from trusted base
+	data, err := os.ReadFile(indexPath) // #nosec G304 - path components validated to prevent traversal
 	if err == nil {
 		if err := json.Unmarshal(data, &index); err != nil {
 			return fmt.Errorf("parse sessions index: %w", err)
@@ -100,6 +125,11 @@ func (f *FileBackend) LoadSession(ctx context.Context, sessionID string) (*Sessi
 		return nil, ErrStorageClosed
 	}
 
+	// Validate session ID to prevent path traversal
+	if err := validatePathComponent(sessionID); err != nil {
+		return nil, fmt.Errorf("invalid session ID: %w", err)
+	}
+
 	// Search all agent directories for the session
 	entries, err := os.ReadDir(f.baseDir)
 	if err != nil {
@@ -115,7 +145,7 @@ func (f *FileBackend) LoadSession(ctx context.Context, sessionID string) (*Sessi
 		}
 
 		indexPath := filepath.Join(f.baseDir, entry.Name(), "sessions.json")
-		data, err := os.ReadFile(indexPath) // #nosec G304 - path is constructed from trusted base
+		data, err := os.ReadFile(indexPath) // #nosec G304 - path components validated to prevent traversal
 		if err != nil {
 			continue
 		}
@@ -156,7 +186,7 @@ func (f *FileBackend) DeleteSession(ctx context.Context, sessionID string) error
 
 	// Remove from index
 	indexPath := filepath.Join(agentDir, "sessions.json")
-	data, err := os.ReadFile(indexPath) // #nosec G304 - path is constructed from trusted base
+	data, err := os.ReadFile(indexPath) // #nosec G304 - path components validated to prevent traversal
 	if err != nil {
 		return fmt.Errorf("read sessions index: %w", err)
 	}
@@ -189,10 +219,15 @@ func (f *FileBackend) ListSessions(ctx context.Context, agentName string, opts L
 		return nil, ErrStorageClosed
 	}
 
+	// Validate agent name to prevent path traversal
+	if err := validatePathComponent(agentName); err != nil {
+		return nil, fmt.Errorf("invalid agent name: %w", err)
+	}
+
 	agentDir := filepath.Join(f.baseDir, agentName)
 	indexPath := filepath.Join(agentDir, "sessions.json")
 
-	data, err := os.ReadFile(indexPath) // #nosec G304 - path is constructed from trusted base
+	data, err := os.ReadFile(indexPath) // #nosec G304 - path validated above
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []*SessionMetadata{}, nil
@@ -254,7 +289,7 @@ func (f *FileBackend) AppendEntry(ctx context.Context, sessionID string, entry *
 	entriesPath := filepath.Join(agentDir, sessionID+".jsonl")
 
 	// Open file for append
-	file, err := os.OpenFile(entriesPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600) // #nosec G304 - path is constructed from trusted base
+	file, err := os.OpenFile(entriesPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600) // #nosec G304 - path components validated to prevent traversal
 	if err != nil {
 		return fmt.Errorf("open entries file: %w", err)
 	}
@@ -291,7 +326,7 @@ func (f *FileBackend) LoadEntries(ctx context.Context, sessionID string) ([]*Ses
 	agentDir := filepath.Join(f.baseDir, meta.AgentName)
 	entriesPath := filepath.Join(agentDir, sessionID+".jsonl")
 
-	file, err := os.Open(entriesPath) // #nosec G304 - path is constructed from trusted base
+	file, err := os.Open(entriesPath) // #nosec G304 - path components validated to prevent traversal
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []*SessionEntry{}, nil
@@ -326,7 +361,12 @@ func (f *FileBackend) SaveCheckpoint(ctx context.Context, checkpoint *Checkpoint
 		return ErrStorageClosed
 	}
 
-	// Find the session to get the agent name
+	// Validate checkpoint ID to prevent path traversal
+	if err := validatePathComponent(checkpoint.ID); err != nil {
+		return fmt.Errorf("invalid checkpoint ID: %w", err)
+	}
+
+	// Find the session to get the agent name (validates sessionID)
 	meta, err := f.loadSessionUnlocked(checkpoint.SessionID)
 	if err != nil {
 		return err
@@ -360,6 +400,11 @@ func (f *FileBackend) LoadCheckpoint(ctx context.Context, checkpointID string) (
 		return nil, ErrStorageClosed
 	}
 
+	// Validate checkpoint ID to prevent path traversal
+	if err := validatePathComponent(checkpointID); err != nil {
+		return nil, fmt.Errorf("invalid checkpoint ID: %w", err)
+	}
+
 	// Search all agent directories for the checkpoint
 	entries, err := os.ReadDir(f.baseDir)
 	if err != nil {
@@ -375,7 +420,7 @@ func (f *FileBackend) LoadCheckpoint(ctx context.Context, checkpointID string) (
 		}
 
 		checkpointPath := filepath.Join(f.baseDir, entry.Name(), "checkpoints", checkpointID+".json")
-		data, err := os.ReadFile(checkpointPath) // #nosec G304 - path is constructed from trusted base
+		data, err := os.ReadFile(checkpointPath) // #nosec G304 - path components validated to prevent traversal
 		if err != nil {
 			continue
 		}
@@ -403,6 +448,11 @@ func (f *FileBackend) Close() error {
 // loadSessionUnlocked is an internal helper that loads session without acquiring locks.
 // Caller must hold appropriate lock.
 func (f *FileBackend) loadSessionUnlocked(sessionID string) (*SessionMetadata, error) {
+	// Validate session ID to prevent path traversal
+	if err := validatePathComponent(sessionID); err != nil {
+		return nil, fmt.Errorf("invalid session ID: %w", err)
+	}
+
 	// Search all agent directories for the session
 	entries, err := os.ReadDir(f.baseDir)
 	if err != nil {
@@ -418,7 +468,7 @@ func (f *FileBackend) loadSessionUnlocked(sessionID string) (*SessionMetadata, e
 		}
 
 		indexPath := filepath.Join(f.baseDir, entry.Name(), "sessions.json")
-		data, err := os.ReadFile(indexPath) // #nosec G304 - path is constructed from trusted base
+		data, err := os.ReadFile(indexPath) // #nosec G304 - path components validated to prevent traversal
 		if err != nil {
 			continue
 		}

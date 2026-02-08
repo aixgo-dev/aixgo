@@ -63,7 +63,12 @@ type TLSConfig struct {
 	// ServerName is used for SNI verification.
 	ServerName string
 	// InsecureSkipVerify skips certificate verification (development only).
+	// Warning: This logs a security warning. Do not use in production.
 	InsecureSkipVerify bool
+	// ExternalTLS indicates TLS is handled by a service mesh (Istio, Linkerd, etc.).
+	// When true, app-level TLS is disabled entirely since the mesh sidecar handles
+	// encryption. This takes precedence over other TLS settings.
+	ExternalTLS bool
 }
 
 // remoteAgentClient represents a connection to a remote agent
@@ -189,10 +194,21 @@ func (r *DistributedRuntime) Connect(name, addr string) error {
 func (r *DistributedRuntime) buildDialOptions() ([]grpc.DialOption, error) {
 	var opts []grpc.DialOption
 
+	// ExternalTLS means TLS is handled by service mesh (Istio, Linkerd, etc.)
+	// Use plaintext transport since the sidecar handles encryption
+	if r.tlsConfig != nil && r.tlsConfig.ExternalTLS {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		return opts, nil
+	}
+
 	if r.tlsConfig != nil && r.tlsConfig.Enabled {
+		// InsecureSkipVerify is for development/testing only
+		if r.tlsConfig.InsecureSkipVerify {
+			log.Println("[DistributedRuntime] WARNING: TLS certificate verification is disabled. This is insecure and should only be used for development.")
+		}
 		tlsCfg := &tls.Config{
 			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: r.tlsConfig.InsecureSkipVerify,
+			InsecureSkipVerify: r.tlsConfig.InsecureSkipVerify, //nolint:gosec // G402: intentionally configurable for dev/test
 		}
 
 		// Set server name for SNI
@@ -602,6 +618,11 @@ func (r *DistributedRuntime) Start(ctx context.Context) error {
 // buildServerOptions creates gRPC server options based on TLS configuration.
 func (r *DistributedRuntime) buildServerOptions() ([]grpc.ServerOption, error) {
 	var opts []grpc.ServerOption
+
+	// ExternalTLS means TLS is handled by service mesh - no server-side TLS needed
+	if r.tlsConfig != nil && r.tlsConfig.ExternalTLS {
+		return opts, nil
+	}
 
 	if r.tlsConfig != nil && r.tlsConfig.Enabled {
 		// Load server certificate

@@ -770,3 +770,69 @@ func TestDataToMessageWithMetadata(t *testing.T) {
 		t.Errorf("Metadata[key] = %v, want value", msg.Metadata["key"])
 	}
 }
+
+func TestPathTraversalPrevention(t *testing.T) {
+	tmpDir := t.TempDir()
+	backend, err := NewFileBackend(tmpDir)
+	if err != nil {
+		t.Fatalf("NewFileBackend() error = %v", err)
+	}
+	defer backend.Close()
+
+	ctx := context.Background()
+
+	// Test path traversal in agent name
+	traversalCases := []struct {
+		name      string
+		agentName string
+		sessionID string
+	}{
+		{"slash in agent name", "../etc", "valid-session"},
+		{"backslash in agent name", "..\\etc", "valid-session"},
+		{"dotdot in agent name", "foo..bar", "valid-session"},
+		{"slash in session ID", "valid-agent", "../../../etc/passwd"},
+		{"empty agent name", "", "valid-session"},
+		{"empty session ID", "valid-agent", ""},
+	}
+
+	for _, tc := range traversalCases {
+		t.Run(tc.name, func(t *testing.T) {
+			meta := &SessionMetadata{
+				ID:        tc.sessionID,
+				AgentName: tc.agentName,
+				CreatedAt: time.Now().UTC(),
+				UpdatedAt: time.Now().UTC(),
+			}
+
+			err := backend.SaveSession(ctx, meta)
+			if err == nil {
+				t.Errorf("SaveSession() should reject path traversal attempt: agent=%q session=%q", tc.agentName, tc.sessionID)
+			}
+		})
+	}
+
+	// Test path traversal in checkpoint ID
+	t.Run("slash in checkpoint ID", func(t *testing.T) {
+		// First create a valid session
+		validMeta := &SessionMetadata{
+			ID:        "valid-session",
+			AgentName: "valid-agent",
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		}
+		if err := backend.SaveSession(ctx, validMeta); err != nil {
+			t.Fatalf("SaveSession() error = %v", err)
+		}
+
+		checkpoint := &Checkpoint{
+			ID:        "../../../etc/passwd",
+			SessionID: "valid-session",
+			Timestamp: time.Now().UTC(),
+		}
+
+		err := backend.SaveCheckpoint(ctx, checkpoint)
+		if err == nil {
+			t.Error("SaveCheckpoint() should reject path traversal in checkpoint ID")
+		}
+	})
+}

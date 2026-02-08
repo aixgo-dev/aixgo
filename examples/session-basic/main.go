@@ -123,7 +123,9 @@ func main() {
 	// Example 7: Resume session (simulating application restart)
 	fmt.Println("7. Simulating session resume...")
 	sessionID := sess.ID()
-	sess.Close(ctx) // Close current session
+	if err := sess.Close(ctx); err != nil {
+		log.Printf("Warning: failed to close session: %v", err)
+	}
 
 	// Get session by ID (as if resuming after restart)
 	resumedSess, err := mgr.Get(ctx, sessionID)

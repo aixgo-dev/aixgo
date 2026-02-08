@@ -21,12 +21,21 @@ import (
 // math/rand would be sufficient, but crypto/rand is used for defense in depth.
 
 const (
-	vertexAIMaxRetries   = 5
-	vertexAIBaseDelay    = 1 * time.Second
-	vertexAIMaxDelay     = 32 * time.Second
-	vertexAIJitterFactor = 0.3
+	vertexAIMaxRetries    = 5
+	vertexAIBaseDelay     = 1 * time.Second
+	vertexAIMaxDelay      = 32 * time.Second
+	vertexAIJitterFactor  = 0.3
 	vertexAIClientTimeout = 30 * time.Second
 )
+
+// safeIntToInt32 safely converts an int to int32, returning 0 if out of range.
+// This avoids integer overflow issues flagged by security scanners (G115).
+func safeIntToInt32(n int) (int32, bool) {
+	if n < 0 || n > math.MaxInt32 {
+		return 0, false
+	}
+	return int32(n), true
+}
 
 func init() {
 	RegisterFactory("vertexai", func(config map[string]any) (Provider, error) {
@@ -112,8 +121,8 @@ func (p *VertexAIProvider) CreateCompletion(ctx context.Context, req CompletionR
 	// Always set temperature - 0 is a valid value for deterministic output
 	// Use -1 as sentinel for "not set" if needed, but typically callers set explicit values
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if req.MaxTokens > 0 && req.MaxTokens <= math.MaxInt32 {
-		config.MaxOutputTokens = int32(req.MaxTokens)
+	if maxTokens, ok := safeIntToInt32(req.MaxTokens); ok && maxTokens > 0 {
+		config.MaxOutputTokens = maxTokens
 	}
 
 	// Build contents from messages
@@ -174,8 +183,8 @@ func (p *VertexAIProvider) CreateStructured(ctx context.Context, req StructuredR
 	}
 	// Always set temperature - 0 is a valid value for deterministic output
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if req.MaxTokens > 0 && req.MaxTokens <= math.MaxInt32 {
-		config.MaxOutputTokens = int32(req.MaxTokens)
+	if maxTokens, ok := safeIntToInt32(req.MaxTokens); ok && maxTokens > 0 {
+		config.MaxOutputTokens = maxTokens
 	}
 
 	// Add response schema if provided
@@ -244,8 +253,8 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 	config := &genai.GenerateContentConfig{}
 	// Always set temperature - 0 is a valid value for deterministic output
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if req.MaxTokens > 0 && req.MaxTokens <= math.MaxInt32 {
-		config.MaxOutputTokens = int32(req.MaxTokens)
+	if maxTokens, ok := safeIntToInt32(req.MaxTokens); ok && maxTokens > 0 {
+		config.MaxOutputTokens = maxTokens
 	}
 
 	// Build contents from messages
@@ -469,17 +478,9 @@ func isRetryableGenAIError(err error) bool {
 func (p *VertexAIProvider) calculateBackoff(attempt int) time.Duration {
 	// Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at maxDelay)
 	// Guard against negative or zero attempt to prevent uint overflow
-	shift := attempt - 1
-	if shift < 0 {
-		shift = 0
-	}
-	if shift > 31 { // Prevent overflow for large values
-		shift = 31
-	}
-	delay := time.Duration(1<<uint(shift)) * vertexAIBaseDelay
-	if delay > vertexAIMaxDelay {
-		delay = vertexAIMaxDelay
-	}
+	// Clamp shift to [0, 31] using min/max built-ins for safe uint conversion
+	shift := uint(max(0, min(attempt-1, 31)))
+	delay := min(time.Duration(1<<shift)*vertexAIBaseDelay, vertexAIMaxDelay)
 	// Add jitter: delay ± 30% using crypto/rand for security compliance
 	jitter := time.Duration(float64(delay) * vertexAIJitterFactor * (cryptoRandFloat64()*2 - 1))
 	return delay + jitter

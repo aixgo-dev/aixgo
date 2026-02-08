@@ -153,7 +153,9 @@ func main() {
 	// Step 9: Resume session (simulate app restart)
 	fmt.Println("\n9. Simulating session resume...")
 	sessionID := sess.ID()
-	sess.Close(ctx)
+	if err := sess.Close(ctx); err != nil {
+		log.Printf("Warning: failed to close session: %v", err)
+	}
 
 	// Re-open the session
 	resumedSess, err := sessionMgr.Get(ctx, sessionID)
