@@ -122,10 +122,10 @@ func (c *agentServiceClient) Listen(ctx context.Context, in *ListenRequest, opts
 		return nil, err
 	}
 	x := &agentServiceListenClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
+	if err := x.SendMsg(in); err != nil {
 		return nil, err
 	}
-	if err := x.ClientStream.CloseSend(); err != nil {
+	if err := x.CloseSend(); err != nil {
 		return nil, err
 	}
 	return x, nil
@@ -137,7 +137,7 @@ type agentServiceListenClient struct {
 
 func (x *agentServiceListenClient) Recv() (*ListenResponse, error) {
 	m := new(ListenResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
+	if err := x.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
@@ -223,7 +223,7 @@ type agentServiceListenServer struct {
 }
 
 func (x *agentServiceListenServer) Send(m *ListenResponse) error {
-	return x.ServerStream.SendMsg(m)
+	return x.SendMsg(m)
 }
 
 // RegisterAgentServiceServer registers the agent service with gRPC
