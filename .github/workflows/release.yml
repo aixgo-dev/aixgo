@@ -1,0 +1,96 @@
+# GoReleaser workflow for automated binary releases
+# Triggers on version tags (v*) and creates GitHub releases
+#
+# Binary: aixgo (agent orchestrator CLI)
+# Platforms: Linux, macOS, Windows (amd64, arm64)
+#
+# References:
+#   - https://goreleaser.com/ci/actions/
+#   - https://github.com/goreleaser/goreleaser-action
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all tags
+        run: git fetch --force --tags
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Verify Go modules
+        run: |
+          go mod verify
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Run tests
+        run: go test -race -short ./...
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  verify:
+    name: Verify ${{ matrix.os }}
+    needs: release
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            archive: Linux_x86_64.tar.gz
+            binary: aixgo
+          - os: macos-latest
+            archive: Darwin_arm64.tar.gz
+            binary: aixgo
+          - os: windows-latest
+            archive: Windows_x86_64.zip
+            binary: aixgo.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Download and verify (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          curl -sL "https://github.com/aixgo-dev/aixgo/releases/download/${TAG}/aixgo_${VERSION}_${{ matrix.archive }}" | tar xz
+          chmod +x ${{ matrix.binary }}
+          # Verify binary executes and shows usage (exits non-zero without config, but that's expected)
+          ./${{ matrix.binary }} -h 2>&1 | grep -q "Usage" && echo "Binary verified successfully"
+
+      - name: Download and verify (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart('v')
+          $url = "https://github.com/aixgo-dev/aixgo/releases/download/${tag}/aixgo_${version}_${{ matrix.archive }}"
+          Invoke-WebRequest -Uri $url -OutFile release.zip
+          Expand-Archive -Path release.zip -DestinationPath .
+          # Verify binary executes and shows usage
+          $output = & ".\${{ matrix.binary }}" -h 2>&1 | Out-String
+          if ($output -match "Usage") { Write-Host "Binary verified successfully" } else { exit 1 }

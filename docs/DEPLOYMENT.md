@@ -154,16 +154,15 @@ export XAI_API_KEY="your-xai-key"
 export OPENAI_API_KEY="your-openai-key"
 export HUGGINGFACE_API_KEY="your-hf-key"
 
-# Deploy using Go tool
-go run cmd/deploy/cloudrun/main.go \
-  -project $GCP_PROJECT_ID \
-  -region $GCP_REGION
-
-# Or use Makefile
-make deploy-cloudrun
+# Deploy using gcloud
+gcloud run deploy aixgo-mcp \
+  --image us-central1-docker.pkg.dev/$GCP_PROJECT_ID/aixgo/mcp-server:latest \
+  --region $GCP_REGION \
+  --platform managed \
+  --allow-unauthenticated
 ```
 
-The deployment tool will:
+The deployment process:
 
 1. Enable required GCP APIs
 2. Create Artifact Registry repository
@@ -173,7 +172,7 @@ The deployment tool will:
 6. Deploy to Cloud Run
 7. Run health checks
 
-For detailed usage and all available flags, see [Deployment Tools Documentation](../cmd/tools/README.md).
+See [deploy/cloudrun/README.md](../deploy/cloudrun/README.md) for detailed instructions.
 
 ### Manual Deployment Steps
 
@@ -289,43 +288,32 @@ export XAI_API_KEY="your-xai-key"
 export OPENAI_API_KEY="your-openai-key"
 export HUGGINGFACE_API_KEY="your-hf-key"
 
-# Deploy using Go tool
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -zone $GKE_ZONE \
-  -env staging
+# Get cluster credentials
+gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE
 
-# Or use Makefile
-make deploy-k8s-staging
+# Deploy using kubectl
+kubectl apply -k deploy/k8s/overlays/staging
 ```
 
 ### Deploy to Production
 
 ```bash
-# Deploy using Go tool
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -zone $GKE_ZONE \
-  -env production \
-  -tag v1.0.0
+# Get cluster credentials
+gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE
 
-# Or use Makefile
-make deploy-k8s-production
+# Deploy using kubectl
+kubectl apply -k deploy/k8s/overlays/production
 ```
 
-The deployment tool will:
+The deployment process:
 
 1. Authenticate to GCP and get cluster credentials
 2. Build and push Docker images
 3. Create namespace and secrets
-4. Update kustomize image tags
-5. Deploy to Kubernetes
-6. Wait for rollout completion
-7. Run smoke tests
+4. Apply Kubernetes manifests via kustomize
+5. Wait for rollout completion
 
-For detailed usage and all available flags, see [Deployment Tools Documentation](../cmd/tools/README.md).
+See [deploy/k8s/README.md](../deploy/k8s/README.md) for detailed instructions.
 
 ### Kubernetes Resources
 

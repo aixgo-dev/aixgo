@@ -1,112 +1,71 @@
 # Cloud Run Deployment Guide
 
-This directory contains configurations for deploying aixgo to Google Cloud Run using the Go deployment tool.
+This directory contains configurations for deploying aixgo to Google Cloud Run.
 
 ## Prerequisites
 
-- Go 1.23+ installed
 - Google Cloud SDK installed and configured
 - Docker installed
 - GCP project with billing enabled
-- Required environment variables set
 
 ## Quick Start
 
-1. Set environment variables:
-
-### Required for Cloud Run Deployment
+### 1. Set Environment Variables
 
 ```bash
+# Required
 export GCP_PROJECT_ID="your-project-id"
 export GCP_REGION="us-central1"
+
+# Optional - Only for AI services you use
+export XAI_API_KEY="your-xai-key"              # xAI/Grok models
+export OPENAI_API_KEY="your-openai-key"        # OpenAI models
+export HUGGINGFACE_API_KEY="your-hf-key"       # HuggingFace models
 ```
 
-### Optional - Only if using these AI services
+### 2. Build and Push Docker Image
 
 ```bash
-export XAI_API_KEY="your-xai-key"              # Only if using xAI/Grok models
-export OPENAI_API_KEY="your-openai-key"        # Only if using OpenAI models
-export HUGGINGFACE_API_KEY="your-huggingface-key"  # Only if using HuggingFace models
+# Configure Docker for Artifact Registry
+gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev
+
+# Build and push
+docker build -t ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/aixgo/mcp-server:latest \
+  -f docker/aixgo.Dockerfile .
+docker push ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/aixgo/mcp-server:latest
 ```
 
-**Note**: You only need to set API keys for the AI services you plan to use. The deployment will work with any combination of these services.
-
-2. Deploy using the Go tool:
+### 3. Create Secrets (if using AI services)
 
 ```bash
-# From project root
-go run cmd/deploy/cloudrun/main.go \
-  -project $GCP_PROJECT_ID \
-  -region $GCP_REGION
-
-# Or use Makefile
-make deploy-cloudrun
+echo -n "${XAI_API_KEY}" | gcloud secrets create xai-api-key --data-file=-
+echo -n "${OPENAI_API_KEY}" | gcloud secrets create openai-api-key --data-file=-
+echo -n "${HUGGINGFACE_API_KEY}" | gcloud secrets create huggingface-api-key --data-file=-
 ```
 
-The deployment tool will:
-- Enable required GCP APIs
-- Create Artifact Registry repository
-- Build and push Docker image
-- Create service account with required permissions
-- Store API keys in Secret Manager
-- Deploy service to Cloud Run
-- Run health checks
+### 4. Deploy Service
 
-For detailed usage and all available flags, see the [Deployment Tools Documentation](../../cmd/tools/README.md).
+**Development/Testing** (public access):
+
+```bash
+gcloud run deploy aixgo-mcp \
+  --image=${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/aixgo/mcp-server:latest \
+  --platform=managed \
+  --region=${GCP_REGION} \
+  --allow-unauthenticated
+```
+
+**Production** (authenticated access):
+
+```bash
+gcloud run deploy aixgo-mcp \
+  --image=${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/aixgo/mcp-server:latest \
+  --platform=managed \
+  --region=${GCP_REGION} \
+  --no-allow-unauthenticated
+```
 
 ## Deployment Options
-
-### Using Go Tool (Recommended)
-
-```bash
-# Full deployment
-go run cmd/deploy/cloudrun/main.go -project $GCP_PROJECT_ID
-
-# Deploy to staging
-go run cmd/deploy/cloudrun/main.go \
-  -project $GCP_PROJECT_ID \
-  -env staging \
-  -service aixgo-mcp-staging
-
-# Skip build (use existing image)
-go run cmd/deploy/cloudrun/main.go \
-  -project $GCP_PROJECT_ID \
-  -skip-build
-
-# Skip secrets (already created)
-go run cmd/deploy/cloudrun/main.go \
-  -project $GCP_PROJECT_ID \
-  -skip-secrets
-
-# Dry run (show commands without executing)
-go run cmd/deploy/cloudrun/main.go \
-  -project $GCP_PROJECT_ID \
-  -dry-run
-
-# Custom resource limits
-go run cmd/deploy/cloudrun/main.go \
-  -project $GCP_PROJECT_ID \
-  -cpu 4 \
-  -memory 4Gi \
-  -max-instances 200
-```
-
-### Using Makefile
-
-```bash
-# Deploy to production
-make deploy-cloudrun
-
-# Deploy to staging
-make deploy-cloudrun-staging
-
-# Deploy to production (explicit)
-make deploy-cloudrun-production
-```
-
-### Manual Deployment Steps
-
-If you need to deploy manually without the Go tool:
 
 #### 1. Build Docker Image
 

@@ -1,20 +1,18 @@
 # GoReleaser configuration for Aixgo
+# Tested with GoReleaser v2.13+
 # See https://goreleaser.com for documentation
 
 version: 2
 
 before:
   hooks:
-    # Run tests before release
-    - go test ./...
-    # Ensure go.mod is tidy
     - go mod tidy
+    - go mod verify
 
 builds:
-  # Orchestrator CLI
-  - id: orchestrator
-    main: ./cmd/orchestrator
-    binary: aixgo-orchestrator
+  - id: aixgo
+    main: ./cmd/aixgo
+    binary: aixgo
     goos:
       - linux
       - darwin
@@ -28,79 +26,18 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
-
-  # Benchmark CLI
-  - id: benchmark
-    main: ./cmd/benchmark
-    binary: aixgo-benchmark
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
-    env:
-      - CGO_ENABLED=0
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
-
-  # Deploy CLI
-  - id: deploy
-    main: ./cmd/deploy
-    binary: aixgo-deploy
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
-    env:
-      - CGO_ENABLED=0
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
-
-  # Tools CLI
-  - id: tools
-    main: ./cmd/tools
-    binary: aixgo-tools
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
-    env:
-      - CGO_ENABLED=0
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.ShortCommit}}
+      - -X main.Date={{.Date}}
 
 archives:
   - id: default
-    format: tar.gz
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
@@ -112,13 +49,13 @@ archives:
     files:
       - LICENSE
       - README.md
-      - docs/**/*
 
 checksum:
   name_template: 'checksums.txt'
+  algorithm: sha256
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
@@ -129,15 +66,18 @@ changelog:
       - '^test:'
       - '^chore:'
       - '^ci:'
+      - '^web:'
+      - Merge pull request
+      - Merge branch
   groups:
+    - title: 'Security'
+      regexp: '^.*?(security(\([[:word:]]+\))?|fix\(security\))!?:.+$'
+      order: 0
     - title: Features
       regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
-      order: 0
-    - title: 'Bug fixes'
-      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
       order: 1
-    - title: 'Performance improvements'
-      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+    - title: 'Bug Fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
       order: 2
     - title: Others
       order: 999
@@ -150,37 +90,33 @@ release:
   prerelease: auto
   mode: append
   name_template: "v{{.Version}}"
+  header: |
+    ## Aixgo {{.Version}}
+
+    Production-grade AI agent framework for Go.
+
   footer: |
     ## Installation
 
-    **As a Library:**
+    **As a Go Library:**
     ```bash
     go get github.com/aixgo-dev/aixgo@{{.Tag}}
     ```
 
-    **CLI Tools:**
-    Download pre-built binaries for your platform from the assets above, or install via `go install`:
+    **CLI Binary:**
+    Download the pre-built binary for your platform from the assets above.
+
     ```bash
-    go install github.com/aixgo-dev/aixgo/cmd/orchestrator@{{.Tag}}
-    go install github.com/aixgo-dev/aixgo/cmd/benchmark@{{.Tag}}
-    go install github.com/aixgo-dev/aixgo/cmd/deploy@{{.Tag}}
-    go install github.com/aixgo-dev/aixgo/cmd/tools@{{.Tag}}
+    # Linux/macOS
+    curl -L https://github.com/aixgo-dev/aixgo/releases/download/{{.Tag}}/aixgo_{{.Version}}_Linux_x86_64.tar.gz | tar xz
+    sudo mv aixgo /usr/local/bin/
+
+    # Or install from source
+    go install github.com/aixgo-dev/aixgo/cmd/aixgo@{{.Tag}}
     ```
 
+    ---
     **Full Changelog**: https://github.com/aixgo-dev/aixgo/compare/{{.PreviousTag}}...{{.Tag}}
 
-# Generate SBOMs for security compliance
 sboms:
   - artifacts: archive
-
-# Sign checksums and artifacts (requires GPG key)
-# signs:
-#   - artifacts: checksum
-#     args:
-#       - "--batch"
-#       - "--local-user"
-#       - "{{ .Env.GPG_FINGERPRINT }}"
-#       - "--output"
-#       - "${signature}"
-#       - "--detach-sign"
-#       - "${artifact}"

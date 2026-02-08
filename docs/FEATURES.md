@@ -745,7 +745,7 @@ security:
 | **Prompt Injection Protection** | ✅ Implemented | Detection and mitigation | `pkg/security/prompt_injection.go` |
 | **SSRF Protection** | ✅ Implemented | URL validation, private IP blocking, metadata service blocking, DNS rebinding prevention | `pkg/security/ssrf.go` |
 | **Path Traversal Prevention** | ✅ Implemented | File path validation with allowlist checking (v0.3.0+) | `pkg/security/validation.go`, `pkg/session/file_backend.go` |
-| **Subprocess Injection Prevention** | ✅ Implemented | Validated deployment inputs with strict allowlists (v0.3.0+) | `cmd/deploy/` |
+| **Subprocess Injection Prevention** | ✅ Implemented | Input validation with strict allowlists (v0.3.0+) | `pkg/security/validation.go` |
 | **Safe Integer Conversion** | ✅ Implemented | Bounds checking for int to int32 conversions (v0.3.0+) | `internal/llm/provider/vertexai.go` |
 | **Cryptographic RNG** | ✅ Implemented | crypto/rand for session IDs and security-critical operations (v0.3.0+) | `pkg/session/` |
 | **SQL Injection Prevention** | ✅ Implemented | Parameterized queries | Best practices |

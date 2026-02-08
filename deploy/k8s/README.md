@@ -1,10 +1,10 @@
 # Kubernetes Deployment Guide
 
-This directory contains Kubernetes manifests for deploying aixgo to a Kubernetes cluster (GKE, EKS, AKS, or self-managed) using the Go deployment tool.
+This directory contains Kubernetes manifests for deploying aixgo to a Kubernetes cluster (GKE, EKS, AKS, or self-managed).
 
 ## ⚠️ Important: Configuration Required
 
-**Before deploying**, you MUST configure the image registry placeholders in the kustomization files. The manifests contain placeholder values that must be replaced:
+**Before deploying**, you MUST configure the image registry placeholders in the kustomization files:
 
 - `REGION` → Your actual region (e.g., `us`, `europe-west1`)
 - `PROJECT_ID` → Your GCP project ID (e.g., `my-project`)
@@ -45,7 +45,6 @@ k8s/
 
 ## Prerequisites
 
-- Go 1.23+ installed
 - Kubernetes cluster (1.24+)
 - kubectl configured
 - Docker installed
@@ -64,77 +63,27 @@ export OPENAI_API_KEY="your-openai-key"
 export HUGGINGFACE_API_KEY="your-huggingface-key"
 ```
 
-### 2. Deploy to Staging
+### 2. Get Cluster Credentials (GKE)
 
 ```bash
-# Using Go tool (recommended)
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -zone $GKE_ZONE \
-  -env staging
-
-# Or use Makefile
-make deploy-k8s-staging
+gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE
 ```
 
-### 3. Deploy to Production
+### 3. Deploy to Staging
 
 ```bash
-# Using Go tool (recommended)
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -zone $GKE_ZONE \
-  -env production \
-  -tag v1.0.0
-
-# Or use Makefile
-make deploy-k8s-production
+kubectl apply -k deploy/k8s/overlays/staging
 ```
 
-For detailed usage and all available flags, see the [Deployment Tools Documentation](../../cmd/tools/README.md).
+### 4. Deploy to Production
+
+```bash
+kubectl apply -k deploy/k8s/overlays/production
+```
 
 ## Deployment Options
 
-### Using Go Tool (Recommended)
-
-```bash
-# Full deployment to staging
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -zone $GKE_ZONE \
-  -env staging
-
-# Full deployment to production with specific tag
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -zone $GKE_ZONE \
-  -env production \
-  -tag v1.2.3
-
-# Skip build (use existing images)
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -skip-build
-
-# Skip secrets (already created)
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -skip-secrets
-
-# Skip smoke tests
-go run cmd/deploy/k8s/main.go \
-  -project $GCP_PROJECT_ID \
-  -cluster $GKE_CLUSTER \
-  -skip-tests
-```
-
-### Using Makefile
+### Using kubectl with Kustomize
 
 ```bash
 # Deploy to staging

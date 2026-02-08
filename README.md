@@ -72,27 +72,27 @@ go get github.com/aixgo-dev/aixgo
 
 This downloads only the Go framework source code (~2MB), not the website or documentation.
 
-#### CLI Tools
+#### CLI Binary
+
+The `aixgo` CLI runs agents from YAML configuration files.
 
 **Option 1: Install via `go install`** (requires Go 1.24+):
 
 ```bash
-# Install all CLI tools
-go install github.com/aixgo-dev/aixgo/cmd/orchestrator@latest
-go install github.com/aixgo-dev/aixgo/cmd/benchmark@latest
-go install github.com/aixgo-dev/aixgo/cmd/deploy@latest
-go install github.com/aixgo-dev/aixgo/cmd/tools@latest
-
-# Or install individual tools as needed
-go install github.com/aixgo-dev/aixgo/cmd/orchestrator@latest
+go install github.com/aixgo-dev/aixgo/cmd/aixgo@latest
 ```
 
 **Option 2: Download pre-built binaries**:
 
-Download platform-specific binaries from [GitHub Releases](https://github.com/aixgo-dev/aixgo/releases). Available for:
-- Linux (amd64, arm64)
-- macOS/Darwin (amd64, arm64)
-- Windows (amd64, arm64)
+Download platform-specific binaries from [GitHub Releases](https://github.com/aixgo-dev/aixgo/releases):
+
+```bash
+# Linux/macOS
+curl -L https://github.com/aixgo-dev/aixgo/releases/latest/download/aixgo_Linux_x86_64.tar.gz | tar xz
+sudo mv aixgo /usr/local/bin/
+```
+
+Available for Linux, macOS, and Windows (amd64, arm64).
 
 #### Full Repository (Contributors)
 
