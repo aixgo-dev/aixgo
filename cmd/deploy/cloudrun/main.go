@@ -199,8 +199,8 @@ func createRepository(ctx context.Context, cfg *Config) error {
 	logInfo("Creating Artifact Registry repository...")
 
 	// Check if repository exists
-	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-	cmd := exec.Command("gcloud", "artifacts", "repositories", "describe", cfg.Repository, //nolint:gosec
+	// SECURITY: Inputs validated by ValidateDeploymentInputs at startup
+	cmd := exec.Command("gcloud", "artifacts", "repositories", "describe", cfg.Repository, // #nosec G204 -- inputs validated at startup
 		"--location="+cfg.Region)
 	if err := cmd.Run(); err == nil {
 		logWarn("Repository %s already exists", cfg.Repository)
@@ -218,9 +218,14 @@ func createServiceAccount(ctx context.Context, cfg *Config) error {
 
 	serviceAccount := fmt.Sprintf("aixgo-mcp@%s.iam.gserviceaccount.com", cfg.ProjectID)
 
+	// SECURITY: Validate service account email format to prevent command injection
+	if err := security.ValidateServiceAccountEmail(serviceAccount); err != nil {
+		return fmt.Errorf("invalid service account email: %w", err)
+	}
+
 	// Check if service account exists
-	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-	cmd := exec.Command("gcloud", "iam", "service-accounts", "describe", serviceAccount) //nolint:gosec
+	// SECURITY: Service account email validated above, projectID validated at startup
+	cmd := exec.Command("gcloud", "iam", "service-accounts", "describe", serviceAccount) // #nosec G204 -- email validated above
 	if err := cmd.Run(); err == nil {
 		logWarn("Service account already exists")
 	} else {
@@ -266,16 +271,22 @@ func createSecrets(ctx context.Context, cfg *Config) error {
 			continue
 		}
 
+		// SECURITY: Validate secret name to prevent command injection
+		if err := security.ValidateSecretName(name); err != nil {
+			logWarn("Invalid secret name %s: %v", name, err)
+			continue
+		}
+
 		// Try to create secret
-		// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-		cmd := exec.Command("gcloud", "secrets", "create", name, //nolint:gosec
+		// SECURITY: Secret name validated above
+		cmd := exec.Command("gcloud", "secrets", "create", name, // #nosec G204 -- name validated above
 			"--replication-policy=automatic")
 		cmd.Stdin = strings.NewReader(value)
 
 		if err := cmd.Run(); err != nil {
 			// Secret might exist, try to add a new version
-			// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-			cmd = exec.Command("gcloud", "secrets", "versions", "add", name, //nolint:gosec
+			// SECURITY: Secret name validated above
+			cmd = exec.Command("gcloud", "secrets", "versions", "add", name, // #nosec G204 -- name validated above
 				"--data-file=-")
 			cmd.Stdin = strings.NewReader(value)
 			if err := cmd.Run(); err != nil {
@@ -357,8 +368,8 @@ func deployService(ctx context.Context, cfg *Config) error {
 	logInfo("Deployment complete!")
 
 	// Get service URL
-	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-	cmd := exec.Command("gcloud", "run", "services", "describe", cfg.ServiceName, //nolint:gosec
+	// SECURITY: ServiceName and Region validated by ValidateDeploymentInputs at startup
+	cmd := exec.Command("gcloud", "run", "services", "describe", cfg.ServiceName, // #nosec G204 -- inputs validated at startup
 		"--platform=managed",
 		"--region="+cfg.Region,
 		"--format=value(status.url)")
@@ -377,8 +388,8 @@ func testDeployment(ctx context.Context, cfg *Config) error {
 	logInfo("Testing deployment...")
 
 	// Get service URL
-	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-	cmd := exec.Command("gcloud", "run", "services", "describe", cfg.ServiceName, //nolint:gosec
+	// SECURITY: ServiceName and Region validated by ValidateDeploymentInputs at startup
+	cmd := exec.Command("gcloud", "run", "services", "describe", cfg.ServiceName, // #nosec G204 -- inputs validated at startup
 		"--platform=managed",
 		"--region="+cfg.Region,
 		"--format=value(status.url)")

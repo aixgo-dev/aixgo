@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/aixgo-dev/aixgo/pkg/security"
 	"google.golang.org/genai"
 )
 
@@ -27,15 +27,6 @@ const (
 	vertexAIJitterFactor  = 0.3
 	vertexAIClientTimeout = 30 * time.Second
 )
-
-// safeIntToInt32 safely converts an int to int32, returning 0 if out of range.
-// This avoids integer overflow issues flagged by security scanners (G115).
-func safeIntToInt32(n int) (int32, bool) {
-	if n < 0 || n > math.MaxInt32 {
-		return 0, false
-	}
-	return int32(n), true
-}
 
 func init() {
 	RegisterFactory("vertexai", func(config map[string]any) (Provider, error) {
@@ -121,7 +112,12 @@ func (p *VertexAIProvider) CreateCompletion(ctx context.Context, req CompletionR
 	// Always set temperature - 0 is a valid value for deterministic output
 	// Use -1 as sentinel for "not set" if needed, but typically callers set explicit values
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if maxTokens, ok := safeIntToInt32(req.MaxTokens); ok && maxTokens > 0 {
+	// G115: Safe int to int32 conversion with bounds checking
+	if req.MaxTokens > 0 {
+		maxTokens, err := security.SafeIntToInt32(req.MaxTokens)
+		if err != nil {
+			return nil, fmt.Errorf("max tokens out of range: %w", err)
+		}
 		config.MaxOutputTokens = maxTokens
 	}
 
@@ -183,7 +179,12 @@ func (p *VertexAIProvider) CreateStructured(ctx context.Context, req StructuredR
 	}
 	// Always set temperature - 0 is a valid value for deterministic output
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if maxTokens, ok := safeIntToInt32(req.MaxTokens); ok && maxTokens > 0 {
+	// G115: Safe int to int32 conversion with bounds checking
+	if req.MaxTokens > 0 {
+		maxTokens, err := security.SafeIntToInt32(req.MaxTokens)
+		if err != nil {
+			return nil, fmt.Errorf("max tokens out of range: %w", err)
+		}
 		config.MaxOutputTokens = maxTokens
 	}
 
@@ -253,7 +254,12 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 	config := &genai.GenerateContentConfig{}
 	// Always set temperature - 0 is a valid value for deterministic output
 	config.Temperature = genai.Ptr(float32(req.Temperature))
-	if maxTokens, ok := safeIntToInt32(req.MaxTokens); ok && maxTokens > 0 {
+	// G115: Safe int to int32 conversion with bounds checking
+	if req.MaxTokens > 0 {
+		maxTokens, err := security.SafeIntToInt32(req.MaxTokens)
+		if err != nil {
+			return nil, fmt.Errorf("max tokens out of range: %w", err)
+		}
 		config.MaxOutputTokens = maxTokens
 	}
 
@@ -477,9 +483,10 @@ func isRetryableGenAIError(err error) bool {
 // calculateBackoff returns the backoff duration with jitter for a given attempt
 func (p *VertexAIProvider) calculateBackoff(attempt int) time.Duration {
 	// Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at maxDelay)
-	// Guard against negative or zero attempt to prevent uint overflow
+	// G115: Guard against negative or zero attempt to prevent uint overflow
 	// Clamp shift to [0, 31] using min/max built-ins for safe uint conversion
-	shift := uint(max(0, min(attempt-1, 31)))
+	// This prevents bit shift overflow while maintaining exponential backoff behavior
+	shift := uint(max(0, min(attempt-1, 31))) // #nosec G115 -- clamped to [0,31]
 	delay := min(time.Duration(1<<shift)*vertexAIBaseDelay, vertexAIMaxDelay)
 	// Add jitter: delay ± 30% using crypto/rand for security compliance
 	jitter := time.Duration(float64(delay) * vertexAIJitterFactor * (cryptoRandFloat64()*2 - 1))

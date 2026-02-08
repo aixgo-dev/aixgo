@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"sync/atomic"
 	"time"
+
+	"github.com/aixgo-dev/aixgo/pkg/security"
 )
 
 // HuggingFaceTEIEmbeddings implements EmbeddingService using HuggingFace Text Embeddings Inference (TEI).
@@ -64,11 +66,12 @@ func NewHuggingFaceTEI(config Config) (EmbeddingService, error) {
 		log.Printf("Warning: HuggingFace TEI dimension probe failed: %v (dimensions will be determined on first embedding)", err)
 		atomic.StoreInt32(&tei.dimensions, 0)
 	} else {
-		// G115: Safe conversion - dimensions are bounded by model architecture (typically < 10000)
-		if dims > 32767 { // int32 max safe value for embeddings
-			return nil, fmt.Errorf("dimension size %d exceeds maximum supported value", dims)
+		// G115: Safe conversion with bounds checking to prevent integer overflow
+		dims32, err := security.SafeIntToInt32(dims)
+		if err != nil {
+			return nil, fmt.Errorf("dimension size out of range: %w", err)
 		}
-		atomic.StoreInt32(&tei.dimensions, int32(dims)) //nolint:gosec
+		atomic.StoreInt32(&tei.dimensions, dims32)
 	}
 
 	return tei, nil
@@ -131,12 +134,12 @@ func (t *HuggingFaceTEIEmbeddings) EmbedBatch(ctx context.Context, texts []strin
 
 	// Update dimensions if not set (using atomic operation to prevent race condition)
 	if atomic.LoadInt32(&t.dimensions) == 0 && len(embeddings) > 0 && len(embeddings[0]) > 0 {
-		// G115: Safe conversion - embedding dimensions are bounded by model architecture (typically < 10000)
-		dim := len(embeddings[0])
-		if dim > 32767 { // int32 max safe value for embeddings
-			return nil, fmt.Errorf("dimension size %d exceeds maximum supported value", dim)
+		// G115: Safe conversion with bounds checking to prevent integer overflow
+		dim32, err := security.SafeIntToInt32(len(embeddings[0]))
+		if err != nil {
+			return nil, fmt.Errorf("dimension size out of range: %w", err)
 		}
-		atomic.StoreInt32(&t.dimensions, int32(dim)) //nolint:gosec
+		atomic.StoreInt32(&t.dimensions, dim32)
 	}
 
 	return embeddings, nil

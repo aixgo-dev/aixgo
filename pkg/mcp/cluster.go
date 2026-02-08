@@ -584,6 +584,9 @@ func cryptoRandIntn(n int) int {
 		// Fallback to 0 on error (should never happen)
 		return 0
 	}
-	// Use modulo to get a value in [0, n)
-	return int(binary.BigEndian.Uint64(b[:]) % uint64(n))
+	// G115: Safe modulo operation - the result is guaranteed to be less than n
+	// Convert n to uint64 for safe modulo, then convert result back to int
+	// This is safe because the result will always be in the range [0, n)
+	randomValue := binary.BigEndian.Uint64(b[:])
+	return int(randomValue % uint64(n)) // #nosec G115 -- result < n which fits in int
 }

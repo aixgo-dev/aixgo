@@ -11,6 +11,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -312,16 +314,35 @@ func newElasticsearchBackend(config *ElasticsearchConfig, batchSize int, flushIn
 		}
 	}
 
-	// Log warning if TLS verification is disabled
+	// SECURITY: Prevent InsecureSkipVerify in production environments
+	// This enforces certificate verification when running in production
+	// Empty/unset ENVIRONMENT is treated as production (fail-safe)
 	if !config.TLSVerify {
+		env := strings.ToLower(os.Getenv("ENVIRONMENT"))
+		// Only allow TLSVerify=false in explicit non-production environments
+		allowedNonProdEnvs := map[string]bool{
+			"development": true,
+			"dev":         true,
+			"staging":     true,
+			"local":       true,
+			"test":        true,
+		}
+		if !allowedNonProdEnvs[env] {
+			return nil, fmt.Errorf("SECURITY: TLS certificate verification cannot be disabled in production environment (ENVIRONMENT=%q). "+
+				"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
+		}
+
+		// Log warning for non-production environments
 		log.Printf("WARNING: Elasticsearch TLS certificate verification is disabled (TLSVerify=false). "+
 			"This is a security risk and should NEVER be used in production. "+
-			"Connections are vulnerable to man-in-the-middle attacks.")
+			"Connections are vulnerable to man-in-the-middle attacks. "+
+			"Current ENVIRONMENT=%s", env)
 	}
 
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test with env guard
 		},
 	}
 
@@ -431,16 +452,35 @@ func newSplunkBackend(config *SplunkConfig, batchSize int, flushInterval time.Du
 		}
 	}
 
-	// Log warning if TLS verification is disabled
+	// SECURITY: Prevent InsecureSkipVerify in production environments
+	// This enforces certificate verification when running in production
+	// Empty/unset ENVIRONMENT is treated as production (fail-safe)
 	if !config.TLSVerify {
+		env := strings.ToLower(os.Getenv("ENVIRONMENT"))
+		// Only allow TLSVerify=false in explicit non-production environments
+		allowedNonProdEnvs := map[string]bool{
+			"development": true,
+			"dev":         true,
+			"staging":     true,
+			"local":       true,
+			"test":        true,
+		}
+		if !allowedNonProdEnvs[env] {
+			return nil, fmt.Errorf("SECURITY: TLS certificate verification cannot be disabled in production environment (ENVIRONMENT=%q). "+
+				"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
+		}
+
+		// Log warning for non-production environments
 		log.Printf("WARNING: Splunk TLS certificate verification is disabled (TLSVerify=false). "+
 			"This is a security risk and should NEVER be used in production. "+
-			"Connections are vulnerable to man-in-the-middle attacks.")
+			"Connections are vulnerable to man-in-the-middle attacks. "+
+			"Current ENVIRONMENT=%s", env)
 	}
 
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test with env guard
 		},
 	}
 
@@ -547,16 +587,35 @@ func newWebhookBackend(config *WebhookConfig, batchSize int, flushInterval time.
 		}
 	}
 
-	// Log warning if TLS verification is disabled
+	// SECURITY: Prevent InsecureSkipVerify in production environments
+	// This enforces certificate verification when running in production
+	// Empty/unset ENVIRONMENT is treated as production (fail-safe)
 	if !config.TLSVerify {
+		env := strings.ToLower(os.Getenv("ENVIRONMENT"))
+		// Only allow TLSVerify=false in explicit non-production environments
+		allowedNonProdEnvs := map[string]bool{
+			"development": true,
+			"dev":         true,
+			"staging":     true,
+			"local":       true,
+			"test":        true,
+		}
+		if !allowedNonProdEnvs[env] {
+			return nil, fmt.Errorf("SECURITY: TLS certificate verification cannot be disabled in production environment (ENVIRONMENT=%q). "+
+				"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
+		}
+
+		// Log warning for non-production environments
 		log.Printf("WARNING: Webhook TLS certificate verification is disabled (TLSVerify=false). "+
 			"This is a security risk and should NEVER be used in production. "+
-			"Connections are vulnerable to man-in-the-middle attacks.")
+			"Connections are vulnerable to man-in-the-middle attacks. "+
+			"Current ENVIRONMENT=%s", env)
 	}
 
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: !config.TLSVerify, //nolint:gosec // G402: intentionally configurable for dev/test with env guard
 		},
 	}
 

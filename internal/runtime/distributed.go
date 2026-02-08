@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -202,13 +203,34 @@ func (r *DistributedRuntime) buildDialOptions() ([]grpc.DialOption, error) {
 	}
 
 	if r.tlsConfig != nil && r.tlsConfig.Enabled {
-		// InsecureSkipVerify is for development/testing only
+		// SECURITY: Prevent InsecureSkipVerify in production environments
+		// This enforces certificate verification when running in production
+		// Empty/unset ENVIRONMENT is treated as production (fail-safe)
 		if r.tlsConfig.InsecureSkipVerify {
-			log.Println("[DistributedRuntime] WARNING: TLS certificate verification is disabled. This is insecure and should only be used for development.")
+			env := strings.ToLower(os.Getenv("ENVIRONMENT"))
+			// Only allow InsecureSkipVerify in explicit non-production environments
+			allowedNonProdEnvs := map[string]bool{
+				"development": true,
+				"dev":         true,
+				"staging":     true,
+				"local":       true,
+				"test":        true,
+			}
+			if !allowedNonProdEnvs[env] {
+				return nil, fmt.Errorf("SECURITY: InsecureSkipVerify cannot be enabled in production environment (ENVIRONMENT=%q). "+
+					"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
+			}
+
+			// Log warning for non-production environments
+			log.Printf("[DistributedRuntime] WARNING: TLS certificate verification is disabled (InsecureSkipVerify=true). "+
+				"This is a security risk and should NEVER be used in production. "+
+				"Connections are vulnerable to man-in-the-middle attacks. "+
+				"Current ENVIRONMENT=%s", env)
 		}
+
 		tlsCfg := &tls.Config{
 			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: r.tlsConfig.InsecureSkipVerify, //nolint:gosec // G402: intentionally configurable for dev/test
+			InsecureSkipVerify: r.tlsConfig.InsecureSkipVerify, //nolint:gosec // G402: intentionally configurable for dev/test with env guard
 		}
 
 		// Set server name for SNI

@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"sync"
 	"time"
+
+	"github.com/aixgo-dev/aixgo/pkg/security"
 )
 
 // safeIDPattern defines the allowed characters for execution and checkpoint IDs
@@ -138,8 +140,13 @@ func (s *FileStore) Load(executionID string) (*State, error) {
 	defer s.mu.RUnlock()
 
 	filePath := s.statePath(executionID)
-	// G304: Path is constructed from validated executionID via statePath() which uses filepath.Join
-	data, err := os.ReadFile(filePath) //nolint:gosec
+	// Validate the constructed path is within baseDir to prevent path traversal
+	safePath, err := security.ValidateSafeFilePath(filePath, s.baseDir)
+	if err != nil {
+		return nil, fmt.Errorf("unsafe file path: %w", err)
+	}
+
+	data, err := os.ReadFile(safePath) // #nosec G304 -- path validated by ValidateSafeFilePath
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("workflow state not found: %s", executionID)
@@ -172,8 +179,14 @@ func (s *FileStore) List(workflowID string) ([]*State, error) {
 		}
 
 		filePath := filepath.Join(s.baseDir, entry.Name())
-		// G304: Path is constructed from trusted baseDir and validated entry.Name() from os.ReadDir
-		data, err := os.ReadFile(filePath) //nolint:gosec
+		// Validate the constructed path is within baseDir to prevent path traversal
+		safePath, err := security.ValidateSafeFilePath(filePath, s.baseDir)
+		if err != nil {
+			// Skip files with unsafe paths
+			continue
+		}
+
+		data, err := os.ReadFile(safePath) // #nosec G304 -- path validated by ValidateSafeFilePath
 		if err != nil {
 			continue
 		}
@@ -273,8 +286,14 @@ func (s *FileStore) LoadLatestCheckpoint(executionID string) (*Checkpoint, error
 		}
 
 		filePath := filepath.Join(checkpointDir, entry.Name())
-		// G304: Path is constructed from trusted checkpointDir and validated entry.Name() from os.ReadDir
-		data, err := os.ReadFile(filePath) //nolint:gosec
+		// Validate the constructed path is within checkpointDir to prevent path traversal
+		safePath, err := security.ValidateSafeFilePath(filePath, checkpointDir)
+		if err != nil {
+			// Skip files with unsafe paths
+			continue
+		}
+
+		data, err := os.ReadFile(safePath) // #nosec G304 -- path validated by ValidateSafeFilePath
 		if err != nil {
 			continue
 		}

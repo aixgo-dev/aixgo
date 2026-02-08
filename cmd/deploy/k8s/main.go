@@ -97,6 +97,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Validate namespace
+	if err := security.ValidateNamespace(cfg.Namespace); err != nil {
+		logError("Invalid namespace: %v", err)
+		os.Exit(1)
+	}
+
 	ctx := context.Background()
 
 	logInfo("Starting Kubernetes deployment to %s environment...", cfg.Environment)
@@ -236,8 +242,8 @@ func createSecrets(ctx context.Context, cfg *Config) error {
 	logInfo("Creating Kubernetes secrets...")
 
 	// Create namespace if it doesn't exist
-	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-	cmd := exec.Command("kubectl", "get", "namespace", cfg.Namespace) //nolint:gosec
+	// SECURITY: Namespace validated at startup
+	cmd := exec.Command("kubectl", "get", "namespace", cfg.Namespace) // #nosec G204 -- namespace validated at startup
 	if err := cmd.Run(); err != nil {
 		logInfo("Creating namespace %s...", cfg.Namespace)
 		if err := runCommand("kubectl", "create", "namespace", cfg.Namespace); err != nil {
@@ -251,13 +257,19 @@ func createSecrets(ctx context.Context, cfg *Config) error {
 		return nil
 	}
 
+	// SECURITY: Validate secret name before using in command
+	secretName := "api-keys"
+	if err := security.ValidateSecretName(secretName); err != nil {
+		return fmt.Errorf("invalid secret name: %w", err)
+	}
+
 	// Delete existing secret if it exists
-	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-	cmd = exec.Command("kubectl", "delete", "secret", "api-keys", "-n", cfg.Namespace) //nolint:gosec
+	// SECURITY: Secret name and namespace validated above/at startup
+	cmd = exec.Command("kubectl", "delete", "secret", secretName, "-n", cfg.Namespace) // #nosec G204 -- inputs validated
 	_ = cmd.Run() // Ignore error if secret doesn't exist
 
 	// Build the create secret command
-	args := []string{"create", "secret", "generic", "api-keys", "-n", cfg.Namespace}
+	args := []string{"create", "secret", "generic", secretName, "-n", cfg.Namespace}
 
 	if cfg.XAIKey != "" {
 		args = append(args, "--from-literal=xai-api-key="+cfg.XAIKey)
@@ -370,11 +382,17 @@ func verifyDeployment(ctx context.Context, cfg *Config) error {
 func runSmokeTests(ctx context.Context, cfg *Config) error {
 	logInfo("Running smoke tests...")
 
+	// SECURITY: Validate service name to prevent command injection
+	serviceName := "aixgo-service"
+	if err := security.ValidateServiceName(serviceName); err != nil {
+		return fmt.Errorf("invalid service name: %w", err)
+	}
+
 	// Port forward for testing
-	// G204: Using validated inputs from ValidateDeploymentInputs - safe for subprocess execution
-	portForwardCmd := exec.Command("kubectl", "port-forward", //nolint:gosec
+	// SECURITY: Namespace validated at startup, service name validated above
+	portForwardCmd := exec.Command("kubectl", "port-forward", // #nosec G204 -- inputs validated
 		"-n", cfg.Namespace,
-		"svc/aixgo-service", "8080:8080")
+		"svc/"+serviceName, "8080:8080")
 
 	if err := portForwardCmd.Start(); err != nil {
 		return fmt.Errorf("failed to start port forward: %v", err)
@@ -385,6 +403,7 @@ func runSmokeTests(ctx context.Context, cfg *Config) error {
 	time.Sleep(5 * time.Second)
 
 	// Test health endpoints
+	// SECURITY: Using hardcoded localhost URLs - safe
 	endpoints := []string{
 		"http://localhost:8080/health/live",
 		"http://localhost:8080/health/ready",
@@ -392,8 +411,7 @@ func runSmokeTests(ctx context.Context, cfg *Config) error {
 
 	for _, endpoint := range endpoints {
 		logInfo("Testing endpoint: %s", endpoint)
-		// G204: Using validated endpoint (localhost only) - safe for subprocess execution
-		cmd := exec.Command("curl", "-f", endpoint) //nolint:gosec
+		cmd := exec.Command("curl", "-f", endpoint) // #nosec G204 -- hardcoded localhost URLs
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("health check failed for %s", endpoint)
 		}

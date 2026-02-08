@@ -820,3 +820,457 @@ func BenchmarkSanitizeString(b *testing.B) {
 		_ = SanitizeString(input)
 	}
 }
+
+// Test deployment input validation functions
+func TestValidateProjectID(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name:    "valid project ID",
+			input:   "my-project-123",
+			wantErr: false,
+		},
+		{
+			name:    "valid project ID min length",
+			input:   "proj-1",
+			wantErr: false,
+		},
+		{
+			name:    "empty project ID",
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:    "too short",
+			input:   "abc",
+			wantErr: true,
+		},
+		{
+			name:    "too long",
+			input:   strings.Repeat("a", 31),
+			wantErr: true,
+		},
+		{
+			name:    "starts with number",
+			input:   "1project",
+			wantErr: true,
+		},
+		{
+			name:    "contains uppercase",
+			input:   "My-Project",
+			wantErr: true,
+		},
+		{
+			name:    "contains special chars",
+			input:   "project_name",
+			wantErr: true,
+		},
+		{
+			name:    "ends with hyphen",
+			input:   "project-",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateProjectID(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateProjectID() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateNamespace(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name:    "valid namespace",
+			input:   "my-namespace",
+			wantErr: false,
+		},
+		{
+			name:    "valid namespace with numbers",
+			input:   "namespace-123",
+			wantErr: false,
+		},
+		{
+			name:    "default namespace",
+			input:   "default",
+			wantErr: false,
+		},
+		{
+			name:    "kube-system",
+			input:   "kube-system",
+			wantErr: false,
+		},
+		{
+			name:    "empty namespace",
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:    "too long",
+			input:   strings.Repeat("a", 64),
+			wantErr: true,
+		},
+		{
+			name:    "contains uppercase",
+			input:   "My-Namespace",
+			wantErr: true,
+		},
+		{
+			name:    "contains underscore",
+			input:   "my_namespace",
+			wantErr: true,
+		},
+		{
+			name:    "ends with hyphen",
+			input:   "namespace-",
+			wantErr: true,
+		},
+		{
+			name:    "starts with hyphen",
+			input:   "-namespace",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateNamespace(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateNamespace() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateSecretName(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name:    "valid secret name",
+			input:   "my-secret",
+			wantErr: false,
+		},
+		{
+			name:    "valid with dots",
+			input:   "my.secret.key",
+			wantErr: false,
+		},
+		{
+			name:    "valid with underscores",
+			input:   "my_secret_key",
+			wantErr: false,
+		},
+		{
+			name:    "api key format",
+			input:   "xai-api-key",
+			wantErr: false,
+		},
+		{
+			name:    "empty secret name",
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:    "too long",
+			input:   strings.Repeat("a", 254),
+			wantErr: true,
+		},
+		{
+			name:    "contains uppercase",
+			input:   "My-Secret",
+			wantErr: true,
+		},
+		{
+			name:    "contains space",
+			input:   "my secret",
+			wantErr: true,
+		},
+		{
+			name:    "starts with hyphen",
+			input:   "-secret",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateSecretName(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateSecretName() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateServiceAccountEmail(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name:    "valid service account email",
+			input:   "aixgo-mcp@my-project-123.iam.gserviceaccount.com",
+			wantErr: false,
+		},
+		{
+			name:    "valid with numbers",
+			input:   "service-123@project-456.iam.gserviceaccount.com",
+			wantErr: false,
+		},
+		{
+			name:    "empty email",
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:    "missing domain",
+			input:   "service@project",
+			wantErr: true,
+		},
+		{
+			name:    "wrong domain",
+			input:   "service@project.gserviceaccount.com",
+			wantErr: true,
+		},
+		{
+			name:    "uppercase in name",
+			input:   "Service@project-123.iam.gserviceaccount.com",
+			wantErr: true,
+		},
+		{
+			name:    "invalid project ID",
+			input:   "service@1project.iam.gserviceaccount.com",
+			wantErr: true,
+		},
+		{
+			name:    "name ends with hyphen",
+			input:   "service-@project-123.iam.gserviceaccount.com",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateServiceAccountEmail(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateServiceAccountEmail() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateRegion(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name:    "valid region",
+			input:   "us-central1",
+			wantErr: false,
+		},
+		{
+			name:    "valid region europe",
+			input:   "europe-west1",
+			wantErr: false,
+		},
+		{
+			name:    "valid region asia",
+			input:   "asia-northeast1",
+			wantErr: false,
+		},
+		{
+			name:    "empty region",
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:    "too long",
+			input:   strings.Repeat("a", 64),
+			wantErr: true,
+		},
+		{
+			name:    "contains uppercase",
+			input:   "US-Central1",
+			wantErr: true,
+		},
+		{
+			name:    "contains underscore",
+			input:   "us_central1",
+			wantErr: true,
+		},
+		{
+			name:    "starts with number",
+			input:   "1-us-central",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateRegion(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateRegion() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateServiceName(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name:    "valid service name",
+			input:   "my-service",
+			wantErr: false,
+		},
+		{
+			name:    "valid with numbers",
+			input:   "service-123",
+			wantErr: false,
+		},
+		{
+			name:    "aixgo service",
+			input:   "aixgo-service",
+			wantErr: false,
+		},
+		{
+			name:    "empty service name",
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:    "too short",
+			input:   "s",
+			wantErr: true,
+		},
+		{
+			name:    "too long",
+			input:   strings.Repeat("a", 64),
+			wantErr: true,
+		},
+		{
+			name:    "contains uppercase",
+			input:   "My-Service",
+			wantErr: true,
+		},
+		{
+			name:    "ends with hyphen",
+			input:   "service-",
+			wantErr: true,
+		},
+		{
+			name:    "starts with hyphen",
+			input:   "-service",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateServiceName(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateServiceName() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateDeploymentInputs(t *testing.T) {
+	tests := []struct {
+		name        string
+		projectID   string
+		region      string
+		serviceName string
+		repoName    string
+		imageName   string
+		environment string
+		wantErr     bool
+	}{
+		{
+			name:        "all valid inputs",
+			projectID:   "my-project-123",
+			region:      "us-central1",
+			serviceName: "aixgo-mcp",
+			repoName:    "aixgo",
+			imageName:   "mcp-server",
+			environment: "production",
+			wantErr:     false,
+		},
+		{
+			name:        "invalid project ID",
+			projectID:   "1invalid",
+			region:      "us-central1",
+			serviceName: "aixgo-mcp",
+			repoName:    "aixgo",
+			imageName:   "mcp-server",
+			environment: "production",
+			wantErr:     true,
+		},
+		{
+			name:        "invalid region",
+			projectID:   "my-project-123",
+			region:      "US-CENTRAL1",
+			serviceName: "aixgo-mcp",
+			repoName:    "aixgo",
+			imageName:   "mcp-server",
+			environment: "production",
+			wantErr:     true,
+		},
+		{
+			name:        "invalid service name",
+			projectID:   "my-project-123",
+			region:      "us-central1",
+			serviceName: "-invalid",
+			repoName:    "aixgo",
+			imageName:   "mcp-server",
+			environment: "production",
+			wantErr:     true,
+		},
+		{
+			name:        "invalid environment",
+			projectID:   "my-project-123",
+			region:      "us-central1",
+			serviceName: "aixgo-mcp",
+			repoName:    "aixgo",
+			imageName:   "mcp-server",
+			environment: "Production",
+			wantErr:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateDeploymentInputs(
+				tt.projectID,
+				tt.region,
+				tt.serviceName,
+				tt.repoName,
+				tt.imageName,
+				tt.environment,
+			)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateDeploymentInputs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

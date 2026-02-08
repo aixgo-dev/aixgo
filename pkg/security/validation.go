@@ -418,6 +418,54 @@ func ValidateEnvironment(env string) error {
 	return nil
 }
 
+// ValidateNamespace validates a Kubernetes namespace name
+// This prevents command injection in kubectl namespace parameters
+// K8s namespace naming rules: DNS label (RFC 1123), max 63 chars, alphanumeric and hyphens
+func ValidateNamespace(namespace string) error {
+	if namespace == "" {
+		return fmt.Errorf("namespace cannot be empty")
+	}
+	if len(namespace) > 63 {
+		return fmt.Errorf("namespace name too long (max 63 characters)")
+	}
+	// K8s namespaces follow DNS label rules
+	if !serviceNamePattern.MatchString(namespace) {
+		return fmt.Errorf("invalid namespace format: must start with lowercase letter, contain only lowercase letters, digits, and hyphens, end with alphanumeric")
+	}
+	return nil
+}
+
+// ValidateSecretName validates a Kubernetes or GCP secret name
+// This prevents command injection in secret name parameters
+func ValidateSecretName(secretName string) error {
+	if secretName == "" {
+		return fmt.Errorf("secret name cannot be empty")
+	}
+	if len(secretName) > 253 {
+		return fmt.Errorf("secret name too long (max 253 characters)")
+	}
+	// Secret names: alphanumeric, hyphens, underscores, dots
+	secretPattern := regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,252}$`)
+	if !secretPattern.MatchString(secretName) {
+		return fmt.Errorf("invalid secret name format: must contain only lowercase letters, digits, hyphens, underscores, and dots")
+	}
+	return nil
+}
+
+// ValidateServiceAccountEmail validates a GCP service account email format
+// This prevents command injection in service account parameters
+func ValidateServiceAccountEmail(email string) error {
+	if email == "" {
+		return fmt.Errorf("service account email cannot be empty")
+	}
+	// Service account email pattern: name@project-id.iam.gserviceaccount.com
+	emailPattern := regexp.MustCompile(`^[a-z][a-z0-9-]{0,61}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\.iam\.gserviceaccount\.com$`)
+	if !emailPattern.MatchString(email) {
+		return fmt.Errorf("invalid service account email format")
+	}
+	return nil
+}
+
 // ValidateDeploymentInputs validates all deployment-related inputs at once
 // This provides a convenient function to validate all parameters before executing any commands
 // Prevents command injection by ensuring all inputs match safe patterns

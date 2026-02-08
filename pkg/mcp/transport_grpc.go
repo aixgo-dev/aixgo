@@ -122,10 +122,20 @@ func (t *GRPCTransport) buildTLSConfig() (*tls.Config, error) {
 
 	// SECURITY: Prevent InsecureSkipVerify in production environments
 	// This enforces certificate verification when running in production
+	// Empty/unset ENVIRONMENT is treated as production (fail-safe)
 	if tlsCfg.InsecureSkipVerify {
 		env := strings.ToLower(os.Getenv("ENVIRONMENT"))
-		if env == "production" || env == "prod" {
-			return nil, fmt.Errorf("SECURITY: InsecureSkipVerify cannot be enabled in production environment (ENVIRONMENT=%s)", env)
+		// Only allow InsecureSkipVerify in explicit non-production environments
+		allowedNonProdEnvs := map[string]bool{
+			"development": true,
+			"dev":         true,
+			"staging":     true,
+			"local":       true,
+			"test":        true,
+		}
+		if !allowedNonProdEnvs[env] {
+			return nil, fmt.Errorf("SECURITY: InsecureSkipVerify cannot be enabled in production environment (ENVIRONMENT=%q). "+
+				"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
 		}
 
 		// Log warning for non-production environments
