@@ -34,7 +34,7 @@ This catalog contains:
 - **Example Configurations**: 15+ production-ready examples
 
 **Key Performance Metrics**:
-- Binary Size: <10MB (typically 8MB)
+- Binary Size: <20MB
 - Cold Start: <100ms
 - Memory Footprint: ~50MB base
 - Concurrent Agents: 1000+
@@ -171,7 +171,7 @@ checkpoint, _ := sess.Checkpoint(ctx)
 
 | Feature | Status | Description | Metrics |
 |---------|--------|-------------|---------|
-| **Binary Size** | ✅ Implemented | Ultra-small binary footprint | <10MB |
+| **Binary Size** | ✅ Implemented | Ultra-small binary footprint | <20MB |
 | **Cold Start Time** | ✅ Implemented | Near-instant startup for serverless deployments | <100ms |
 | **Zero Dependencies** | ✅ Implemented | No runtime dependencies required | Single binary |
 | **Cross-Platform** | ✅ Implemented | Compile for Linux, macOS, Windows | Go compilation |
@@ -1038,7 +1038,7 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 
 **Container Sizes**:
 - Standard: ~50MB
-- Alpine: <10MB
+- Alpine: <20MB
 - Multi-stage optimized
 
 **Keywords**: deployment, docker, kubernetes, cloud run, serverless, iac
@@ -1090,7 +1090,7 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 
 | Metric | Value | Description | Benefit |
 |--------|-------|-------------|---------|
-| **Binary Size** | <10MB | Ultra-compact deployment (typically 8MB) | Easy distribution, fast transfers |
+| **Binary Size** | <20MB | Ultra-compact deployment | Easy distribution, fast transfers |
 | **Cold Start** | <100ms | Near-instant startup | Serverless-ready |
 | **Memory Footprint** | ~50MB | Minimal base memory usage | Cost-effective scaling |
 | **Concurrent Agents** | 1000+ | Handle many concurrent agents | High throughput |

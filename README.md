@@ -13,7 +13,7 @@ Python AI frameworks excel at prototyping but struggle in production. Aixgo is b
 
 | Dimension       | Python Frameworks      | Aixgo                    |
 | --------------- | ---------------------- | ------------------------ |
-| **Deployment**  | 1GB+ containers        | <10MB binary             |
+| **Deployment**  | 1GB+ containers        | <20MB binary             |
 | **Cold Start**  | 10-45 seconds          | <100ms                   |
 | **Type Safety** | Runtime errors         | Compile-time checks      |
 | **Concurrency** | GIL limitations        | True parallelism         |
@@ -111,7 +111,7 @@ This includes the full repository with website source (`web/`), examples, and do
 | User Type | Command | What's Included | Size |
 |-----------|---------|----------------|------|
 | **Library user** | `go get github.com/aixgo-dev/aixgo` | Go source code only | ~2MB |
-| **CLI user** | `go install` or binary download | Single executable binary | <10MB |
+| **CLI user** | `go install` or binary download | Single executable binary | <20MB |
 | **Contributor** | `git clone` | Full repo including web/, examples/, docs/ | ~20MB |
 
 ### Setup

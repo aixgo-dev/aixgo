@@ -31,7 +31,7 @@ Aixgo exists because **production AI deserves production tooling.** Go developer
 
 ### 1. Single Binary Simplicity
 
-Deploy AI agents in <10MB binaries with zero runtime dependencies.
+Deploy AI agents in <20MB binaries with zero runtime dependencies.
 
 ```bash
 # Python AI service
@@ -44,7 +44,7 @@ CMD ["python", "main.py"]
 # Aixgo service
 FROM scratch
 COPY aixgo-agent /
-CMD ["/aixgo-agent"]  # 8MB total
+CMD ["/aixgo-agent"]  # <20MB total
 ```
 
 ### 2. Type-Safe Architecture
@@ -96,7 +96,7 @@ Configure agents declaratively in YAML. See the [Quick Start Guide](/guides/quic
 
 | Metric           | Python (LangChain) | Aixgo         | Improvement            |
 | ---------------- | ------------------ | ------------- | ---------------------- |
-| Container Size   | 1.2GB              | 8MB           | **150x smaller**       |
+| Container Size   | 1.2GB              | <20MB         | **60x smaller**        |
 | Cold Start       | 45 seconds         | <100ms        | **450x faster**        |
 | Throughput       | 500-1,000 req/s    | 10,000 req/s  | **10-20x higher**      |
 | Memory Footprint | 512MB baseline     | 50MB baseline | **10x more efficient** |

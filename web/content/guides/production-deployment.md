@@ -151,7 +151,7 @@ Deploy to edge devices, IoT gateways, or resource-constrained environments.
 
 **Pros:**
 
-- Minimal footprint (8MB binary)
+- Minimal footprint (<20MB binary)
 - No external dependencies
 - Works offline
 - Low latency (local processing)
@@ -510,7 +510,7 @@ Real-world production metrics:
 
 | Metric          | Python (LangChain) | Aixgo        | Improvement        |
 | --------------- | ------------------ | ------------ | ------------------ |
-| Container Size  | 1.2GB              | 8MB          | 150x smaller       |
+| Container Size  | 1.2GB              | <20MB        | 60x smaller        |
 | Cold Start      | 45 seconds         | <100ms       | 450x faster        |
 | Memory Baseline | 512MB              | 50MB         | 10x more efficient |
 | Throughput      | 500-1,000 req/s    | 10,000 req/s | 10-20x higher      |

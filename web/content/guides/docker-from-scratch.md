@@ -1,12 +1,12 @@
 ---
 title: 'Building Docker Images from Scratch'
-description: "Create minimal 8MB production containers leveraging Aixgo's single binary advantage."
+description: "Create minimal <20MB production containers leveraging Aixgo's single binary advantage."
 breadcrumb: 'Deployment'
 category: 'Deployment'
 weight: 7
 ---
 
-One of Aixgo's most compelling advantages is deployment size. While Python AI frameworks produce 1GB+ containers, Aixgo agents compile to 8MB binaries. This guide shows how to
+One of Aixgo's most compelling advantages is deployment size. While Python AI frameworks produce 1GB+ containers, Aixgo agents compile to <20MB binaries. This guide shows how to
 build minimal production containers.
 
 ## The Container Size Problem
@@ -42,15 +42,15 @@ FROM scratch
 COPY aixgo-agent /
 CMD ["/aixgo-agent"]
 
-# Result: 8MB total container
-# - Go binary: 8MB
+# Result: <20MB total container
+# - Go binary: <20MB
 # - No runtime needed
 # - No dependencies
 ```
 
 **Benefits:**
 
-- Fast deployments (seconds to pull 8MB)
+- Fast deployments (seconds to pull <20MB)
 - Minimal storage costs
 - Tiny attack surface
 - Instant cold starts (<100ms)
@@ -93,7 +93,7 @@ docker build -t aixgo-agent:latest .
 docker run aixgo-agent:latest
 ```
 
-**Result:** ~8MB container
+**Result:** ~18MB container
 
 ## Optimized Dockerfile: Smallest Possible Image
 
@@ -138,7 +138,7 @@ CMD ["/agent"]
 - `CGO_ENABLED=0` - Disable C dependencies (pure Go)
 - `-ldflags="-w -s"` - Strip debug info and symbol table
 - `-trimpath` - Remove file system paths from binary
-- Result: ~6-8MB container
+- Result: ~15-20MB container
 
 ## Multi-Stage Build Best Practices
 
@@ -284,8 +284,8 @@ CMD ["/agent"]
 **Result:**
 
 - Base image: 0MB (scratch)
-- Binary: 8MB
-- Total: **8MB**
+- Binary: <20MB
+- Total: **<20MB**
 
 **Improvement: 150x smaller**
 
@@ -497,7 +497,7 @@ docker logs -f <container-id>
 
 Container size affects:
 
-| Metric               | 1.2GB (Python)     | 8MB (Aixgo)       | Impact          |
+| Metric               | 1.2GB (Python)     | <20MB (Aixgo)     | Impact          |
 | -------------------- | ------------------ | ----------------- | --------------- |
 | **Pull time**        | 2-5 minutes        | 5-10 seconds      | 24-60x faster   |
 | **Cold start**       | 30-45 seconds      | <100ms            | 300-450x faster |
@@ -574,7 +574,7 @@ docker push my-registry/aixgo-agent:1.0.0
 3. **Static binaries** - `CGO_ENABLED=0` for zero dependencies
 4. **Strip symbols** - `-ldflags="-w -s"` reduces size
 5. **Layer caching** - Dependencies before source code
-6. **150x smaller** - 8MB vs 1.2GB Python containers
+6. **60x smaller** - <20MB vs 1.2GB Python containers
 
 ## Next Steps
 

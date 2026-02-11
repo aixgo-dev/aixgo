@@ -361,10 +361,10 @@ categories:
             status: "complete"
             tooltip:
               content: "End-to-end examples demonstrating real-world applications from setup to deployment."
-          - name: "Single Binary (<10MB)"
+          - name: "Single Binary (<20MB)"
             status: "complete"
             tooltip:
-              content: "Compile to a single 8MB binary with zero runtime dependencies. Deploy anywhere without package managers."
+              content: "Compile to a single <20MB binary with zero runtime dependencies. Deploy anywhere without package managers."
           - name: "Instant Startup (<100ms)"
             status: "complete"
             tooltip:

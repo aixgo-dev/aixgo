@@ -95,7 +95,7 @@ func main() {
 # Local development
 go run main.go
 
-# Production - single 8MB binary
+# Production - single <20MB binary
 go build -o agent
 ./agent
 
@@ -129,7 +129,7 @@ go build -o agent
 </div>
 <div class="comparison-item">
 <span class="comparison-label">Aixgo</span>
-<span class="comparison-value">8MB</span>
+<span class="comparison-value"><20MB</span>
 <span class="comparison-impact">single binary</span>
 </div>
 <div class="comparison-item">
@@ -272,7 +272,7 @@ Aixgo provides a comprehensive feature set for building production AI agent syst
 
 | What Matters in Production | Python Frameworks             | Aixgo                          |
 | -------------------------- | ----------------------------- | ------------------------------ |
-| **Deploy Anywhere**        | 1GB+ containers, complex deps | 8MB binary, zero deps          |
+| **Deploy Anywhere**        | 1GB+ containers, complex deps | <20MB binary, zero deps          |
 | **Cold Start Speed**       | 10-45 seconds                 | <100ms                         |
 | **Type Safety**            | Runtime discovery             | Compile-time guarantees        |
 | **Concurrency**            | GIL bottleneck                | Native parallelism             |
@@ -296,7 +296,7 @@ Aixgo provides a comprehensive feature set for building production AI agent syst
 
 <div class="feature-item">
 <h3>Edge to Cloud, Seamlessly {{< status-badge status="available" >}}</h3>
-<p>Deploy the same 8MB binary everywhere - edge devices, serverless, Kubernetes. Local transport and gRPC for distributed systems.</p>
+<p>Deploy the same <20MB binary everywhere - edge devices, serverless, Kubernetes. Local transport and gRPC for distributed systems.</p>
 </div>
 
 <div class="feature-item">

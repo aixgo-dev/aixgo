@@ -28,7 +28,7 @@ Aixgo is a **production-grade AI agent framework for Go** enabling secure, scala
 
 | Metric | Aixgo | Python Frameworks |
 |--------|-------|-------------------|
-| Binary Size | <10MB | 1GB+ containers |
+| Binary Size | <20MB | 1GB+ containers |
 | Cold Start | <100ms | 10-45s |
 | Concurrency | True parallelism (no GIL) | GIL-limited |
 | Type Safety | Compile-time | Runtime errors |

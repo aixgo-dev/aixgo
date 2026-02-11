@@ -22,7 +22,7 @@ Aixgo exists to eliminate that choice. We believe AI agents should ship with the
 
 | What Matters | Python Frameworks | Aixgo | Impact |
 |--------------|------------------|-------|---------|
-| **Container Size** | 1.2GB+ | 8MB | 150x smaller |
+| **Container Size** | 1.2GB+ | <20MB | 60x smaller |
 | **Cold Start** | 30-45 seconds | <100ms | 450x faster |
 | **Dependencies** | 200+ packages | ~10 packages | 95% fewer |
 | **Type Safety** | Runtime discovery | Compile-time | Zero production surprises |
@@ -58,9 +58,9 @@ API stability over rapid iteration. Performance-driven decisions. Security and o
 
 ### 2. Single Binary Simplicity
 
-Deploy AI agents in <10MB binaries with zero runtime dependencies. No Python interpreter, no virtual environments, no Docker required (though it works great with containers).
+Deploy AI agents in <20MB binaries with zero runtime dependencies. No Python interpreter, no virtual environments, no Docker required (though it works great with containers).
 
-**Real impact**: 8MB total deployment vs 1.2GB Python containers. Deploy to edge devices, serverless, IoT, anywhere.
+**Real impact**: <20MB total deployment vs 1.2GB Python containers. Deploy to edge devices, serverless, IoT, anywhere.
 
 ### 3. Type Safety as a Feature
 

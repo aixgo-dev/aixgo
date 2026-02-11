@@ -4,7 +4,7 @@
 
 current: "v0.3.3"
 stage: "Beta"
-tagline: "The AI Agent Framework That Ships in 8MB"
+tagline: "The AI Agent Framework That Ships in <20MB"
 subheadline: "Build, deploy, and scale AI agents in Go. No containers. No cold starts. No Python."
 release_date: "February 2026"
 

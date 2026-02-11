@@ -24,7 +24,7 @@ description: "Explore Aixgo's complete feature set across AI agents, LLM provide
 
 ### Performance
 
-- **Binary Size**: <10MB (typically 8MB)
+- **Binary Size**: <20MB
 - **Cold Start**: <100ms
 - **Infrastructure Savings**: 60-70% vs Python frameworks
 
@@ -114,7 +114,7 @@ Deploy anywhere with Go's simplicity:
 
 | Target | Details |
 |--------|---------|
-| **Single Binary** | <10MB, zero dependencies |
+| **Single Binary** | <20MB, zero dependencies |
 | **Docker** | Multi-stage builds, ~50MB standard |
 | **Kubernetes** | Full manifests, HPA ready |
 | **Cloud Run** | Auto-scaling, IAP integration |

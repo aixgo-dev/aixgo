@@ -34,6 +34,6 @@ enableEmoji = true
   home = ["HTML", "RSS", "JSON"]
 
 [params]
-  description = "Production-grade AI agent framework for Go. Session persistence, 8+ LLM providers, 13 orchestration patterns, enterprise security. Single 8MB binary, <100ms startup."
+  description = "Production-grade AI agent framework for Go. Session persistence, 8+ LLM providers, 13 orchestration patterns, enterprise security. Single <20MB binary, <100ms startup."
   author = "Charles Green"
   github = "https://github.com/aixgo-dev/aixgo"

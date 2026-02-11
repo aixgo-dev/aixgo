@@ -21,7 +21,7 @@ Python excels at research and prototyping. But production reveals fundamental li
 
 **Bloated Deployments:**
 
-- 1GB+ containers vs. 8MB binaries
+- 1GB+ containers vs. <20MB binaries
 - 200+ dependencies vs. zero runtime dependencies
 - Minutes to build vs. seconds
 
@@ -73,9 +73,9 @@ Go developers shouldn't abandon their stack's strengths—speed, security, simpl
 
 ```text
 Python AI Service:        Aixgo Service:
-- Base: python:3.11 1GB   - Binary: 8MB
+- Base: python:3.11 1GB   - Binary: <20MB
 - Deps: pip (200MB)       - Base: scratch
-- Code: 50MB              - Total: 8MB
+- Code: 50MB              - Total: <20MB
 Total: 1.2GB              (150x smaller)
 ```
 

@@ -19,7 +19,7 @@ Prototyping velocity matters, but shipping velocity matters more. Type safety, c
 
 ### 3. A single binary is better than a thousand dependencies
 
-Every dependency is a liability—security patches, version conflicts, build complexity. A single 8MB binary has zero runtime dependencies and infinite deployment flexibility.
+Every dependency is a liability—security patches, version conflicts, build complexity. A single <20MB binary has zero runtime dependencies and infinite deployment flexibility.
 
 ### 4. Type safety at compile time beats hope at runtime
 
@@ -27,7 +27,7 @@ Every dependency is a liability—security patches, version conflicts, build com
 
 ### 5. Ship megabytes, not gigabytes
 
-1.5GB containers kill serverless economics. 8MB binaries enable edge deployment, multi-region rollouts, and sub-100ms cold starts. Size is a feature.
+1.5GB containers kill serverless economics. <20MB binaries enable edge deployment, multi-region rollouts, and sub-100ms cold starts. Size is a feature.
 
 ### 6. Observability is not optional
 

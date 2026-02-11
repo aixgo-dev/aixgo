@@ -157,7 +157,7 @@ go build -o aixgo cmd/aixgo/main.go
 
 **Characteristics**:
 
-- ✅ Single 8MB binary
+- ✅ Single < 20MB binary
 - ✅ Embedded MCP server
 - ✅ Uses local Ollama or cloud APIs
 - ✅ Perfect for development
