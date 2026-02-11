@@ -5,9 +5,11 @@ help: ## Show this help message
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
 
-build: ## Build the project
-	@echo "Building..."
-	@go build -v ./...
+build: ## Build the aixgo binary
+	@echo "Building aixgo..."
+	@mkdir -p dist
+	@CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o dist/aixgo ./cmd/aixgo
+	@echo "Built: ./dist/aixgo"
 
 run: ## Run the example application
 	@echo "Running example..."

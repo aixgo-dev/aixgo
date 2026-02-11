@@ -31,7 +31,24 @@ go.work.sum
 # .idea/
 # .vscode/
 
-# Compiled example binaries
+# Build output directory
+dist/
+
+# Compiled example binaries (binary name matches directory name)
+examples/deterministic-aggregation/deterministic-aggregation
+examples/huggingface-mcp/huggingface-mcp
+examples/parallel-research/parallel-research
+examples/rag-documentation/rag-documentation
+examples/reflection-code-generation/reflection-code-generation
+examples/router-cost-optimization/router-cost-optimization
+examples/session-react/session-react
+examples/session-basic/session-basic
+examples/resilient-aggregation/resilient-aggregation
+examples/personal-assistant/personal-assistant
+
+# Legacy binary names (root level)
 aggregator-workflow
 classifier-workflow
 rag-agent
+session-react
+aixgo
