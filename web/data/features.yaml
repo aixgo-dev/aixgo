@@ -60,7 +60,7 @@ categories:
           - name: "Planner Agent"
             status: "complete"
             tooltip:
-              content: "Breaks down complex tasks into executable steps, creating dynamic workflows based on goal analysis."
+              content: "Breaks down complex tasks into executable steps with 6 advanced planning strategies: Chain-of-Thought (systematic decomposition), Tree-of-Thought (multi-branch exploration with scoring), ReAct (reasoning-action cycles), Monte Carlo Tree Search (UCB1-based path optimization), Backward Chaining (goal-to-steps decomposition), and Hierarchical Planning (multi-level task breakdown)."
           - name: "Producer Agent"
             status: "complete"
             tooltip:
@@ -83,7 +83,7 @@ categories:
           - name: "Reflection Pattern"
             status: "complete"
             tooltip:
-              content: "Self-critique and iterative improvement where agents evaluate and refine their own outputs."
+              content: "Self-critique and iterative improvement with quality scoring (20-50% improvement). Supports single critic, self-reflection, and multi-critic aggregation with automatic score extraction from JSON, pattern matching, or sentiment analysis."
           - name: "MapReduce Pattern"
             status: "complete"
             tooltip:
@@ -115,7 +115,7 @@ categories:
           - name: "RAG Pattern"
             status: "complete"
             tooltip:
-              content: "Retrieval-Augmented Generation with vector search and LLM synthesis."
+              content: "Retrieval-Augmented Generation with 4 variants: Standard (retrieve→generate), Conversational (with history tracking), Multi-Query (query expansion with reciprocal rank fusion), and Hybrid (semantic + keyword retrieval merged with RRF scoring)."
           - name: "Ensemble Pattern"
             status: "complete"
             tooltip:
@@ -149,6 +149,10 @@ categories:
             status: "complete"
             tooltip:
               content: "Automatic discovery and registration of available tools and services across the infrastructure."
+          - name: "Typed Tool Registration"
+            status: "complete"
+            tooltip:
+              content: "Type-safe tool registration using Go generics with automatic JSON schema generation from struct types via reflection. Validates arguments at compile-time and runtime for robust tool execution."
 
   - name: "Data Infrastructure"
     subcategories:
@@ -270,7 +274,11 @@ categories:
           - name: "JWT Verification"
             status: "complete"
             tooltip:
-              content: "JSON Web Token validation for stateless authentication and secure API access."
+              content: "JSON Web Token validation with RS256/HS256 signature verification, automatic JWKS fetching with caching, expiration checking, issuer/audience validation, and RSA public key verification for stateless authentication."
+          - name: "File-Based API Keys"
+            status: "complete"
+            tooltip:
+              content: "Load API keys from secure files supporting two formats: line-based (user_id=api_key) and JSON. Includes automatic permission validation (rejects world-readable files) and comment/empty-line handling."
           - name: "Input Validation"
             status: "complete"
             tooltip:

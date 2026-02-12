@@ -833,7 +833,7 @@ func internalToPublicMessage(msg *agent.Message) *publicAgent.Message {
 	}
 
 	// Copy metadata if present, otherwise create empty map
-	metadata := make(map[string]interface{})
+	metadata := make(map[string]any)
 	if msg.Metadata != nil {
 		for k, v := range msg.Metadata {
 			metadata[k] = v

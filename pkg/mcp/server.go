@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -158,27 +160,154 @@ func (s *Server) RegisterTool(tool Tool) error {
 	return nil
 }
 
-// RegisterTypedTool registers a tool with type-safe handler
+// RegisterTypedTool registers a tool with type-safe handler using reflection
 func RegisterTypedTool[TInput any, TOutput any](
 	s *Server,
 	name string,
 	description string,
 	handler func(context.Context, TInput) (TOutput, error),
 ) error {
+	// Generate JSON schema from TInput type using reflection
+	var inputExample TInput
+	schema, err := generateSchemaFromType(inputExample)
+	if err != nil {
+		return fmt.Errorf("failed to generate schema for %s: %w", name, err)
+	}
+
 	// Wrapper to convert typed handler to generic handler
 	genericHandler := func(ctx context.Context, args Args) (any, error) {
-		// TODO: Unmarshal args into TInput using reflection/JSON
-		// For now, simple implementation
+		// Marshal args to JSON then unmarshal into TInput
+		argsJSON, err := json.Marshal(args)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
+		}
+
 		var input TInput
-		return handler(ctx, input)
+		if err := json.Unmarshal(argsJSON, &input); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal arguments into %T: %w", input, err)
+		}
+
+		// Call the typed handler
+		output, err := handler(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+
+		return output, nil
 	}
 
 	return s.RegisterTool(Tool{
 		Name:        name,
 		Description: description,
 		Handler:     genericHandler,
-		Schema:      make(Schema), // TODO: Generate from TInput using reflection
+		Schema:      schema,
 	})
+}
+
+// generateSchemaFromType generates a JSON schema from a Go type using reflection
+func generateSchemaFromType(v any) (Schema, error) {
+	schema := make(Schema)
+	t := reflect.TypeOf(v)
+
+	// Handle pointer types
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	if t.Kind() != reflect.Struct {
+		// For non-struct types, create simple schema with single field
+		schema["value"] = SchemaField{
+			Type: jsonTypeFromGoType(t.Kind()),
+		}
+		return schema, nil
+	}
+
+	// Build schema for struct
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+
+		// Skip unexported fields
+		if !field.IsExported() {
+			continue
+		}
+
+		// Get JSON tag for field name
+		jsonTag := field.Tag.Get("json")
+		fieldName := field.Name
+		isRequired := true
+
+		if jsonTag != "" {
+			parts := strings.Split(jsonTag, ",")
+			if parts[0] != "" && parts[0] != "-" {
+				fieldName = parts[0]
+			}
+			// Check for omitempty
+			for _, part := range parts[1:] {
+				if part == "omitempty" {
+					isRequired = false
+				}
+			}
+		}
+
+		// Skip fields with json:"-"
+		if jsonTag == "-" {
+			continue
+		}
+
+		// Build field schema
+		fieldSchema := typeToSchemaField(field.Type)
+		fieldSchema.Required = isRequired
+
+		schema[fieldName] = fieldSchema
+	}
+
+	return schema, nil
+}
+
+// typeToSchemaField converts a reflect.Type to a SchemaField
+func typeToSchemaField(t reflect.Type) SchemaField {
+	// Handle pointer types
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	field := SchemaField{
+		Type: jsonTypeFromGoType(t.Kind()),
+	}
+
+	// For arrays/slices, note in description
+	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+		elemType := jsonTypeFromGoType(t.Elem().Kind())
+		field.Description = fmt.Sprintf("Array of %s", elemType)
+	}
+
+	// For maps, note as object
+	if t.Kind() == reflect.Map {
+		field.Description = "Object with dynamic keys"
+	}
+
+	return field
+}
+
+// jsonTypeFromGoType maps Go types to JSON schema types
+func jsonTypeFromGoType(kind reflect.Kind) string {
+	switch kind {
+	case reflect.String:
+		return "string"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return "integer"
+	case reflect.Float32, reflect.Float64:
+		return "number"
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Slice, reflect.Array:
+		return "array"
+	case reflect.Map, reflect.Struct:
+		return "object"
+	default:
+		return "string" // Default fallback
+	}
 }
 
 // ListTools returns all registered tools

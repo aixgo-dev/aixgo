@@ -2,11 +2,16 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/observability"
+	pb "github.com/aixgo-dev/aixgo/proto"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -24,6 +29,7 @@ type Reflection struct {
 	*BaseOrchestrator
 	generator            string
 	critic               string
+	critics              []string // For multi-critic reflection
 	maxIterations        int
 	improvementThreshold float64 // Minimum improvement required to continue
 }
@@ -77,6 +83,7 @@ func (r *Reflection) Execute(ctx context.Context, input *agent.Message) (*agent.
 	startTime := time.Now()
 	var currentOutput *agent.Message
 	var previousScore float64
+	var lastCritique *agent.Message
 
 	for iteration := 0; iteration < r.maxIterations; iteration++ {
 		iterationStart := time.Now()
@@ -86,8 +93,8 @@ func (r *Reflection) Execute(ctx context.Context, input *agent.Message) (*agent.
 		if iteration == 0 {
 			generatorInput = input
 		} else {
-			// Combine original input with critique for refinement
-			generatorInput = combineWithCritique(input, currentOutput)
+			// Combine current output with critique for refinement
+			generatorInput = combineWithCritique(currentOutput, lastCritique)
 		}
 
 		generated, err := r.runtime.Call(ctx, r.generator, generatorInput)
@@ -98,15 +105,27 @@ func (r *Reflection) Execute(ctx context.Context, input *agent.Message) (*agent.
 
 		currentOutput = generated
 
-		// Get critique
-		critique, err := r.runtime.Call(ctx, r.critic, generated)
-		if err != nil {
-			span.RecordError(err)
-			return nil, fmt.Errorf("critique failed at iteration %d: %w", iteration, err)
-		}
+		// Get critique (possibly from multiple critics)
+		var score float64
 
-		// Extract quality score from critique
-		score := extractQualityScore(critique)
+		if len(r.critics) > 1 {
+			// Multi-critic: aggregate feedback from all critics
+			lastCritique, score, err = r.aggregateCritics(ctx, generated)
+			if err != nil {
+				span.RecordError(err)
+				return nil, fmt.Errorf("multi-critic aggregation failed at iteration %d: %w", iteration, err)
+			}
+		} else {
+			// Single critic
+			lastCritique, err = r.runtime.Call(ctx, r.critic, generated)
+			if err != nil {
+				span.RecordError(err)
+				return nil, fmt.Errorf("critique failed at iteration %d: %w", iteration, err)
+			}
+
+			// Extract quality score from critique
+			score = extractQualityScore(lastCritique)
+		}
 
 		iterationDuration := time.Since(iterationStart)
 
@@ -152,16 +171,208 @@ func (r *Reflection) Execute(ctx context.Context, input *agent.Message) (*agent.
 
 // combineWithCritique combines original input with critique for refinement
 func combineWithCritique(original, critique *agent.Message) *agent.Message {
-	// TODO: Implement proper combination based on Message structure
-	return original
+	if original == nil || original.Message == nil {
+		return original
+	}
+
+	if critique == nil || critique.Message == nil || critique.Payload == "" {
+		return original
+	}
+
+	// Create refinement prompt that includes both original content and critique
+	refinementPrompt := fmt.Sprintf(`You previously generated this output:
+---
+%s
+---
+
+A critic provided this feedback:
+---
+%s
+---
+
+Please refine and improve your output based on the critique. Address all the issues raised while maintaining the core intent.`, original.Payload, critique.Payload)
+
+	return &agent.Message{
+		Message: &pb.Message{
+			Id:        original.Id,
+			Type:      "refinement_request",
+			Payload:   refinementPrompt,
+			Timestamp: original.Timestamp,
+			Metadata:  original.Metadata,
+		},
+	}
 }
 
 // extractQualityScore extracts a quality score from the critique
 // Returns a score between 0.0 and 1.0
 func extractQualityScore(critique *agent.Message) float64 {
-	// TODO: Implement proper score extraction
-	// Could parse structured output, use sentiment, or explicit score
-	return 0.7 // Placeholder
+	if critique == nil || critique.Message == nil || critique.Payload == "" {
+		return 0.5 // Default medium score
+	}
+
+	content := critique.Payload
+
+	// Strategy 1: Try to parse structured JSON output with explicit score
+	var structuredCritique struct {
+		Score   float64 `json:"score"`
+		Rating  float64 `json:"rating"`
+		Quality float64 `json:"quality"`
+	}
+
+	if err := json.Unmarshal([]byte(content), &structuredCritique); err == nil {
+		// Successfully parsed JSON, use score field
+		if structuredCritique.Score > 0 {
+			return normalizeScore(structuredCritique.Score)
+		}
+		if structuredCritique.Rating > 0 {
+			return normalizeScore(structuredCritique.Rating)
+		}
+		if structuredCritique.Quality > 0 {
+			return normalizeScore(structuredCritique.Quality)
+		}
+	}
+
+	// Strategy 2: Look for explicit score patterns like "Score: 8/10" or "Rating: 7.5"
+	scorePatterns := []string{
+		`[Ss]core:\s*(\d+\.?\d*)\s*/\s*(\d+)`,        // "Score: 8/10"
+		`[Rr]ating:\s*(\d+\.?\d*)\s*/\s*(\d+)`,       // "Rating: 7.5/10"
+		`[Qq]uality:\s*(\d+\.?\d*)`,                  // "Quality: 8.5"
+		`(\d+\.?\d*)\s*/\s*10`,                       // "8/10"
+		`[Ss]core:\s*(\d+\.?\d*)`,                    // "Score: 8.5"
+	}
+
+	for _, pattern := range scorePatterns {
+		re := regexp.MustCompile(pattern)
+		matches := re.FindStringSubmatch(content)
+		if len(matches) >= 2 {
+			score, err := strconv.ParseFloat(matches[1], 64)
+			if err == nil {
+				if len(matches) >= 3 {
+					// Has denominator like "8/10"
+					denom, err2 := strconv.ParseFloat(matches[2], 64)
+					if err2 == nil && denom > 0 {
+						return score / denom
+					}
+				}
+				// Assume out of 10 if single number
+				return normalizeScore(score)
+			}
+		}
+	}
+
+	// Strategy 3: Sentiment analysis based on keywords
+	contentLower := strings.ToLower(content)
+
+	positiveKeywords := []string{
+		"excellent", "outstanding", "perfect", "great", "impressive",
+		"strong", "well-done", "thorough", "comprehensive", "clear",
+	}
+	negativeKeywords := []string{
+		"poor", "weak", "unclear", "incomplete", "inadequate",
+		"missing", "needs improvement", "lacking", "confusing", "wrong",
+	}
+
+	positiveCount := 0
+	negativeCount := 0
+
+	for _, keyword := range positiveKeywords {
+		if strings.Contains(contentLower, keyword) {
+			positiveCount++
+		}
+	}
+	for _, keyword := range negativeKeywords {
+		if strings.Contains(contentLower, keyword) {
+			negativeCount++
+		}
+	}
+
+	// Calculate sentiment score (0.3 to 0.9 range based on keyword balance)
+	if positiveCount+negativeCount == 0 {
+		return 0.6 // Neutral default
+	}
+
+	sentimentScore := 0.3 + (float64(positiveCount) / float64(positiveCount+negativeCount) * 0.6)
+	return sentimentScore
+}
+
+// normalizeScore normalizes a score to 0.0-1.0 range
+// Assumes input is on 0-10 scale unless already in 0-1 range
+func normalizeScore(score float64) float64 {
+	if score < 0 {
+		return 0.0
+	}
+	if score <= 1.0 {
+		return score // Already normalized
+	}
+	if score <= 10.0 {
+		return score / 10.0 // Normalize from 0-10 to 0-1
+	}
+	return 1.0 // Cap at 1.0
+}
+
+// aggregateCritics collects feedback from multiple critics and aggregates it
+func (r *Reflection) aggregateCritics(ctx context.Context, generated *agent.Message) (*agent.Message, float64, error) {
+	type critiqueResult struct {
+		critique *agent.Message
+		score    float64
+		err      error
+	}
+
+	// Call all critics in parallel
+	results := make(chan critiqueResult, len(r.critics))
+
+	for _, critic := range r.critics {
+		go func(criticName string) {
+			critique, err := r.runtime.Call(ctx, criticName, generated)
+			if err != nil {
+				results <- critiqueResult{nil, 0.0, err}
+				return
+			}
+
+			score := extractQualityScore(critique)
+			results <- critiqueResult{critique, score, nil}
+		}(critic)
+	}
+
+	// Collect results
+	critiques := make([]*agent.Message, 0, len(r.critics))
+	scores := make([]float64, 0, len(r.critics))
+
+	for i := 0; i < len(r.critics); i++ {
+		result := <-results
+		if result.err != nil {
+			continue
+		}
+		critiques = append(critiques, result.critique)
+		scores = append(scores, result.score)
+	}
+
+	if len(critiques) == 0 {
+		return nil, 0.0, fmt.Errorf("all critics failed")
+	}
+
+	// Aggregate scores (average)
+	totalScore := 0.0
+	for _, s := range scores {
+		totalScore += s
+	}
+	avgScore := totalScore / float64(len(scores))
+
+	// Merge critique feedback
+	mergedCritique := "Aggregated feedback from multiple critics:\n\n"
+	for i, critique := range critiques {
+		mergedCritique += fmt.Sprintf("Critic %d (Score: %.2f):\n%s\n\n",
+			i+1, scores[i], critique.Payload)
+	}
+
+	aggregatedMsg := &agent.Message{
+		Message: &pb.Message{
+			Type:    "aggregated_critique",
+			Payload: mergedCritique,
+		},
+	}
+
+	return aggregatedMsg, avgScore, nil
 }
 
 // Reflection variants
@@ -175,9 +386,9 @@ func NewSelfReflection(name string, runtime agent.Runtime, agent string, maxIter
 
 // NewMultiCriticReflection creates a reflection with multiple critics
 func NewMultiCriticReflection(name string, runtime agent.Runtime, generator string, critics []string, maxIterations int) *Reflection {
-	// TODO: Implement multi-critic aggregation
-	// For now, use first critic
-	return NewReflection(name, runtime, generator, critics[0],
+	r := NewReflection(name, runtime, generator, critics[0],
 		WithMaxIterations(maxIterations),
 	)
+	r.critics = critics
+	return r
 }

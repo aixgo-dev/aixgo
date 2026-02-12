@@ -39,7 +39,7 @@ func NewSafeYAMLParser(limits YAMLLimits) *SafeYAMLParser {
 }
 
 // UnmarshalYAML safely unmarshals YAML data with security limits
-func (p *SafeYAMLParser) UnmarshalYAML(data []byte, v interface{}) error {
+func (p *SafeYAMLParser) UnmarshalYAML(data []byte, v any) error {
 	// Check file size
 	if int64(len(data)) > p.limits.MaxFileSize {
 		return fmt.Errorf("YAML file size %d bytes exceeds maximum %d bytes", len(data), p.limits.MaxFileSize)
@@ -66,7 +66,7 @@ func (p *SafeYAMLParser) UnmarshalYAML(data []byte, v interface{}) error {
 }
 
 // UnmarshalYAMLFromReader safely unmarshals YAML from a reader with size limits
-func (p *SafeYAMLParser) UnmarshalYAMLFromReader(r io.Reader, v interface{}) error {
+func (p *SafeYAMLParser) UnmarshalYAMLFromReader(r io.Reader, v any) error {
 	// Read with size limit
 	limitedReader := io.LimitedReader{
 		R: r,
@@ -167,6 +167,6 @@ func (v *yamlValidator) validateNode(node *yaml.Node, depth int) error {
 // ValidateYAMLFile validates a YAML file's structure without unmarshaling
 func ValidateYAMLFile(data []byte, limits YAMLLimits) error {
 	parser := NewSafeYAMLParser(limits)
-	var dummy interface{}
+	var dummy any
 	return parser.UnmarshalYAML(data, &dummy)
 }

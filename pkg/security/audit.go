@@ -21,13 +21,13 @@ type AuditEvent struct {
 	Action    string                 `json:"action"`
 	Result    string                 `json:"result"`
 	Error     string                 `json:"error,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // AuditLogger defines the interface for audit logging
 type AuditLogger interface {
 	Log(event *AuditEvent)
-	LogToolExecution(ctx context.Context, toolName string, args map[string]interface{}, result interface{}, err error)
+	LogToolExecution(ctx context.Context, toolName string, args map[string]any, result any, err error)
 	LogAuthAttempt(ctx context.Context, success bool, err error)
 	LogAuthorizationCheck(ctx context.Context, resource string, permission Permission, allowed bool)
 	Close() error
@@ -54,13 +54,13 @@ func (l *InMemoryAuditLogger) Log(event *AuditEvent) {
 }
 
 // LogToolExecution logs a tool execution event
-func (l *InMemoryAuditLogger) LogToolExecution(ctx context.Context, toolName string, args map[string]interface{}, result interface{}, err error) {
+func (l *InMemoryAuditLogger) LogToolExecution(ctx context.Context, toolName string, args map[string]any, result any, err error) {
 	event := &AuditEvent{
 		Timestamp: time.Now(),
 		EventType: "tool.execution",
 		Resource:  toolName,
 		Action:    "execute",
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
 
 	// Extract auth context if available
@@ -115,7 +115,7 @@ func (l *InMemoryAuditLogger) LogAuthorizationCheck(ctx context.Context, resourc
 		EventType: "auth.authorization",
 		Resource:  resource,
 		Action:    string(permission),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
 
 	// Extract auth context if available
@@ -175,13 +175,13 @@ func (l *JSONAuditLogger) Log(event *AuditEvent) {
 }
 
 // LogToolExecution logs a tool execution event
-func (l *JSONAuditLogger) LogToolExecution(ctx context.Context, toolName string, args map[string]interface{}, result interface{}, err error) {
+func (l *JSONAuditLogger) LogToolExecution(ctx context.Context, toolName string, args map[string]any, result any, err error) {
 	event := &AuditEvent{
 		Timestamp: time.Now(),
 		EventType: "tool.execution",
 		Resource:  toolName,
 		Action:    "execute",
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
 
 	// Extract auth context if available
@@ -235,7 +235,7 @@ func (l *JSONAuditLogger) LogAuthorizationCheck(ctx context.Context, resource st
 		EventType: "auth.authorization",
 		Resource:  resource,
 		Action:    string(permission),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
 
 	// Extract auth context if available
@@ -270,7 +270,7 @@ func NewNoOpAuditLogger() *NoOpAuditLogger {
 func (l *NoOpAuditLogger) Log(event *AuditEvent) {}
 
 // LogToolExecution does nothing
-func (l *NoOpAuditLogger) LogToolExecution(ctx context.Context, toolName string, args map[string]interface{}, result interface{}, err error) {
+func (l *NoOpAuditLogger) LogToolExecution(ctx context.Context, toolName string, args map[string]any, result any, err error) {
 }
 
 // LogAuthAttempt does nothing

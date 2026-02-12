@@ -76,7 +76,7 @@ This downloads only the Go framework source code (~2MB), not the website or docu
 
 The `aixgo` CLI runs agents from YAML configuration files.
 
-**Option 1: Install via `go install`** (requires Go 1.24+):
+**Option 1: Install via `go install`** (requires Go 1.26+):
 
 ```bash
 go install github.com/aixgo-dev/aixgo/cmd/aixgo@latest

@@ -1,16 +1,21 @@
 package security
 
 import (
+	"bufio"
 	"context"
+	"crypto"
 	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -235,21 +240,165 @@ func verifyJWT(token string, audience string) (*JWTClaims, error) {
 	return &claims, nil
 }
 
+// jwkCache caches Google's public keys to avoid repeated fetches
+type jwkCache struct {
+	keys      map[string]*rsa.PublicKey
+	expiresAt time.Time
+	mu        sync.RWMutex
+}
+
+var globalJWKCache = &jwkCache{
+	keys: make(map[string]*rsa.PublicKey),
+}
+
+// JWK represents a JSON Web Key
+type JWK struct {
+	Kid string `json:"kid"` // Key ID
+	Kty string `json:"kty"` // Key type (RSA)
+	Alg string `json:"alg"` // Algorithm (RS256)
+	Use string `json:"use"` // Usage (sig for signature)
+	N   string `json:"n"`   // RSA modulus (base64url encoded)
+	E   string `json:"e"`   // RSA public exponent (base64url encoded)
+}
+
+// JWKSet represents a set of JSON Web Keys
+type JWKSet struct {
+	Keys []JWK `json:"keys"`
+}
+
 // fetchGooglePublicKey fetches Google's public key for JWT verification
-// In production, this should cache keys and handle rotation
+// It caches keys with a 1-hour TTL and handles key rotation
 func fetchGooglePublicKey(keyID string) (*rsa.PublicKey, error) {
-	// TODO: Implement fetching from Google's JWK endpoint
-	// https://www.gstatic.com/iap/verify/public_key-jwk
-	// For now, return error to indicate key fetching not implemented
-	// This will fall back to claims-only validation unless STRICT_JWT_VERIFICATION is set
-	return nil, fmt.Errorf("public key fetching not yet implemented")
+	// Check cache first
+	globalJWKCache.mu.RLock()
+	if time.Now().Before(globalJWKCache.expiresAt) {
+		if key, ok := globalJWKCache.keys[keyID]; ok {
+			globalJWKCache.mu.RUnlock()
+			return key, nil
+		}
+	}
+	globalJWKCache.mu.RUnlock()
+
+	// Fetch JWK set from Google
+	// Try both IAP and OAuth2 endpoints
+	endpoints := []string{
+		"https://www.gstatic.com/iap/verify/public_key-jwk",
+		"https://www.googleapis.com/oauth2/v3/certs",
+	}
+
+	var lastErr error
+	for _, endpoint := range endpoints {
+		resp, err := http.Get(endpoint)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		defer func() { _ = resp.Body.Close() }()
+
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("JWK endpoint returned status %d", resp.StatusCode)
+			continue
+		}
+
+		var jwkSet JWKSet
+		if err := json.NewDecoder(resp.Body).Decode(&jwkSet); err != nil {
+			lastErr = fmt.Errorf("failed to decode JWK set: %w", err)
+			continue
+		}
+
+		// Parse all keys and update cache
+		newKeys := make(map[string]*rsa.PublicKey)
+		for _, jwk := range jwkSet.Keys {
+			publicKey, err := parseJWK(&jwk)
+			if err != nil {
+				log.Printf("WARNING: failed to parse JWK with kid=%s: %v", jwk.Kid, err)
+				continue
+			}
+			newKeys[jwk.Kid] = publicKey
+		}
+
+		// Update cache with 1-hour TTL
+		globalJWKCache.mu.Lock()
+		globalJWKCache.keys = newKeys
+		globalJWKCache.expiresAt = time.Now().Add(1 * time.Hour)
+		globalJWKCache.mu.Unlock()
+
+		// Return requested key
+		if key, ok := newKeys[keyID]; ok {
+			return key, nil
+		}
+
+		return nil, fmt.Errorf("key ID %s not found in JWK set", keyID)
+	}
+
+	if lastErr != nil {
+		return nil, fmt.Errorf("failed to fetch Google JWK: %w", lastErr)
+	}
+
+	return nil, fmt.Errorf("no JWK endpoints succeeded")
+}
+
+// parseJWK converts a JWK to an RSA public key
+func parseJWK(jwk *JWK) (*rsa.PublicKey, error) {
+	// Verify key type is RSA
+	if jwk.Kty != "RSA" {
+		return nil, fmt.Errorf("unsupported key type: %s", jwk.Kty)
+	}
+
+	// Decode modulus (n) from base64url
+	nBytes, err := base64.RawURLEncoding.DecodeString(jwk.N)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode modulus: %w", err)
+	}
+
+	// Decode exponent (e) from base64url
+	eBytes, err := base64.RawURLEncoding.DecodeString(jwk.E)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode exponent: %w", err)
+	}
+
+	// Convert to big.Int
+	n := new(big.Int).SetBytes(nBytes)
+	e := new(big.Int).SetBytes(eBytes)
+
+	// Create RSA public key
+	publicKey := &rsa.PublicKey{
+		N: n,
+		E: int(e.Int64()),
+	}
+
+	// Validate key
+	if err := validateRSAPublicKey(publicKey); err != nil {
+		return nil, fmt.Errorf("invalid RSA public key: %w", err)
+	}
+
+	return publicKey, nil
+}
+
+// validateRSAPublicKey validates an RSA public key
+func validateRSAPublicKey(key *rsa.PublicKey) error {
+	if key.N == nil || key.N.BitLen() < 2048 {
+		return fmt.Errorf("RSA key must be at least 2048 bits")
+	}
+	if key.E < 3 {
+		return fmt.Errorf("RSA exponent must be at least 3")
+	}
+	return nil
 }
 
 // verifySignature verifies the RSA signature of the JWT
 func verifySignature(message string, signature []byte, publicKey *rsa.PublicKey) error {
-	// TODO: Implement RSA signature verification
-	// This would use crypto/rsa and crypto/sha256 to verify
-	// For now, return nil as signature verification is not fully implemented
+	// Hash the message using SHA-256
+	hasher := sha256.New()
+	hasher.Write([]byte(message))
+	hashed := hasher.Sum(nil)
+
+	// Verify the signature using RSA-SHA256 (PKCS#1 v1.5)
+	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashed, signature)
+	if err != nil {
+		return fmt.Errorf("RSA signature verification failed: %w", err)
+	}
+
 	return nil
 }
 
@@ -471,6 +620,117 @@ func (e *HybridAuthExtractor) ExtractAuth(ctx context.Context, r *http.Request) 
 	return principal, nil
 }
 
+// loadAPIKeysFromFile loads API keys from a file
+// Supports two formats:
+// 1. Line-based format: user_id=api_key (one per line)
+// 2. JSON format: {"user_id": "api_key", ...}
+func loadAPIKeysFromFile(filePath string) (map[string]*Principal, error) {
+	// Check file permissions for security
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	// Get file mode
+	mode := fileInfo.Mode()
+
+	// Check if file is readable by others (world-readable)
+	if mode&0004 != 0 {
+		return nil, fmt.Errorf("insecure file permissions: file is world-readable (mode: %o)", mode.Perm())
+	}
+
+	// Open file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+
+	// Try to read as JSON first
+	var jsonKeys map[string]string
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&jsonKeys); err == nil {
+		// Successfully parsed as JSON
+		keys := make(map[string]*Principal)
+		for userID, apiKey := range jsonKeys {
+			if userID == "" || apiKey == "" {
+				continue
+			}
+
+			principal := &Principal{
+				ID:          userID,
+				Name:        userID,
+				Roles:       []string{"user"},
+				Permissions: []Permission{PermRead, PermExecute},
+				Metadata: map[string]string{
+					"source": "file",
+				},
+			}
+
+			keys[apiKey] = principal
+		}
+		return keys, nil
+	}
+
+	// Not JSON, try line-based format
+	// Seek back to start of file
+	if _, err := file.Seek(0, 0); err != nil {
+		return nil, fmt.Errorf("failed to seek file: %w", err)
+	}
+
+	keys := make(map[string]*Principal)
+	scanner := bufio.NewScanner(file)
+	lineNum := 0
+
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Parse user_id=api_key format
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			log.Printf("Warning: invalid format at line %d, expected user_id=api_key", lineNum)
+			continue
+		}
+
+		userID := strings.TrimSpace(parts[0])
+		apiKey := strings.TrimSpace(parts[1])
+
+		if userID == "" || apiKey == "" {
+			log.Printf("Warning: empty user_id or api_key at line %d", lineNum)
+			continue
+		}
+
+		principal := &Principal{
+			ID:          userID,
+			Name:        userID,
+			Roles:       []string{"user"},
+			Permissions: []Permission{PermRead, PermExecute},
+			Metadata: map[string]string{
+				"source": "file",
+				"line":   fmt.Sprintf("%d", lineNum),
+			},
+		}
+
+		keys[apiKey] = principal
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading file: %w", err)
+	}
+
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("no valid API keys found in file")
+	}
+
+	return keys, nil
+}
+
 // newAPIKeyAuthenticatorFromConfig creates an API key authenticator from config
 func newAPIKeyAuthenticatorFromConfig(config *APIKeyConfig) (*APIKeyAuthenticator, error) {
 	auth := NewAPIKeyAuthenticator()
@@ -515,8 +775,19 @@ func newAPIKeyAuthenticatorFromConfig(config *APIKeyConfig) (*APIKeyAuthenticato
 		}
 
 	case "file":
-		// TODO: Implement file-based API key loading
-		return nil, fmt.Errorf("file-based API key source not yet implemented")
+		// Load API keys from file
+		if config.FilePath == "" {
+			return nil, fmt.Errorf("file_path is required for file-based API key source")
+		}
+
+		keys, err := loadAPIKeysFromFile(config.FilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load API keys from file: %w", err)
+		}
+
+		for apiKey, principal := range keys {
+			auth.AddKey(apiKey, principal)
+		}
 
 	default:
 		return nil, fmt.Errorf("unsupported API key source: %s", config.Source)

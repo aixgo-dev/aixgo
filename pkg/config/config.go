@@ -39,11 +39,11 @@ type Config struct {
 
 // AgentConfig holds configuration for a single agent
 type AgentConfig struct {
-	Name     string                 `yaml:"name"`
-	Role     string                 `yaml:"role"`
-	Model    string                 `yaml:"model"`
-	Prompt   string                 `yaml:"prompt"`
-	Settings map[string]interface{} `yaml:"settings"`
+	Name     string         `yaml:"name"`
+	Role     string         `yaml:"role"`
+	Model    string         `yaml:"model"`
+	Prompt   string         `yaml:"prompt"`
+	Settings map[string]any `yaml:"settings"`
 }
 
 // RuntimeConfig holds runtime configuration

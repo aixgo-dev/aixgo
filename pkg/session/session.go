@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"maps"
 	"sync"
 	"time"
 
@@ -271,7 +272,7 @@ func dataToMessage(data map[string]any) *agent.Message {
 	}
 
 	msg := &agent.Message{
-		Metadata: make(map[string]interface{}),
+		Metadata: make(map[string]any),
 	}
 
 	if id, ok := data["id"].(string); ok {
@@ -287,9 +288,7 @@ func dataToMessage(data map[string]any) *agent.Message {
 		msg.Timestamp = timestamp
 	}
 	if metadata, ok := data["metadata"].(map[string]any); ok {
-		for k, v := range metadata {
-			msg.Metadata[k] = v
-		}
+		maps.Copy(msg.Metadata, metadata)
 	}
 
 	return msg

@@ -21,7 +21,7 @@ type OpenAIEmbeddings struct {
 
 // openAIRequest represents the request format for OpenAI API.
 type openAIRequest struct {
-	Input      interface{} `json:"input"`
+	Input      any `json:"input"`
 	Model      string      `json:"model"`
 	Dimensions *int        `json:"dimensions,omitempty"`
 }

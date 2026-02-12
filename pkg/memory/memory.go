@@ -16,7 +16,7 @@ type Memory struct {
 	ID        string
 	Content   string
 	Embedding []float64
-	Metadata  map[string]interface{}
+	Metadata  map[string]any
 	Timestamp time.Time
 }
 
@@ -43,7 +43,7 @@ func NewSemanticMemory(cfg Config) *SemanticMemory {
 }
 
 // Store adds a memory to the semantic memory
-func (sm *SemanticMemory) Store(content string, embedding []float64, metadata map[string]interface{}) error {
+func (sm *SemanticMemory) Store(content string, embedding []float64, metadata map[string]any) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 

@@ -23,7 +23,7 @@ type HuggingFaceEmbeddings struct {
 
 // hfRequest represents the request format for HuggingFace API.
 type hfRequest struct {
-	Inputs  interface{}       `json:"inputs"`
+	Inputs  any       `json:"inputs"`
 	Options *hfRequestOptions `json:"options,omitempty"`
 }
 

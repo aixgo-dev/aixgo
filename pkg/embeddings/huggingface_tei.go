@@ -27,7 +27,7 @@ type HuggingFaceTEIEmbeddings struct {
 
 // teiRequest represents the request format for TEI API.
 type teiRequest struct {
-	Inputs    interface{} `json:"inputs"`
+	Inputs    any `json:"inputs"`
 	Normalize *bool       `json:"normalize,omitempty"`
 }
 

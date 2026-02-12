@@ -125,7 +125,7 @@ func (p *Parallel) Execute(ctx context.Context, input *agent.Message) (*agent.Me
 // defaultAggregateFunc combines all results into a JSON array
 func defaultAggregateFunc(results map[string]*agent.Message) (*agent.Message, error) {
 	// Collect all results
-	aggregated := make(map[string]interface{})
+	aggregated := make(map[string]any)
 	for name, msg := range results {
 		aggregated[name] = msg.Message
 	}

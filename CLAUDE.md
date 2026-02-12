@@ -52,7 +52,7 @@ Aixgo is a **production-grade AI agent framework for Go** enabling secure, scala
 
 - **Version**: 0.2.2
 - **Maturity**: Production-ready for core features
-- **Go Version**: 1.24.0+
+- **Go Version**: 1.26+
 - **License**: MIT
 
 ### Development Focus

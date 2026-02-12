@@ -131,7 +131,7 @@ All examples pass and demonstrate real-world usage patterns.
 ## Version and Stability
 
 - **Status**: Production-ready
-- **Go Version**: 1.25.2+
+- **Go Version**: 1.26+
 - **Dependencies**: `github.com/google/uuid` only
 - **Stability**: Designed for backward compatibility
 - **Breaking Changes**: Only in major versions

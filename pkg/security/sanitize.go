@@ -27,7 +27,7 @@ const (
 type SecureError struct {
 	Code    ErrorCode              `json:"code"`
 	Message string                 `json:"message"`
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details map[string]any `json:"details,omitempty"`
 }
 
 // Error implements the error interface
@@ -52,7 +52,7 @@ func SanitizeError(err error, debugMode bool) *SecureError {
 
 	// In debug mode, include sanitized error details
 	if debugMode {
-		secureErr.Details = map[string]interface{}{
+		secureErr.Details = map[string]any{
 			"error": sanitizeErrorMessage(err.Error()),
 		}
 	}
@@ -75,7 +75,7 @@ func SanitizeErrorWithCode(err error, code ErrorCode, message string, debugMode 
 	}
 
 	if debugMode {
-		secureErr.Details = map[string]interface{}{
+		secureErr.Details = map[string]any{
 			"error": sanitizeErrorMessage(err.Error()),
 		}
 	}

@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,20 +27,20 @@ type Message struct {
 	Timestamp string
 
 	// Metadata contains optional key-value pairs for routing, tracing, correlation, etc.
-	Metadata map[string]interface{}
+	Metadata map[string]any
 }
 
 // NewMessage creates a new message with the given type and payload.
 // The payload is automatically serialized to JSON.
 // A unique ID and timestamp are automatically generated.
-func NewMessage(msgType string, payload interface{}) *Message {
+func NewMessage(msgType string, payload any) *Message {
 	payloadJSON, _ := json.Marshal(payload)
 	return &Message{
 		ID:        uuid.New().String(),
 		Type:      msgType,
 		Payload:   string(payloadJSON),
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
 }
 
@@ -49,16 +50,16 @@ func NewMessage(msgType string, payload interface{}) *Message {
 //	msg := NewMessage("request", data).
 //	    WithMetadata("priority", "high").
 //	    WithMetadata("source", "api")
-func (m *Message) WithMetadata(key string, value interface{}) *Message {
+func (m *Message) WithMetadata(key string, value any) *Message {
 	if m.Metadata == nil {
-		m.Metadata = make(map[string]interface{})
+		m.Metadata = make(map[string]any)
 	}
 	m.Metadata[key] = value
 	return m
 }
 
 // GetMetadata retrieves metadata by key, returning the default value if not found.
-func (m *Message) GetMetadata(key string, defaultValue interface{}) interface{} {
+func (m *Message) GetMetadata(key string, defaultValue any) any {
 	if m.Metadata == nil {
 		return defaultValue
 	}
@@ -84,7 +85,7 @@ func (m *Message) GetMetadataString(key, defaultValue string) string {
 //	if err := msg.UnmarshalPayload(&req); err != nil {
 //	    return err
 //	}
-func (m *Message) UnmarshalPayload(v interface{}) error {
+func (m *Message) UnmarshalPayload(v any) error {
 	if m.Payload == "" {
 		return fmt.Errorf("message payload is empty")
 	}
@@ -105,11 +106,9 @@ func (m *Message) Clone() *Message {
 		Type:      m.Type,
 		Payload:   m.Payload,
 		Timestamp: m.Timestamp,
-		Metadata:  make(map[string]interface{}),
+		Metadata:  make(map[string]any),
 	}
-	for k, v := range m.Metadata {
-		clone.Metadata[k] = v
-	}
+	maps.Copy(clone.Metadata, m.Metadata)
 	return clone
 }
 

@@ -47,11 +47,11 @@ type Generation struct {
 	StartTime       time.Time              `json:"startTime"`
 	EndTime         time.Time              `json:"endTime,omitempty"`
 	Model           string                 `json:"model"`
-	ModelParameters map[string]interface{} `json:"modelParameters,omitempty"`
-	Input           interface{}            `json:"input,omitempty"`
-	Output          interface{}            `json:"output,omitempty"`
+	ModelParameters map[string]any `json:"modelParameters,omitempty"`
+	Input           any            `json:"input,omitempty"`
+	Output          any            `json:"output,omitempty"`
 	Usage           *LangfuseUsage         `json:"usage,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Metadata        map[string]any `json:"metadata,omitempty"`
 	Level           string                 `json:"level,omitempty"` // "DEBUG", "DEFAULT", "WARNING", "ERROR"
 	StatusMessage   string                 `json:"statusMessage,omitempty"`
 	Version         string                 `json:"version,omitempty"`
@@ -78,7 +78,7 @@ type Score struct {
 	Value         float64                `json:"value"`
 	Comment       string                 `json:"comment,omitempty"`
 	ObservationID string                 `json:"observationId,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	Metadata      map[string]any `json:"metadata,omitempty"`
 }
 
 var (
@@ -159,7 +159,7 @@ func (c *LangfuseClient) TrackGeneration(ctx context.Context, gen *Generation) e
 	defer c.mu.Unlock()
 
 	// Create the request payload
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"type": "generation-create",
 		"body": gen,
 	}
@@ -203,7 +203,7 @@ func (c *LangfuseClient) TrackScore(ctx context.Context, score *Score) error {
 	defer c.mu.Unlock()
 
 	// Create the request payload
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"type": "score-create",
 		"body": score,
 	}
@@ -262,13 +262,13 @@ func NewGeneration(name, model string, startTime time.Time) *Generation {
 }
 
 // WithInput adds input to a generation
-func (g *Generation) WithInput(input interface{}) *Generation {
+func (g *Generation) WithInput(input any) *Generation {
 	g.Input = input
 	return g
 }
 
 // WithOutput adds output to a generation
-func (g *Generation) WithOutput(output interface{}) *Generation {
+func (g *Generation) WithOutput(output any) *Generation {
 	g.Output = output
 	return g
 }
@@ -288,7 +288,7 @@ func (g *Generation) WithUsage(promptTokens, completionTokens int, inputCost, ou
 }
 
 // WithMetadata adds metadata to a generation
-func (g *Generation) WithMetadata(metadata map[string]interface{}) *Generation {
+func (g *Generation) WithMetadata(metadata map[string]any) *Generation {
 	g.Metadata = metadata
 	return g
 }

@@ -370,8 +370,8 @@ func (b *ElasticsearchBackend) sendBatch(events []*StructuredAuditEvent) error {
 	var buf bytes.Buffer
 	for _, event := range events {
 		// Action line
-		meta := map[string]interface{}{
-			"index": map[string]interface{}{
+		meta := map[string]any{
+			"index": map[string]any{
 				"_index": b.config.Index,
 			},
 		}
