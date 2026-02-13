@@ -2,7 +2,18 @@
 # High-level version summaries for homepage display
 
 milestones:
-  - version: "v0.3.3 Beta (Current)"
+  - version: "v0.4.0 Stable (Current)"
+    status: "complete"
+    date: "February 2026"
+    highlights:
+      - "Go 1.26 with modernized codebase"
+      - "6 advanced planner strategies (MCTS, Tree-of-Thought, Backward Chaining)"
+      - "4 RAG variants (Conversational, Multi-Query, Hybrid)"
+      - "JWT verification with JWKS caching and RS256 signatures"
+      - "Reflection pattern with multi-critic aggregation"
+      - "Typed MCP tool registration with schema generation"
+
+  - version: "v0.3.3 Beta"
     status: "complete"
     date: "February 2026"
     highlights:
@@ -11,9 +22,8 @@ milestones:
       - "Session persistence with JSONL and Redis backends"
       - "Full observability (OpenTelemetry, Langfuse, Prometheus)"
       - "Enterprise security (Auth, RBAC, TLS/mTLS, audit logging)"
-      - "Local to distributed with zero code changes"
 
-  - version: "v0.4.x Enhancements"
+  - version: "v0.5.x Enhancements"
     status: "planned"
     date: "Q2 2026"
     highlights:

@@ -2,8 +2,8 @@
 # Update this file to change version across the website
 # This is the single source of truth for version display
 
-current: "v0.3.3"
-stage: "Beta"
+current: "v0.4.0"
+stage: "Stable"
 tagline: "The AI Agent Framework That Ships in <20MB"
 subheadline: "Build, deploy, and scale AI agents in Go. No containers. No cold starts. No Python."
 release_date: "February 2026"
