@@ -1,11 +1,9 @@
 ---
-title: 'Aixgo v0.4.0: Go 1.26, Advanced Planning Strategies, Enhanced Security, and RAG Variants'
+title: "Aixgo v0.4.0: Go 1.26, Advanced Planning Strategies, Enhanced Security, and RAG Variants"
 date: 2026-02-13
-description:
-  'Major release with Go 1.26 upgrade, 6 advanced planner strategies (MCTS, Tree-of-Thought, ReAct Planning), 4 RAG pattern variants, JWT verification, file-based API keys, and
-  typed MCP tool registration'
-tags: ['release', 'go-1.26', 'planning', 'rag', 'security', 'mcp']
-author: 'Aixgo Team'
+description: "Major release with Go 1.26 upgrade, 6 advanced planner strategies (MCTS, Tree-of-Thought, ReAct Planning), 4 RAG pattern variants, JWT verification, file-based API keys, and typed MCP tool registration"
+tags: ["release", "go-1.26", "planning", "rag", "security", "mcp"]
+author: "Aixgo Team"
 ---
 
 We're thrilled to announce **Aixgo v0.4.0**, our most significant release yet. This version brings enterprise-grade planning capabilities with 6 advanced strategies, 4 RAG pattern
