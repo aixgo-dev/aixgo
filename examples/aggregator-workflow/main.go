@@ -13,7 +13,7 @@ import (
 
 	"github.com/aixgo-dev/aixgo"
 	"github.com/aixgo-dev/aixgo/internal/agent"
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 	"github.com/aixgo-dev/aixgo/pkg/memory"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"gopkg.in/yaml.v3"

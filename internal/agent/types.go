@@ -35,19 +35,36 @@ type Agent interface {
 	Ready() bool
 }
 
+// GuidedConfig configures guided step-by-step execution with verification
+type GuidedConfig struct {
+	// Enabled activates guided execution mode
+	Enabled bool `yaml:"enabled"`
+
+	// MaxIterations limits the number of guided steps (default: 5)
+	MaxIterations int `yaml:"max_iterations"`
+
+	// VerificationPrompt is sent to LLM after each step to verify progress
+	// LLM should respond with "continue" or "done"
+	VerificationPrompt string `yaml:"verification_prompt"`
+
+	// RequireConfirmation pauses for human confirmation between steps
+	RequireConfirmation bool `yaml:"require_confirmation"`
+}
+
 type AgentDef struct {
-	Name       string         `yaml:"name"`
-	Role       string         `yaml:"role"`
-	Interval   Duration       `yaml:"interval,omitempty"`
-	Listen     string         `yaml:"listen,omitempty"`
-	Inputs     []Input        `yaml:"inputs,omitempty"`
-	Outputs    []Output       `yaml:"outputs,omitempty"`
-	DependsOn  []string       `yaml:"depends_on,omitempty"` // Startup dependencies
-	Model      string         `yaml:"model,omitempty"`
-	Prompt     string         `yaml:"prompt,omitempty"`
-	Tools      []Tool         `yaml:"tools,omitempty"`       // Deprecated: use MCPServers
-	MCPServers []string       `yaml:"mcp_servers,omitempty"` // MCP server names
-	Extra      map[string]any `yaml:",inline"`
+	Name         string         `yaml:"name"`
+	Role         string         `yaml:"role"`
+	Interval     Duration       `yaml:"interval,omitempty"`
+	Listen       string         `yaml:"listen,omitempty"`
+	Inputs       []Input        `yaml:"inputs,omitempty"`
+	Outputs      []Output       `yaml:"outputs,omitempty"`
+	DependsOn    []string       `yaml:"depends_on,omitempty"`  // Startup dependencies
+	Model        string         `yaml:"model,omitempty"`
+	Prompt       string         `yaml:"prompt,omitempty"`
+	Tools        []Tool         `yaml:"tools,omitempty"`        // Deprecated: use MCPServers
+	MCPServers   []string       `yaml:"mcp_servers,omitempty"`  // MCP server names
+	GuidedConfig *GuidedConfig  `yaml:"guided_config,omitempty"` // Guided workflow config
+	Extra        map[string]any `yaml:",inline"`
 }
 
 type Input struct {

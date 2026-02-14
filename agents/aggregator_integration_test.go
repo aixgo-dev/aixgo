@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

@@ -12,7 +12,7 @@ import (
 	publicAgent "github.com/aixgo-dev/aixgo/agent"
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/llm"
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 	"github.com/aixgo-dev/aixgo/internal/observability"
 	"github.com/aixgo-dev/aixgo/pkg/mcp"
 	"github.com/aixgo-dev/aixgo/pkg/security"
@@ -36,6 +36,15 @@ type ReActAgent struct {
 	mcpClient    *mcp.Client
 	mcpSessions  map[string]*mcp.Session
 	toolRegistry *mcp.ToolRegistry
+}
+
+// GuidedStepResult represents the result of a single tool execution in guided mode
+type GuidedStepResult struct {
+	Iteration int    `json:"iteration"`
+	ToolName  string `json:"tool_name"`
+	Arguments any    `json:"arguments,omitempty"`
+	Result    any    `json:"result,omitempty"`
+	Error     error  `json:"error,omitempty"`
 }
 
 func init() {
@@ -250,6 +259,11 @@ func (r *ReActAgent) Start(ctx context.Context) error {
 }
 
 func (r *ReActAgent) think(ctx context.Context, input string) (string, error) {
+	// Check if guided mode is enabled
+	if r.def.GuidedConfig != nil && r.def.GuidedConfig.Enabled {
+		return r.thinkGuided(ctx, input)
+	}
+
 	// Use provider if available (HuggingFace or other provider-based implementations)
 	if r.provider != nil {
 		return r.thinkWithProvider(ctx, input)
@@ -349,6 +363,265 @@ func (r *ReActAgent) thinkWithOpenAI(ctx context.Context, input string) (string,
 		return fmt.Sprintf("Tool %s → %v", call.Function.Name, result), nil
 	}
 	return resp.Choices[0].Message.Content, nil
+}
+
+// thinkGuided performs step-by-step guided execution with verification
+func (r *ReActAgent) thinkGuided(ctx context.Context, input string) (string, error) {
+	config := r.def.GuidedConfig
+	maxIterations := config.MaxIterations
+	if maxIterations <= 0 {
+		maxIterations = 5 // Default
+	}
+
+	var stepResults []GuidedStepResult
+	var conversationContext []provider.Message
+
+	// Initialize with system prompt and user input
+	conversationContext = append(conversationContext,
+		provider.Message{Role: "system", Content: r.def.Prompt},
+		provider.Message{Role: "user", Content: input},
+	)
+
+	for iteration := 0; iteration < maxIterations; iteration++ {
+		// Get LLM response
+		var resp *provider.CompletionResponse
+		var err error
+
+		if r.provider != nil {
+			resp, err = r.guidedProviderCall(ctx, conversationContext)
+		} else if r.client != nil {
+			resp, err = r.guidedOpenAICall(ctx, conversationContext)
+		} else {
+			return "", fmt.Errorf("no LLM client or provider configured")
+		}
+
+		if err != nil {
+			return "", fmt.Errorf("guided iteration %d: %w", iteration, err)
+		}
+
+		// If no tool calls, we're done
+		if len(resp.ToolCalls) == 0 {
+			// Add final response to context
+			if resp.Content != "" {
+				stepResults = append(stepResults, GuidedStepResult{
+					Iteration: iteration,
+					ToolName:  "_final_response",
+					Result:    resp.Content,
+				})
+			}
+			break
+		}
+
+		// Execute ALL tool calls (not just first one)
+		iterationResults := r.executeAllToolCalls(ctx, iteration, resp.ToolCalls)
+		stepResults = append(stepResults, iterationResults...)
+
+		// Add assistant message with tool calls to context
+		conversationContext = append(conversationContext, provider.Message{
+			Role:    "assistant",
+			Content: resp.Content,
+		})
+
+		// Add tool results to context
+		for _, result := range iterationResults {
+			resultStr := fmt.Sprintf("%v", result.Result)
+			if result.Error != nil {
+				resultStr = fmt.Sprintf("Error: %v", result.Error)
+			}
+			conversationContext = append(conversationContext, provider.Message{
+				Role:    "user",
+				Content: fmt.Sprintf("Tool '%s' result: %s", result.ToolName, resultStr),
+			})
+		}
+
+		// Verify step if verification prompt is configured
+		if config.VerificationPrompt != "" {
+			decision, err := r.verifyStep(ctx, config.VerificationPrompt, stepResults)
+			if err != nil {
+				log.Printf("Guided verification error: %v", err)
+			}
+			if decision == "done" {
+				break
+			}
+		}
+	}
+
+	return r.formatGuidedResult(stepResults), nil
+}
+
+// guidedProviderCall makes a provider completion call for guided execution
+func (r *ReActAgent) guidedProviderCall(ctx context.Context, messages []provider.Message) (*provider.CompletionResponse, error) {
+	allTools := r.buildProviderTools()
+	req := provider.CompletionRequest{
+		Messages:    messages,
+		Model:       r.model,
+		Tools:       allTools,
+		Temperature: 0.7,
+		MaxTokens:   2000,
+	}
+	return r.provider.CreateCompletion(ctx, req)
+}
+
+// guidedOpenAICall makes an OpenAI completion call for guided execution
+func (r *ReActAgent) guidedOpenAICall(ctx context.Context, messages []provider.Message) (*provider.CompletionResponse, error) {
+	// Convert provider messages to OpenAI messages
+	openaiMessages := make([]openai.ChatCompletionMessage, len(messages))
+	for i, msg := range messages {
+		openaiMessages[i] = openai.ChatCompletionMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		}
+	}
+
+	// Build OpenAI tools
+	tools := make([]openai.Tool, len(r.def.Tools))
+	for i, t := range r.def.Tools {
+		tools[i] = openai.Tool{
+			Type: "function",
+			Function: &openai.FunctionDefinition{
+				Name:        t.Name,
+				Description: t.Description,
+				Parameters:  json.RawMessage(mustMarshal(t.InputSchema)),
+			},
+		}
+	}
+
+	req := openai.ChatCompletionRequest{
+		Model:    r.model,
+		Messages: openaiMessages,
+		Tools:    tools,
+	}
+
+	resp, err := r.client.CreateChatCompletion(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("no choices in response")
+	}
+
+	// Convert OpenAI response to provider response
+	providerResp := &provider.CompletionResponse{
+		Content:      resp.Choices[0].Message.Content,
+		FinishReason: string(resp.Choices[0].FinishReason),
+	}
+
+	// Convert tool calls
+	for _, tc := range resp.Choices[0].Message.ToolCalls {
+		providerResp.ToolCalls = append(providerResp.ToolCalls, provider.ToolCall{
+			ID:   tc.ID,
+			Type: string(tc.Type),
+			Function: provider.FunctionCall{
+				Name:      tc.Function.Name,
+				Arguments: json.RawMessage(tc.Function.Arguments),
+			},
+		})
+	}
+
+	return providerResp, nil
+}
+
+// executeAllToolCalls executes all tool calls from a response
+func (r *ReActAgent) executeAllToolCalls(ctx context.Context, iteration int, toolCalls []provider.ToolCall) []GuidedStepResult {
+	var results []GuidedStepResult
+
+	for _, call := range toolCalls {
+		result, err := r.executeProviderTool(ctx, call)
+		results = append(results, GuidedStepResult{
+			Iteration: iteration,
+			ToolName:  call.Function.Name,
+			Arguments: string(call.Function.Arguments),
+			Result:    result,
+			Error:     err,
+		})
+	}
+
+	return results
+}
+
+// verifyStep asks the LLM to verify the current step and decide whether to continue
+func (r *ReActAgent) verifyStep(ctx context.Context, verificationPrompt string, results []GuidedStepResult) (string, error) {
+	// Format results for verification
+	var sb strings.Builder
+	sb.WriteString(verificationPrompt)
+	sb.WriteString("\n\nStep results so far:\n")
+	for _, r := range results {
+		if r.Error != nil {
+			sb.WriteString(fmt.Sprintf("- [%d] %s: Error - %v\n", r.Iteration, r.ToolName, r.Error))
+		} else {
+			sb.WriteString(fmt.Sprintf("- [%d] %s: %v\n", r.Iteration, r.ToolName, r.Result))
+		}
+	}
+	sb.WriteString("\nRespond with exactly 'continue' if more work is needed, or 'done' if the task is complete.")
+
+	messages := []provider.Message{
+		{Role: "system", Content: "You are a verification assistant. Analyze the step results and respond with exactly 'continue' or 'done'."},
+		{Role: "user", Content: sb.String()},
+	}
+
+	var content string
+	if r.provider != nil {
+		req := provider.CompletionRequest{
+			Messages:    messages,
+			Model:       r.model,
+			Temperature: 0.1,
+			MaxTokens:   10,
+		}
+		resp, err := r.provider.CreateCompletion(ctx, req)
+		if err != nil {
+			return "", err
+		}
+		content = resp.Content
+	} else if r.client != nil {
+		openaiMessages := make([]openai.ChatCompletionMessage, len(messages))
+		for i, msg := range messages {
+			openaiMessages[i] = openai.ChatCompletionMessage{
+				Role:    msg.Role,
+				Content: msg.Content,
+			}
+		}
+		req := openai.ChatCompletionRequest{
+			Model:    r.model,
+			Messages: openaiMessages,
+		}
+		resp, err := r.client.CreateChatCompletion(ctx, req)
+		if err != nil {
+			return "", err
+		}
+		if len(resp.Choices) > 0 {
+			content = resp.Choices[0].Message.Content
+		}
+	}
+
+	// Parse decision
+	content = strings.TrimSpace(strings.ToLower(content))
+	if strings.Contains(content, "done") {
+		return "done", nil
+	}
+	return "continue", nil
+}
+
+// formatGuidedResult formats the guided execution results into a final string
+func (r *ReActAgent) formatGuidedResult(results []GuidedStepResult) string {
+	if len(results) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	sb.WriteString("Guided Execution Results:\n")
+
+	for _, result := range results {
+		if result.ToolName == "_final_response" {
+			sb.WriteString(fmt.Sprintf("\nFinal: %v\n", result.Result))
+		} else if result.Error != nil {
+			sb.WriteString(fmt.Sprintf("[Step %d] %s: Error - %v\n", result.Iteration, result.ToolName, result.Error))
+		} else {
+			sb.WriteString(fmt.Sprintf("[Step %d] %s → %v\n", result.Iteration, result.ToolName, result.Result))
+		}
+	}
+
+	return sb.String()
 }
 
 // buildProviderTools builds tools from agent definition and MCP servers

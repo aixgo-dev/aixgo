@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aixgo-dev/aixgo/internal/llm/cost"
 	"github.com/aixgo-dev/aixgo/internal/observability"
+	"github.com/aixgo-dev/aixgo/pkg/llm/cost"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )

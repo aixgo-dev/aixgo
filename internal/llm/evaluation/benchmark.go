@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/llm/parser"
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 )
 
 // TestCase represents a single test case for evaluation

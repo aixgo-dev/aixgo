@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/aixgo-dev/aixgo/internal/llm"
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 )
 
 // User represents validated user data with strict validation rules

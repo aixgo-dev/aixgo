@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 )
 
 func TestCreateStructured(t *testing.T) {

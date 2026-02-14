@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 )
 
 // initializeProvider creates the appropriate LLM provider based on model name

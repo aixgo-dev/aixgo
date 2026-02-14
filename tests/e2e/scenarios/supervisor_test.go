@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 	"github.com/aixgo-dev/aixgo/pkg/mcp"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"github.com/aixgo-dev/aixgo/tests/e2e"

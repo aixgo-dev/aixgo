@@ -10,7 +10,7 @@ import (
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/llm/inference"
-	"github.com/aixgo-dev/aixgo/internal/llm/provider"
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 	"github.com/aixgo-dev/aixgo/internal/observability"
 	"github.com/aixgo-dev/aixgo/pkg/mcp"
 	"github.com/aixgo-dev/aixgo/pkg/security"
