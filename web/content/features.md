@@ -3,7 +3,7 @@ title: 'Aixgo Features'
 description: "Explore Aixgo's complete feature set across AI agents, LLM providers, security, observability, and infrastructure. Production-ready features for building scalable AI agent systems."
 ---
 
-**Version**: 0.2.4 | **Status**: Production-Ready Core Features
+**Version**: 0.5.0 | **Status**: Production-Ready Core Features
 
 > **Complete Technical Documentation:**
 > - **[FEATURES.md on GitHub](https://github.com/aixgo-dev/aixgo/blob/main/docs/FEATURES.md)** - Authoritative feature catalog with code references

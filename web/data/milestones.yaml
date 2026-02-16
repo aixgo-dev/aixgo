@@ -2,7 +2,17 @@
 # High-level version summaries for homepage display
 
 milestones:
-  - version: "v0.4.0 Stable (Current)"
+  - version: "v0.5.0 Stable (Current)"
+    status: "complete"
+    date: "February 2026"
+    highlights:
+      - "Public Provider API - LLM providers accessible via pkg/llm/provider"
+      - "Guided ReAct Workflows - Step-by-step execution with verification"
+      - "Cost Calculator API - Pricing data for 25+ models via pkg/llm/cost"
+      - "40-70% improved reliability with guided workflows"
+      - "30-50% reduced LLM calls through parallel tool execution"
+
+  - version: "v0.4.0 Stable"
     status: "complete"
     date: "February 2026"
     highlights:
@@ -23,14 +33,14 @@ milestones:
       - "Full observability (OpenTelemetry, Langfuse, Prometheus)"
       - "Enterprise security (Auth, RBAC, TLS/mTLS, audit logging)"
 
-  - version: "v0.5.x Enhancements"
+  - version: "v0.6.x Enhancements"
     status: "planned"
     date: "Q2 2026"
     highlights:
+      - "Streaming support for all providers"
+      - "Visual workflow debugging dashboard"
       - "Session encryption at rest"
       - "PostgreSQL session backend"
-      - "Conversation branching and tree navigation"
-      - "Memory compaction and summarization"
       - "Additional vector databases (Qdrant, pgvector)"
 
   - version: "v1.0 Production"

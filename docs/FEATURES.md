@@ -1,7 +1,7 @@
 # Aixgo Features Reference
 
-**Version**: 0.3.0
-**Last Updated**: 2026-02-08
+**Version**: 0.5.0
+**Last Updated**: 2026-02-14
 
 ---
 
@@ -1384,6 +1384,9 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.5.0 | 2026-02-14 | Public Provider API (pkg/llm/provider), Guided ReAct Workflows with verification |
+| 0.4.0 | 2026-02-12 | Go 1.26, advanced planner strategies, RAG variants, JWT verification |
+| 0.3.3 | 2026-02-08 | Session persistence, unified runtime, security hardening |
 | 0.2.3 | 2026-01-02 | Added phased agent startup with dependency ordering, lint fixes |
 | 0.2.2 | 2025-12-27 | Public agent package, VertexAI streaming improvements |
 | 0.2.1 | 2025-12-26 | Security hardening, SSRF protection enhancements |

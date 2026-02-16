@@ -24,37 +24,42 @@ Python AI frameworks excel at prototyping but struggle in production. Aixgo is b
 - **6 Agent Types** - ReAct, Classifier, Aggregator, Planner, Producer, Logger
 - **13 Orchestration Patterns** - All production-proven patterns implemented
 - **6+ LLM Providers** - OpenAI, Anthropic, Gemini, xAI, Vertex AI, HuggingFace, plus local inference
-- **Session Persistence** - Built-in conversation memory with JSONL and Redis storage (v0.3.0+)
+- **Session Persistence** - Built-in conversation memory with JSONL and Redis storage
 - **Enterprise Security** - 4 auth modes, RBAC, rate limiting, SSRF protection, comprehensive hardening
 - **Full Observability** - OpenTelemetry, Prometheus, Langfuse, cost tracking
 - **Cost Optimization** - 25-50% savings with Router pattern, 70% token reduction with RAG
 
 > 📖 **Complete Feature Catalog**: See [docs/FEATURES.md](docs/FEATURES.md) for all features with code references and technical details.
 
-### What's New in v0.3.0
+### What's New in v0.5.0
 
-**Session Persistence** - AI agents now remember conversations with built-in session management:
-
-```go
-// Sessions are automatic - agents remember context
-sess, _ := mgr.GetOrCreate(ctx, "assistant", "user-123")
-result, _ := rt.CallWithSession(ctx, "assistant", msg, sess.ID())
-```
-
-**Runtime Consolidation** - Unified API with functional options:
+**Public Provider API** - LLM providers now available as a public API for external projects:
 
 ```go
-rt := aixgo.NewRuntime(
-    aixgo.WithSessionManager(sessionMgr),
-    aixgo.WithMetrics(metricsCollector),
-)
+import "github.com/aixgo-dev/aixgo/pkg/llm/provider"
+
+// Create any provider directly
+openai, _ := provider.NewOpenAI(apiKey, "gpt-4-turbo")
+resp, _ := openai.Complete(ctx, &provider.Request{
+    Messages: []provider.Message{{Role: "user", Content: "Hello"}},
+})
 ```
 
-**Distributed Runtime Parity** - TLS/mTLS, streaming, and Redis sessions for multi-node deployments.
+**Guided ReAct Workflows** - Step-by-step execution with LLM verification for improved reliability:
 
-**Security Hardening** - 29 code scanning alerts fixed including path traversal, subprocess injection, and safe integer conversions.
+```yaml
+agents:
+  - name: processor
+    role: react
+    guided_config:
+      enabled: true
+      max_iterations: 5
+      verification_prompt: "Review results. Respond 'continue' or 'done'."
+```
 
-Read the full release notes: [v0.3.0 Release Blog Post](https://aixgo.dev/blog/v0.3.0-session-persistence/)
+**Key Improvements** - 40-70% improved reliability with guided workflows, 30-50% reduced LLM calls through parallel tool execution.
+
+Read the full release notes: [v0.5.0 Release Blog Post](https://aixgo.dev/blog/v0-5-0-release/)
 
 ## Quick Start
 
