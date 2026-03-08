@@ -45,6 +45,14 @@ func (m *MockProvider) Name() string {
 	return "mock"
 }
 
+func (m *MockProvider) ListModels(ctx context.Context) ([]provider.ModelInfo, error) {
+	args := m.Called(ctx)
+	if models := args.Get(0); models != nil {
+		return models.([]provider.ModelInfo), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 // MockRuntime for testing agent communication
 type MockRuntime struct {
 	mock.Mock

@@ -163,8 +163,8 @@ func TestPrompter_SelectModel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SelectModel() error = %v", err)
 	}
-	if got != "claude-3-5-sonnet" {
-		t.Errorf("SelectModel() = %v, want claude-3-5-sonnet", got)
+	if got != "claude-sonnet-4-6" {
+		t.Errorf("SelectModel() = %v, want claude-sonnet-4-6", got)
 	}
 }
 
@@ -415,11 +415,11 @@ func TestPrompter_ConfirmDangerous(t *testing.T) {
 func TestSelectModelOptions(t *testing.T) {
 	// Verify the expected models are well-formed
 	expectedModels := []string{
-		"claude-3-5-sonnet",
+		"claude-sonnet-4-6",
 		"gpt-4o",
-		"gemini-1.5-pro",
-		"grok-2",
-		"claude-opus-4",
+		"gemini-2.5-flash",
+		"grok-4",
+		"claude-opus-4-6",
 	}
 
 	for _, model := range expectedModels {
