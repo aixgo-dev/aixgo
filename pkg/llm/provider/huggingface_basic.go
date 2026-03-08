@@ -421,3 +421,17 @@ func (p *HuggingFaceProvider) getAllowedToolNames() []string {
 	}
 	return names
 }
+
+// ListModels returns the current model for HuggingFace provider.
+// HuggingFace doesn't have a simple list models API - models are specified per-request.
+// This returns the configured model as the only available model.
+func (p *HuggingFaceProvider) ListModels(_ context.Context) ([]ModelInfo, error) {
+	return []ModelInfo{
+		{
+			ID:          p.model,
+			Name:        p.model,
+			Provider:    "huggingface",
+			Description: "HuggingFace model",
+		},
+	}, nil
+}

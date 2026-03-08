@@ -439,3 +439,109 @@ func (s *openaiStream) Recv() (*StreamChunk, error) {
 func (s *openaiStream) Close() error {
 	return s.closer.Close()
 }
+
+// openaiModelsResponse represents the response from GET /v1/models
+type openaiModelsResponse struct {
+	Data []struct {
+		ID      string `json:"id"`
+		Object  string `json:"object"`
+		Created int64  `json:"created"`
+		OwnedBy string `json:"owned_by"`
+	} `json:"data"`
+	Error *struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Code    string `json:"code"`
+	} `json:"error,omitempty"`
+}
+
+// openaiModelPricing contains known pricing for OpenAI models (per 1M tokens)
+var openaiModelPricing = map[string]struct {
+	input       float64
+	output      float64
+	description string
+}{
+	"gpt-4o":           {2.50, 10.00, "Latest GPT-4 with vision"},
+	"gpt-4o-mini":      {0.15, 0.60, "Smaller, faster GPT-4o"},
+	"gpt-4-turbo":      {10.00, 30.00, "GPT-4 optimized for speed"},
+	"gpt-4":            {30.00, 60.00, "Original GPT-4"},
+	"gpt-3.5-turbo":    {0.50, 1.50, "Fast and cost-effective"},
+	"o1":               {15.00, 60.00, "Reasoning model for complex problems"},
+	"o1-mini":          {3.00, 12.00, "Faster reasoning model"},
+	"o1-preview":       {15.00, 60.00, "Preview reasoning model"},
+	"gpt-4.5-turbo":    {75.00, 150.00, "Enhanced GPT-4"},
+	"gpt-4.1":          {2.00, 8.00, "GPT-4.1 base model"},
+	"gpt-4.1-mini":     {0.40, 1.60, "Smaller GPT-4.1"},
+	"gpt-4.1-nano":     {0.10, 0.40, "Fastest GPT-4.1"},
+	"gpt-5":            {5.00, 20.00, "GPT-5 model"},
+	"gpt-5-mini":       {1.00, 4.00, "Smaller GPT-5"},
+	"gpt-5.1":          {5.00, 20.00, "GPT-5.1 improved"},
+	"gpt-5.1-codex":    {6.00, 24.00, "GPT-5.1 for coding"},
+	"gpt-5.2":          {5.00, 20.00, "Latest GPT-5 series"},
+}
+
+// ListModels fetches available models from OpenAI API
+func (p *OpenAIProvider) ListModels(ctx context.Context) ([]ModelInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", p.baseURL+"/models", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+p.apiKey)
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, NewProviderError("openai", ErrorCodeTimeout, err.Error(), err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, p.handleErrorResponse(resp)
+	}
+
+	var modelsResp openaiModelsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&modelsResp); err != nil {
+		return nil, NewProviderError("openai", ErrorCodeUnknown, "failed to decode models response", err)
+	}
+
+	var models []ModelInfo
+	for _, m := range modelsResp.Data {
+		// Filter to only chat models
+		if !isOpenAIChatModel(m.ID) {
+			continue
+		}
+
+		info := ModelInfo{
+			ID:        m.ID,
+			Name:      m.ID,
+			Provider:  "openai",
+			CreatedAt: m.Created,
+		}
+
+		// Add pricing and description if known
+		if pricing, ok := openaiModelPricing[m.ID]; ok {
+			info.InputCost = pricing.input
+			info.OutputCost = pricing.output
+			info.Description = pricing.description
+		} else {
+			info.Description = "OpenAI model"
+		}
+
+		models = append(models, info)
+	}
+
+	return models, nil
+}
+
+// isOpenAIChatModel checks if a model ID is a chat-capable model
+func isOpenAIChatModel(id string) bool {
+	chatPrefixes := []string{"gpt-", "o1", "chatgpt-"}
+	for _, prefix := range chatPrefixes {
+		if len(id) >= len(prefix) && id[:len(prefix)] == prefix {
+			return true
+		}
+	}
+	return false
+}

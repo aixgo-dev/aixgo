@@ -242,3 +242,17 @@ func MockStructuredResponse(data any) *StructuredResponse {
 		},
 	}
 }
+
+// ListModels implements Provider for MockProvider
+func (m *MockProvider) ListModels(_ context.Context) ([]ModelInfo, error) {
+	return []ModelInfo{
+		{
+			ID:          "mock-model",
+			Name:        "Mock Model",
+			Provider:    m.name,
+			Description: "Mock model for testing",
+			InputCost:   0.0,
+			OutputCost:  0.0,
+		},
+	}, nil
+}

@@ -458,3 +458,98 @@ func (s *geminiStream) Recv() (*StreamChunk, error) {
 func (s *geminiStream) Close() error {
 	return s.closer.Close()
 }
+
+// geminiModelsResponse represents the response from GET /v1beta/models
+type geminiModelsResponse struct {
+	Models []struct {
+		Name                       string   `json:"name"`
+		DisplayName                string   `json:"displayName"`
+		Description                string   `json:"description"`
+		InputTokenLimit            int      `json:"inputTokenLimit"`
+		OutputTokenLimit           int      `json:"outputTokenLimit"`
+		SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
+	} `json:"models"`
+}
+
+// geminiModelPricing contains known pricing for Gemini models (per 1M tokens)
+var geminiModelPricing = map[string]struct {
+	input  float64
+	output float64
+}{
+	"gemini-2.5-flash":      {0.075, 0.30},
+	"gemini-2.5-flash-lite": {0.02, 0.08},
+	"gemini-2.0-flash":      {0.075, 0.30},
+	"gemini-1.5-pro":        {1.25, 5.00},
+	"gemini-1.5-flash":      {0.075, 0.30},
+	"gemini-3-flash":        {0.10, 0.40},
+	"gemini-3.1-pro":        {1.50, 6.00},
+}
+
+// ListModels fetches available models from Google Gemini API
+func (p *GeminiProvider) ListModels(ctx context.Context) ([]ModelInfo, error) {
+	endpoint := fmt.Sprintf("/models?key=%s", p.apiKey)
+	req, err := http.NewRequestWithContext(ctx, "GET", p.baseURL+endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, NewProviderError("gemini", ErrorCodeTimeout, err.Error(), err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, p.handleErrorResponse(resp)
+	}
+
+	var modelsResp geminiModelsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&modelsResp); err != nil {
+		return nil, NewProviderError("gemini", ErrorCodeUnknown, "failed to decode models response", err)
+	}
+
+	var models []ModelInfo
+	for _, m := range modelsResp.Models {
+		// Filter to only generative models
+		hasGenerateContent := false
+		for _, method := range m.SupportedGenerationMethods {
+			if method == "generateContent" {
+				hasGenerateContent = true
+				break
+			}
+		}
+		if !hasGenerateContent {
+			continue
+		}
+
+		// Extract model ID from full name (e.g., "models/gemini-1.5-flash" -> "gemini-1.5-flash")
+		modelID := m.Name
+		if len(modelID) > 7 && modelID[:7] == "models/" {
+			modelID = modelID[7:]
+		}
+
+		info := ModelInfo{
+			ID:            modelID,
+			Name:          m.DisplayName,
+			Provider:      "gemini",
+			Description:   m.Description,
+			ContextWindow: m.InputTokenLimit,
+		}
+
+		if info.Name == "" {
+			info.Name = modelID
+		}
+
+		// Add pricing if known
+		if pricing, ok := geminiModelPricing[modelID]; ok {
+			info.InputCost = pricing.input
+			info.OutputCost = pricing.output
+		}
+
+		models = append(models, info)
+	}
+
+	return models, nil
+}

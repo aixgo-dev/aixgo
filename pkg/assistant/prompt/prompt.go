@@ -3,11 +3,15 @@ package prompt
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/aixgo-dev/aixgo/pkg/llm/provider"
 )
 
 // Option represents a selectable option in a prompt.
@@ -39,17 +43,105 @@ func SelectModel() (string, error) {
 }
 
 // SelectModel prompts the user to select a model.
+// It fetches available models from configured providers dynamically.
 func (p *Prompter) SelectModel() (string, error) {
+	// Try to fetch models dynamically
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	models, err := provider.ListAllModels(ctx)
+	if err == nil && len(models) > 0 {
+		// Filter to chat models and limit to top options
+		models = provider.FilterChatModels(models)
+		options := buildModelOptions(models)
+		return p.Select("Which model do you want to use?", options)
+	}
+
+	// Fallback to static list if dynamic fetch fails
 	options := []Option{
-		{Label: "claude-3-5-sonnet (Recommended)", Value: "claude-3-5-sonnet", Description: "Best balance of speed and capability"},
+		{Label: "claude-sonnet-4-6 (Recommended)", Value: "claude-sonnet-4-6", Description: "Smart, efficient model for everyday use"},
 		{Label: "gpt-4o", Value: "gpt-4o", Description: "OpenAI's latest model"},
-		{Label: "gemini-1.5-pro", Value: "gemini-1.5-pro", Description: "Google's multimodal model"},
+		{Label: "gemini-2.5-flash", Value: "gemini-2.5-flash", Description: "Fast Gemini model"},
 		{Label: "grok-2", Value: "grok-2", Description: "xAI's reasoning model"},
-		{Label: "claude-opus-4", Value: "claude-opus-4", Description: "Most capable, best for complex tasks"},
+		{Label: "claude-opus-4-6", Value: "claude-opus-4-6", Description: "Most capable for complex tasks"},
 		{Label: "Other (type model name)", Value: "", Description: "Enter a custom model name"},
 	}
 
 	return p.Select("Which model do you want to use?", options)
+}
+
+// buildModelOptions converts ModelInfo slice to Option slice for the prompt.
+func buildModelOptions(models []provider.ModelInfo) []Option {
+	// Prioritize certain models at the top
+	priorityModels := map[string]int{
+		"claude-sonnet-4-6": 1,
+		"claude-opus-4-6":   2,
+		"gpt-4o":            3,
+		"gemini-2.5-flash":  4,
+		"grok-2":            5,
+	}
+
+	// Build options from available models
+	var options []Option
+	seen := make(map[string]bool)
+
+	// Add priority models first if available
+	for _, m := range models {
+		if _, isPriority := priorityModels[m.ID]; isPriority {
+			label := m.ID
+			if m.ID == "claude-sonnet-4-6" {
+				label += " (Recommended)"
+			}
+			desc := m.Description
+			if desc == "" {
+				desc = m.Provider + " model"
+			}
+			options = append(options, Option{
+				Label:       label,
+				Value:       m.ID,
+				Description: truncateDescription(desc, 50),
+			})
+			seen[m.ID] = true
+		}
+	}
+
+	// Add remaining models (limit to 10 total)
+	maxOptions := 10
+	for _, m := range models {
+		if len(options) >= maxOptions-1 { // Leave room for "Other"
+			break
+		}
+		if seen[m.ID] {
+			continue
+		}
+		desc := m.Description
+		if desc == "" {
+			desc = m.Provider + " model"
+		}
+		options = append(options, Option{
+			Label:       m.ID,
+			Value:       m.ID,
+			Description: truncateDescription(desc, 50),
+		})
+		seen[m.ID] = true
+	}
+
+	// Always add "Other" option
+	options = append(options, Option{
+		Label:       "Other (type model name)",
+		Value:       "",
+		Description: "Enter a custom model name",
+	})
+
+	return options
+}
+
+// truncateDescription truncates a description to the given length.
+func truncateDescription(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
 }
 
 // Select prompts the user to select one option from a list.

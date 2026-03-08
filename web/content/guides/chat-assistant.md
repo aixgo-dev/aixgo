@@ -70,7 +70,7 @@ To see which models are available with your configured keys, run `aixgo models` 
 
 ## Starting a Session
 
-**Start with default model (`claude-3-5-sonnet`):**
+**Start with default model (`claude-sonnet-4-6`):**
 
 ```bash
 aixgo chat
@@ -80,7 +80,7 @@ aixgo chat
 
 ```bash
 aixgo chat --model gpt-4o
-aixgo chat --model gemini-2.0-flash
+aixgo chat --model gemini-2.5-flash
 ```
 
 **Resume a previous session:**
@@ -101,7 +101,7 @@ Once started, the assistant displays a welcome prompt and waits for input on a `
 ╭──────────────────────────────────────────────────╮
 │           Aixgo Interactive Assistant            │
 ╰──────────────────────────────────────────────────╯
-  Model: claude-3-5-sonnet
+  Model: claude-sonnet-4-6
   Type /help for commands, /quit to exit
 
 >
@@ -115,7 +115,7 @@ To exit at any time, type `/quit` or press `Ctrl+C`. The session is saved automa
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--model` | `-m` | `claude-3-5-sonnet` (or `$AIXGO_MODEL`) | Model to use for the session |
+| `--model` | `-m` | `claude-sonnet-4-6` (or `$AIXGO_MODEL`) | Model to use for the session |
 | `--session` | `-s` | — | Resume an existing session by ID |
 | `--no-stream` | — | `false` | Disable streaming and wait for full responses |
 
@@ -250,7 +250,7 @@ Saved Sessions:
 ─────────────────────────────────────────────────────────────────
 ID            Model                 Messages  Cost        Last Updated
 ─────────────────────────────────────────────────────────────────
-a1b2c3d4e5f6  claude-3-5-sonnet     14        $0.0234     10:42
+a1b2c3d4e5f6  claude-sonnet-4-6     14        $0.0234     10:42
 e5f6g7h8i9j0  gpt-4o                8         $0.0156     Mon 14:30
 
 Resume a session with: aixgo chat --session <id>
@@ -282,7 +282,7 @@ Each session is stored as a human-readable JSON file:
 ```json
 {
   "id": "a1b2c3d4",
-  "model": "claude-3-5-sonnet",
+  "model": "claude-sonnet-4-6",
   "created": "2026-03-08T10:00:00Z",
   "updated": "2026-03-08T11:30:00Z",
   "total_cost": 0.0234,
@@ -296,7 +296,7 @@ Each session is stored as a human-readable JSON file:
       "role": "assistant",
       "content": "Here's the content of main.go...",
       "timestamp": "2026-03-08T10:00:05Z",
-      "model": "claude-3-5-sonnet",
+      "model": "claude-sonnet-4-6",
       "cost": 0.0012
     }
   ]
@@ -309,30 +309,39 @@ Session files can be read, copied, or backed up with standard file tools.
 
 ## Model Selection
 
-Run `aixgo models` to view all supported models, their pricing, and which are available with your current API keys:
+### Dynamic Model Discovery
+
+Models are **fetched dynamically** from each provider's API, ensuring you always have access to the latest models available to your API key. Run `aixgo models` to view all available models:
 
 ```bash
 aixgo models
 ```
 
-Output (availability indicated by checkmark):
+Output:
 
 ```text
+Fetching available models...
+
 Available Models:
 ════════════════════════════════════════════════════════════════════════════════
-Model                 Provider    Description                          Input/1M     Output/1M
+Model                         Provider    Description                       Input/1M    Output/1M
 ────────────────────────────────────────────────────────────────────────────────
-✔ claude-opus-4        Anthropic   Most capable, best for complex tas...  $15.00       $75.00
-✔ claude-3-5-sonnet    Anthropic   Balanced speed and capability (rec...  $3.00        $15.00
-✔ claude-3-5-haiku     Anthropic   Fastest, best for simple tasks         $0.25        $1.25
-✘ gpt-4o               OpenAI      Latest GPT-4 with vision               $2.50        $10.00
-✘ gpt-4o-mini          OpenAI      Smaller, faster GPT-4o                 $0.15        $0.60
-✘ o1                   OpenAI      Reasoning model for complex problems   $15.00       $60.00
-✘ gemini-2.0-flash     Google      Latest Gemini, fast and capable        $0.08        $0.30
-✘ gemini-1.5-pro       Google      Gemini Pro with 1M context             $1.25        $5.00
-✘ grok-2               xAI         Grok 2 for coding and reasoning        $2.00        $10.00
+claude-sonnet-4-6             anthropic   Smart, efficient for everyday...  $3.00       $15.00
+claude-opus-4-6               anthropic   Powerful for complex challenges   $15.00      $75.00
+claude-haiku-4-5-20251001     anthropic   Fastest for daily tasks           $0.25       $1.25
+gpt-4o                        openai      Latest GPT-4 with vision          $2.50       $10.00
+gpt-4o-mini                   openai      Smaller, faster GPT-4o            $0.15       $0.60
+gemini-2.5-flash              gemini      Fast Gemini model                 $0.08       $0.30
 
-Available: 3/9 models (set API keys to enable more)
+Total: 12 models from 3 providers
+```
+
+### Force Refresh
+
+Model lists are cached for 5 minutes. To force a refresh from provider APIs:
+
+```bash
+aixgo models --refresh
 ```
 
 ### Switching Models Mid-Conversation
@@ -340,8 +349,8 @@ Available: 3/9 models (set API keys to enable more)
 Use `/model` inside a session to switch without losing history:
 
 ```text
-> /model claude-3-5-haiku
-Switched to model: claude-3-5-haiku
+> /model claude-haiku-4-5-20251001
+Switched to model: claude-haiku-4-5-20251001
 ```
 
 The conversation history carries over. Subsequent messages are sent to the new model. This is useful for routing straightforward tasks to lower-cost models and complex analysis to higher-capability models.
@@ -462,14 +471,14 @@ The terminal tool always requires explicit user confirmation before executing a 
 ### Cost-Aware Multi-Model Workflow
 
 ```text
-> /model claude-3-5-haiku
-Switched to model: claude-3-5-haiku
+> /model claude-haiku-4-5-20251001
+Switched to model: claude-haiku-4-5-20251001
 
 > Generate boilerplate unit tests for the functions in agents/react.go
 [Uses cheaper model for repetitive generation work]
 
-> /model claude-opus-4
-Switched to model: claude-opus-4
+> /model claude-opus-4-6
+Switched to model: claude-opus-4-6
 
 > Review the generated tests for correctness and edge cases
 [Uses more capable model for analysis]
@@ -479,7 +488,7 @@ Switched to model: claude-opus-4
 Session Cost Summary:
   Total cost: $0.0089
   Messages: 12
-  Model: claude-opus-4
+  Model: claude-opus-4-6
 ```
 
 ---
@@ -497,6 +506,14 @@ The API key for the requested model is not set or is invalid. Run `aixgo models`
 **"failed to switch model" when using `/model`**
 
 The target model requires an API key that is not configured. Set the relevant environment variable and try again.
+
+**"No models available" when running `aixgo models`**
+
+No API keys are configured. Export at least one provider's API key:
+
+```bash
+export ANTHROPIC_API_KEY=<your-anthropic-api-key>
+```
 
 **Streaming output stops mid-response**
 

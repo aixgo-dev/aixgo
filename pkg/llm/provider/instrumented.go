@@ -309,3 +309,8 @@ func UnwrapProvider(provider Provider) Provider {
 	}
 	return provider
 }
+
+// ListModels delegates to the underlying provider
+func (p *InstrumentedProvider) ListModels(ctx context.Context) ([]ModelInfo, error) {
+	return p.provider.ListModels(ctx)
+}

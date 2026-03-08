@@ -448,3 +448,90 @@ func (s *anthropicStream) Recv() (*StreamChunk, error) {
 func (s *anthropicStream) Close() error {
 	return s.closer.Close()
 }
+
+// anthropicModelsResponse represents the response from GET /v1/models
+type anthropicModelsResponse struct {
+	Data []struct {
+		ID          string `json:"id"`
+		Type        string `json:"type"`
+		DisplayName string `json:"display_name"`
+		CreatedAt   string `json:"created_at"`
+	} `json:"data"`
+	FirstID string `json:"first_id"`
+	LastID  string `json:"last_id"`
+	HasMore bool   `json:"has_more"`
+}
+
+// anthropicModelPricing contains known pricing for Anthropic models (per 1M tokens)
+var anthropicModelPricing = map[string]struct {
+	input       float64
+	output      float64
+	description string
+}{
+	// Claude 4 series
+	"claude-opus-4-6":         {15.00, 75.00, "Powerful, large model for complex challenges"},
+	"claude-sonnet-4-6":       {3.00, 15.00, "Smart, efficient model for everyday use"},
+	"claude-opus-4-5-20251101": {15.00, 75.00, "Previous Opus version"},
+	"claude-haiku-4-5-20251001": {0.25, 1.25, "Fastest model for daily tasks"},
+	// Legacy Claude 3.5 series
+	"claude-3-5-sonnet-20241022": {3.00, 15.00, "Claude 3.5 Sonnet"},
+	"claude-3-5-haiku-20241022":  {0.25, 1.25, "Claude 3.5 Haiku"},
+	// Claude 3 series
+	"claude-3-opus-20240229":   {15.00, 75.00, "Most capable Claude 3"},
+	"claude-3-sonnet-20240229": {3.00, 15.00, "Balanced Claude 3"},
+	"claude-3-haiku-20240307":  {0.25, 1.25, "Fast Claude 3"},
+}
+
+// ListModels fetches available models from Anthropic API
+func (p *AnthropicProvider) ListModels(ctx context.Context) ([]ModelInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", p.baseURL+"/models", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("x-api-key", p.apiKey)
+	req.Header.Set("anthropic-version", anthropicVersion)
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, NewProviderError("anthropic", ErrorCodeTimeout, err.Error(), err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, p.handleErrorResponse(resp)
+	}
+
+	var modelsResp anthropicModelsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&modelsResp); err != nil {
+		return nil, NewProviderError("anthropic", ErrorCodeUnknown, "failed to decode models response", err)
+	}
+
+	var models []ModelInfo
+	for _, m := range modelsResp.Data {
+		info := ModelInfo{
+			ID:       m.ID,
+			Name:     m.DisplayName,
+			Provider: "anthropic",
+		}
+
+		if info.Name == "" {
+			info.Name = m.ID
+		}
+
+		// Add pricing and description if known
+		if pricing, ok := anthropicModelPricing[m.ID]; ok {
+			info.InputCost = pricing.input
+			info.OutputCost = pricing.output
+			info.Description = pricing.description
+		} else {
+			info.Description = "Anthropic Claude model"
+		}
+
+		models = append(models, info)
+	}
+
+	return models, nil
+}

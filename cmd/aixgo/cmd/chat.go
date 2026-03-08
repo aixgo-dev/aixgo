@@ -36,15 +36,11 @@ The chat command provides a multi-model interactive coding assistant that can:
   - Run terminal commands (with confirmation)
   - Track costs per session
 
-Supported models:
-  - claude-3-5-sonnet, claude-opus-4 (Anthropic)
-  - gpt-4o, gpt-4-turbo (OpenAI)
-  - gemini-1.5-pro, gemini-2.0-flash (Google)
-  - grok-2 (xAI)
+Models are fetched dynamically. Run 'aixgo models' to see all available models.
 
 Examples:
   aixgo chat
-  aixgo chat --model claude-3-5-sonnet
+  aixgo chat --model claude-sonnet-4-6
   aixgo chat --model gpt-4o
   aixgo chat --session abc123  # Resume a session
 
@@ -61,7 +57,7 @@ In-session commands:
 func init() {
 	rootCmd.AddCommand(chatCmd)
 
-	chatCmd.Flags().StringVarP(&chatModel, "model", "m", getEnv("AIXGO_MODEL", "claude-3-5-sonnet"), "Model to use for chat")
+	chatCmd.Flags().StringVarP(&chatModel, "model", "m", getEnv("AIXGO_MODEL", "claude-sonnet-4-6"), "Model to use for chat")
 	chatCmd.Flags().StringVarP(&chatSessionID, "session", "s", "", "Resume an existing session by ID")
 	chatCmd.Flags().BoolVar(&chatNoStream, "no-stream", false, "Disable streaming output")
 }
@@ -95,7 +91,7 @@ func runChat(cmd *cobra.Command, _ []string) error {
 		fmt.Printf("Resumed session: %s\n", sess.ID)
 	} else {
 		// Prompt for model selection if not specified via flag
-		if chatModel == "" || chatModel == "claude-3-5-sonnet" {
+		if chatModel == "" || chatModel == "claude-sonnet-4-6" {
 			selectedModel, err := prompt.SelectModel()
 			if err != nil {
 				return fmt.Errorf("model selection failed: %w", err)
@@ -295,11 +291,7 @@ Available commands:
   /help          - Show this help message
   /quit          - Exit the chat
 
-Supported models:
-  - claude-3-5-sonnet, claude-opus-4 (Anthropic)
-  - gpt-4o, gpt-4-turbo (OpenAI)
-  - gemini-1.5-pro, gemini-2.0-flash (Google)
-  - grok-2 (xAI)
+Models are fetched dynamically. Run 'aixgo models' to see all available models.
 
 Tips:
   - Ask coding questions naturally

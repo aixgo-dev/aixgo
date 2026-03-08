@@ -16,8 +16,41 @@ type Provider interface {
 	// CreateStreaming creates a streaming response
 	CreateStreaming(ctx context.Context, request CompletionRequest) (Stream, error)
 
+	// ListModels returns available models from this provider
+	ListModels(ctx context.Context) ([]ModelInfo, error)
+
 	// Name returns the provider name (e.g., "openai", "anthropic")
 	Name() string
+}
+
+// ModelInfo represents information about an available model
+type ModelInfo struct {
+	// ID is the model identifier used in API calls
+	ID string `json:"id"`
+
+	// Name is a human-readable display name
+	Name string `json:"name"`
+
+	// Provider is the provider name (openai, anthropic, etc.)
+	Provider string `json:"provider"`
+
+	// Description describes the model's capabilities
+	Description string `json:"description"`
+
+	// InputCost is the cost per 1M input tokens in USD
+	InputCost float64 `json:"input_cost"`
+
+	// OutputCost is the cost per 1M output tokens in USD
+	OutputCost float64 `json:"output_cost"`
+
+	// ContextWindow is the maximum context length in tokens
+	ContextWindow int `json:"context_window,omitempty"`
+
+	// CreatedAt is the Unix timestamp when the model was created
+	CreatedAt int64 `json:"created_at,omitempty"`
+
+	// Capabilities lists model capabilities (e.g., "chat", "vision", "tools")
+	Capabilities []string `json:"capabilities,omitempty"`
 }
 
 // Message represents a chat message

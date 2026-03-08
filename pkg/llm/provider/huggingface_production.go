@@ -600,3 +600,15 @@ func (p *OptimizedHuggingFaceProvider) CreateStreaming(ctx context.Context, req 
 	// Return simulated stream with smaller chunks for smoother output
 	return NewSimulatedStream(resp.Content, resp.FinishReason, 15), nil
 }
+
+// ListModels returns the current model for the optimized HuggingFace provider.
+func (p *OptimizedHuggingFaceProvider) ListModels(_ context.Context) ([]ModelInfo, error) {
+	return []ModelInfo{
+		{
+			ID:          p.model,
+			Name:        p.model,
+			Provider:    "huggingface",
+			Description: "HuggingFace model (optimized)",
+		},
+	}, nil
+}

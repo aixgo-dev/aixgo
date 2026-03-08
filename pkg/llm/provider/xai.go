@@ -452,3 +452,83 @@ func (s *xaiStream) Recv() (*StreamChunk, error) {
 func (s *xaiStream) Close() error {
 	return s.closer.Close()
 }
+
+// xaiModelsResponse represents the response from GET /v1/models
+type xaiModelsResponse struct {
+	Data []struct {
+		ID      string `json:"id"`
+		Object  string `json:"object"`
+		Created int64  `json:"created"`
+		OwnedBy string `json:"owned_by"`
+	} `json:"data"`
+	Error *struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Code    string `json:"code"`
+	} `json:"error,omitempty"`
+}
+
+// xaiModelPricing contains known pricing for xAI models (per 1M tokens)
+var xaiModelPricing = map[string]struct {
+	input       float64
+	output      float64
+	description string
+}{
+	"grok-4":       {5.00, 15.00, "Frontier reasoning model"},
+	"grok-4-fast":  {2.00, 6.00, "Cost-efficient high-volume"},
+	"grok-4.1-fast": {2.00, 6.00, "Latest fast Grok"},
+	"grok-3":       {3.00, 9.00, "Previous generation Grok"},
+	"grok-3-mini":  {0.50, 1.50, "Smaller Grok 3"},
+	"grok-2":       {2.00, 10.00, "Grok 2 for coding and reasoning"},
+	"grok-2-mini":  {0.30, 1.50, "Faster Grok 2 variant"},
+}
+
+// ListModels fetches available models from xAI API
+func (p *XAIProvider) ListModels(ctx context.Context) ([]ModelInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", p.baseURL+"/models", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+p.apiKey)
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, NewProviderError("xai", ErrorCodeTimeout, err.Error(), err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, p.handleErrorResponse(resp)
+	}
+
+	var modelsResp xaiModelsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&modelsResp); err != nil {
+		return nil, NewProviderError("xai", ErrorCodeUnknown, "failed to decode models response", err)
+	}
+
+	var models []ModelInfo
+	for _, m := range modelsResp.Data {
+		info := ModelInfo{
+			ID:        m.ID,
+			Name:      m.ID,
+			Provider:  "xai",
+			CreatedAt: m.Created,
+		}
+
+		// Add pricing and description if known
+		if pricing, ok := xaiModelPricing[m.ID]; ok {
+			info.InputCost = pricing.input
+			info.OutputCost = pricing.output
+			info.Description = pricing.description
+		} else {
+			info.Description = "xAI Grok model"
+		}
+
+		models = append(models, info)
+	}
+
+	return models, nil
+}

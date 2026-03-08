@@ -625,3 +625,55 @@ func (s *vertexAIStream) Close() error {
 func (p *VertexAIProvider) Close() error {
 	return nil
 }
+
+// vertexAIModelPricing contains known pricing for Vertex AI models (per 1M tokens)
+var vertexAIModelPricing = map[string]struct {
+	input       float64
+	output      float64
+	description string
+}{
+	"gemini-2.5-flash":      {0.075, 0.30, "Fast Gemini model"},
+	"gemini-2.5-flash-lite": {0.02, 0.08, "Lightweight Gemini"},
+	"gemini-2.0-flash":      {0.075, 0.30, "Gemini 2.0 Flash"},
+	"gemini-1.5-pro":        {1.25, 5.00, "Gemini Pro with 1M context"},
+	"gemini-1.5-flash":      {0.075, 0.30, "Fast Gemini 1.5"},
+	"gemini-3-flash":        {0.10, 0.40, "Gemini 3 Flash"},
+	"gemini-3.1-pro":        {1.50, 6.00, "Gemini 3.1 Pro"},
+}
+
+// ListModels returns available models from Vertex AI.
+// Uses the Gen AI SDK to list available models in the project/region.
+func (p *VertexAIProvider) ListModels(ctx context.Context) ([]ModelInfo, error) {
+	// The Gen AI SDK doesn't expose a ListModels API directly
+	// Return known Gemini models available on Vertex AI
+	knownModels := []string{
+		"gemini-2.5-flash",
+		"gemini-2.5-flash-lite",
+		"gemini-2.0-flash",
+		"gemini-1.5-pro",
+		"gemini-1.5-flash",
+		"gemini-3-flash",
+		"gemini-3.1-pro",
+	}
+
+	var models []ModelInfo
+	for _, modelID := range knownModels {
+		info := ModelInfo{
+			ID:       modelID,
+			Name:     modelID,
+			Provider: "vertexai",
+		}
+
+		if pricing, ok := vertexAIModelPricing[modelID]; ok {
+			info.InputCost = pricing.input
+			info.OutputCost = pricing.output
+			info.Description = pricing.description
+		} else {
+			info.Description = "Vertex AI model"
+		}
+
+		models = append(models, info)
+	}
+
+	return models, nil
+}
