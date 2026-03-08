@@ -548,9 +548,9 @@ func (r *ReActAgent) verifyStep(ctx context.Context, verificationPrompt string, 
 	sb.WriteString("\n\nStep results so far:\n")
 	for _, r := range results {
 		if r.Error != nil {
-			sb.WriteString(fmt.Sprintf("- [%d] %s: Error - %v\n", r.Iteration, r.ToolName, r.Error))
+			fmt.Fprintf(&sb, "- [%d] %s: Error - %v\n", r.Iteration, r.ToolName, r.Error)
 		} else {
-			sb.WriteString(fmt.Sprintf("- [%d] %s: %v\n", r.Iteration, r.ToolName, r.Result))
+			fmt.Fprintf(&sb, "- [%d] %s: %v\n", r.Iteration, r.ToolName, r.Result)
 		}
 	}
 	sb.WriteString("\nRespond with exactly 'continue' if more work is needed, or 'done' if the task is complete.")
@@ -613,11 +613,11 @@ func (r *ReActAgent) formatGuidedResult(results []GuidedStepResult) string {
 
 	for _, result := range results {
 		if result.ToolName == "_final_response" {
-			sb.WriteString(fmt.Sprintf("\nFinal: %v\n", result.Result))
+			fmt.Fprintf(&sb, "\nFinal: %v\n", result.Result)
 		} else if result.Error != nil {
-			sb.WriteString(fmt.Sprintf("[Step %d] %s: Error - %v\n", result.Iteration, result.ToolName, result.Error))
+			fmt.Fprintf(&sb, "[Step %d] %s: Error - %v\n", result.Iteration, result.ToolName, result.Error)
 		} else {
-			sb.WriteString(fmt.Sprintf("[Step %d] %s → %v\n", result.Iteration, result.ToolName, result.Result))
+			fmt.Fprintf(&sb, "[Step %d] %s → %v\n", result.Iteration, result.ToolName, result.Result)
 		}
 	}
 

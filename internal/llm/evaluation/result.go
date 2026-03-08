@@ -135,11 +135,11 @@ func formatMarkdown(report *BenchmarkReport, w io.Writer) error {
 	b := report.Benchmark
 
 	sb.WriteString("# Benchmark Results\n\n")
-	sb.WriteString(fmt.Sprintf("**Model:** %s  \n", b.ModelName))
-	sb.WriteString(fmt.Sprintf("**Test Suite:** %s  \n", b.TestSuite))
-	sb.WriteString(fmt.Sprintf("**Generated:** %s  \n", report.GeneratedAt.Format(time.RFC3339)))
+	fmt.Fprintf(&sb, "**Model:** %s  \n", b.ModelName)
+	fmt.Fprintf(&sb, "**Test Suite:** %s  \n", b.TestSuite)
+	fmt.Fprintf(&sb, "**Generated:** %s  \n", report.GeneratedAt.Format(time.RFC3339))
 	if report.GitCommit != "" {
-		sb.WriteString(fmt.Sprintf("**Commit:** %s  \n", report.GitCommit))
+		fmt.Fprintf(&sb, "**Commit:** %s  \n", report.GitCommit)
 	}
 	sb.WriteString("\n")
 
@@ -147,13 +147,13 @@ func formatMarkdown(report *BenchmarkReport, w io.Writer) error {
 	sb.WriteString("## Summary\n\n")
 	sb.WriteString("| Metric | Value |\n")
 	sb.WriteString("|--------|-------|\n")
-	sb.WriteString(fmt.Sprintf("| Total Tests | %d |\n", b.Summary.TotalTests))
-	sb.WriteString(fmt.Sprintf("| Passed | %d |\n", b.Summary.PassedTests))
-	sb.WriteString(fmt.Sprintf("| Failed | %d |\n", b.Summary.FailedTests))
-	sb.WriteString(fmt.Sprintf("| Success Rate | %.1f%% |\n", b.Summary.SuccessRate*100))
-	sb.WriteString(fmt.Sprintf("| Avg Latency | %dms |\n", b.Summary.AverageLatency.Milliseconds()))
-	sb.WriteString(fmt.Sprintf("| P95 Latency | %dms |\n", b.Summary.P95Latency.Milliseconds()))
-	sb.WriteString(fmt.Sprintf("| Total Tokens | %d |\n", b.Summary.TotalTokens))
+	fmt.Fprintf(&sb, "| Total Tests | %d |\n", b.Summary.TotalTests)
+	fmt.Fprintf(&sb, "| Passed | %d |\n", b.Summary.PassedTests)
+	fmt.Fprintf(&sb, "| Failed | %d |\n", b.Summary.FailedTests)
+	fmt.Fprintf(&sb, "| Success Rate | %.1f%% |\n", b.Summary.SuccessRate*100)
+	fmt.Fprintf(&sb, "| Avg Latency | %dms |\n", b.Summary.AverageLatency.Milliseconds())
+	fmt.Fprintf(&sb, "| P95 Latency | %dms |\n", b.Summary.P95Latency.Milliseconds())
+	fmt.Fprintf(&sb, "| Total Tokens | %d |\n", b.Summary.TotalTokens)
 	sb.WriteString("\n")
 
 	// Difficulty breakdown
@@ -162,8 +162,8 @@ func formatMarkdown(report *BenchmarkReport, w io.Writer) error {
 	sb.WriteString("|------------|--------------|------|\n")
 	for _, diff := range []string{"easy", "medium", "hard"} {
 		if stats, ok := b.Summary.DifficultyBreakdown[diff]; ok {
-			sb.WriteString(fmt.Sprintf("| %s | %d/%d | %.1f%% |\n",
-				diff, stats.Passed, stats.Total, stats.SuccessRate*100))
+			fmt.Fprintf(&sb, "| %s | %d/%d | %.1f%% |\n",
+				diff, stats.Passed, stats.Total, stats.SuccessRate*100)
 		}
 	}
 	sb.WriteString("\n")
@@ -172,20 +172,20 @@ func formatMarkdown(report *BenchmarkReport, w io.Writer) error {
 	if report.Comparison != nil {
 		c := report.Comparison
 		sb.WriteString("## Comparison with Baseline\n\n")
-		sb.WriteString(fmt.Sprintf("**Baseline Commit:** %s  \n", c.BaselineCommit))
-		sb.WriteString(fmt.Sprintf("**Success Rate Change:** %+.1f%%  \n", c.SuccessRateDiff*100))
-		sb.WriteString(fmt.Sprintf("**Latency Change:** %+dms  \n", c.LatencyDiffMs))
+		fmt.Fprintf(&sb, "**Baseline Commit:** %s  \n", c.BaselineCommit)
+		fmt.Fprintf(&sb, "**Success Rate Change:** %+.1f%%  \n", c.SuccessRateDiff*100)
+		fmt.Fprintf(&sb, "**Latency Change:** %+dms  \n", c.LatencyDiffMs)
 
 		if len(c.Regressions) > 0 {
 			sb.WriteString("\n### Regressions\n")
 			for _, r := range c.Regressions {
-				sb.WriteString(fmt.Sprintf("- %s\n", r))
+				fmt.Fprintf(&sb, "- %s\n", r)
 			}
 		}
 		if len(c.Improvements) > 0 {
 			sb.WriteString("\n### Improvements\n")
 			for _, i := range c.Improvements {
-				sb.WriteString(fmt.Sprintf("- %s\n", i))
+				fmt.Fprintf(&sb, "- %s\n", i)
 			}
 		}
 	}
@@ -199,19 +199,19 @@ func formatText(report *BenchmarkReport, w io.Writer) error {
 	b := report.Benchmark
 
 	sb.WriteString("=== BENCHMARK RESULTS ===\n\n")
-	sb.WriteString(fmt.Sprintf("Model:      %s\n", b.ModelName))
-	sb.WriteString(fmt.Sprintf("Test Suite: %s\n", b.TestSuite))
-	sb.WriteString(fmt.Sprintf("Generated:  %s\n", report.GeneratedAt.Format(time.RFC3339)))
+	fmt.Fprintf(&sb, "Model:      %s\n", b.ModelName)
+	fmt.Fprintf(&sb, "Test Suite: %s\n", b.TestSuite)
+	fmt.Fprintf(&sb, "Generated:  %s\n", report.GeneratedAt.Format(time.RFC3339))
 	if report.GitCommit != "" {
-		sb.WriteString(fmt.Sprintf("Commit:     %s\n", report.GitCommit))
+		fmt.Fprintf(&sb, "Commit:     %s\n", report.GitCommit)
 	}
 	sb.WriteString("\n--- Summary ---\n")
-	sb.WriteString(fmt.Sprintf("Total:       %d\n", b.Summary.TotalTests))
-	sb.WriteString(fmt.Sprintf("Passed:      %d\n", b.Summary.PassedTests))
-	sb.WriteString(fmt.Sprintf("Failed:      %d\n", b.Summary.FailedTests))
-	sb.WriteString(fmt.Sprintf("Success:     %.1f%%\n", b.Summary.SuccessRate*100))
-	sb.WriteString(fmt.Sprintf("Avg Latency: %dms\n", b.Summary.AverageLatency.Milliseconds()))
-	sb.WriteString(fmt.Sprintf("P95 Latency: %dms\n", b.Summary.P95Latency.Milliseconds()))
+	fmt.Fprintf(&sb, "Total:       %d\n", b.Summary.TotalTests)
+	fmt.Fprintf(&sb, "Passed:      %d\n", b.Summary.PassedTests)
+	fmt.Fprintf(&sb, "Failed:      %d\n", b.Summary.FailedTests)
+	fmt.Fprintf(&sb, "Success:     %.1f%%\n", b.Summary.SuccessRate*100)
+	fmt.Fprintf(&sb, "Avg Latency: %dms\n", b.Summary.AverageLatency.Milliseconds())
+	fmt.Fprintf(&sb, "P95 Latency: %dms\n", b.Summary.P95Latency.Milliseconds())
 
 	sb.WriteString("\n--- By Difficulty ---\n")
 	difficulties := make([]string, 0, len(b.Summary.DifficultyBreakdown))
@@ -221,14 +221,14 @@ func formatText(report *BenchmarkReport, w io.Writer) error {
 	sort.Strings(difficulties)
 	for _, diff := range difficulties {
 		stats := b.Summary.DifficultyBreakdown[diff]
-		sb.WriteString(fmt.Sprintf("%-8s %d/%d (%.1f%%)\n",
-			diff+":", stats.Passed, stats.Total, stats.SuccessRate*100))
+		fmt.Fprintf(&sb, "%-8s %d/%d (%.1f%%)\n",
+			diff+":", stats.Passed, stats.Total, stats.SuccessRate*100)
 	}
 
 	if report.Comparison != nil && report.Comparison.HasRegression {
 		sb.WriteString("\n--- REGRESSIONS DETECTED ---\n")
 		for _, r := range report.Comparison.Regressions {
-			sb.WriteString(fmt.Sprintf("! %s\n", r))
+			fmt.Fprintf(&sb, "! %s\n", r)
 		}
 	}
 

@@ -2,7 +2,18 @@
 # High-level version summaries for homepage display
 
 milestones:
-  - version: "v0.5.0 Stable (Current)"
+  - version: "Current Release"
+    status: "complete"
+    date: "March 2026"
+    highlights:
+      - "Interactive coding assistant via 'aixgo chat' command"
+      - "Multi-model support with mid-conversation switching"
+      - "File operations (read/write/glob/grep) and git integration"
+      - "Terminal command execution with safety prompts"
+      - "Session management (list/resume/delete) with cost tracking"
+      - "Cobra CLI framework with modern subcommands"
+
+  - version: "v0.5.0 Stable"
     status: "complete"
     date: "February 2026"
     highlights:
@@ -33,17 +44,17 @@ milestones:
       - "Full observability (OpenTelemetry, Langfuse, Prometheus)"
       - "Enterprise security (Auth, RBAC, TLS/mTLS, audit logging)"
 
-  - version: "v0.6.x Enhancements"
+  - version: "Next Release"
     status: "planned"
     date: "Q2 2026"
     highlights:
-      - "Streaming support for all providers"
       - "Visual workflow debugging dashboard"
       - "Session encryption at rest"
       - "PostgreSQL session backend"
       - "Additional vector databases (Qdrant, pgvector)"
+      - "Enhanced assistant tools and workflows"
 
-  - version: "v1.0 Production"
+  - version: "Production Release"
     status: "planned"
     date: "Q3 2026"
     highlights:

@@ -1,7 +1,7 @@
 # Aixgo Features Reference
 
-**Version**: 0.5.0
-**Last Updated**: 2026-02-14
+**Version**: 0.6.0
+**Last Updated**: 2026-03-08
 
 ---
 
@@ -51,6 +51,7 @@ This catalog contains:
 ## Table of Contents
 
 - [Feature Status Legend](#feature-status-legend)
+- [CLI Interface](#cli-interface)
 - [Core Architecture](#core-architecture)
 - [Agent Types](#agent-types)
 - [LLM Providers](#llm-providers)
@@ -73,6 +74,77 @@ This catalog contains:
 - 🚧 **In Progress**: Under active development
 - 🔮 **Roadmap**: Planned for future releases
 - ❌ **Not Available**: Not currently planned
+
+---
+
+## CLI Interface
+
+### Command-Line Tools
+
+| Feature | Status | Description | Code Reference |
+|---------|--------|-------------|----------------|
+| **Cobra CLI** | ✅ Implemented | Modern CLI framework with subcommands (v0.6.0+) | `cmd/aixgo/cmd/` |
+| **run Command** | ✅ Implemented | Run agent orchestrator from YAML config | `cmd/aixgo/cmd/run.go` |
+| **chat Command** | ✅ Implemented | Interactive multi-model coding assistant | `cmd/aixgo/cmd/chat.go` |
+| **session Command** | ✅ Implemented | Session management (list, resume, delete) | `cmd/aixgo/cmd/session.go` |
+| **models Command** | ✅ Implemented | List available LLM models with pricing | `cmd/aixgo/cmd/models.go` |
+
+### Interactive Chat Assistant
+
+| Feature | Status | Description | Code Reference |
+|---------|--------|-------------|----------------|
+| **Multi-Model Support** | ✅ Implemented | 7+ LLM providers (Claude, GPT, Gemini, Grok) | `pkg/assistant/coordinator/` |
+| **Session Persistence** | ✅ Implemented | JSON file-based session storage | `pkg/assistant/session/` |
+| **Cost Tracking** | ✅ Implemented | Real-time per-message cost display | `pkg/llm/cost/` |
+| **Streaming Output** | ✅ Implemented | Real-time streaming responses | `pkg/assistant/coordinator/streaming.go` |
+| **Model Switching** | ✅ Implemented | Switch models mid-conversation (/model) | `cmd/aixgo/cmd/chat.go` |
+| **Interactive Prompts** | ✅ Implemented | Selection menus and confirmations | `pkg/assistant/prompt/` |
+
+### Assistant Tools
+
+| Feature | Status | Description | Code Reference |
+|---------|--------|-------------|----------------|
+| **File Operations** | ✅ Implemented | read_file, write_file, glob, grep | `pkg/assistant/tools/file/` |
+| **Git Operations** | ✅ Implemented | git_status, git_diff, git_commit, git_log | `pkg/assistant/tools/git/` |
+| **Terminal Execution** | ✅ Implemented | Safe command execution with allowlist | `pkg/assistant/tools/terminal/` |
+| **Tool Registry** | ✅ Implemented | MCP-compatible tool registration | `pkg/assistant/tools/registry.go` |
+
+**CLI Usage Examples**:
+```bash
+# Run orchestrator (YAML-based multi-agent systems)
+aixgo run -config agents.yaml
+
+# Interactive chat assistant
+aixgo chat                              # Use default model
+aixgo chat --model gpt-4o              # Specify model
+aixgo chat --session abc123            # Resume session
+aixgo chat --no-stream                 # Disable streaming
+
+# Session management
+aixgo session list                     # List all sessions
+aixgo session resume <id>              # Resume a session
+aixgo session delete <id>              # Delete a session
+
+# Model information
+aixgo models                           # List available models with pricing
+```
+
+**In-Session Commands** (`aixgo chat`):
+- `/model <name>` - Switch to a different model mid-conversation
+- `/cost` - Show detailed session cost summary
+- `/save` - Manually save the current session
+- `/clear` - Clear conversation history (with confirmation)
+- `/help` - Show available commands and tips
+- `/quit` or `/exit` - Save and exit the chat
+
+**Interactive Features**:
+- **Model Selection** - Visual menu for choosing LLM on startup
+- **Streaming Output** - Real-time markdown rendering of responses
+- **Cost Display** - Automatic cost tracking after each message
+- **File Operations** - Natural language file read/write/search
+- **Git Integration** - Execute git commands through conversation
+- **Terminal Access** - Run commands with safety confirmations
+- **Session Persistence** - Automatic save to `~/.aixgo/sessions/`
 
 ---
 
@@ -1384,6 +1456,7 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.6.0 | 2026-03-08 | Interactive coding assistant (aixgo chat), CLI refactor to Cobra, session management commands, model listing with pricing |
 | 0.5.0 | 2026-02-14 | Public Provider API (pkg/llm/provider), Guided ReAct Workflows with verification |
 | 0.4.0 | 2026-02-12 | Go 1.26, advanced planner strategies, RAG variants, JWT verification |
 | 0.3.3 | 2026-02-08 | Session persistence, unified runtime, security hardening |

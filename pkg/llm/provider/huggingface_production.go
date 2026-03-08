@@ -396,10 +396,10 @@ func (p *OptimizedHuggingFaceProvider) addFewShotExamples(prompt string) string 
 	examples.WriteString("\n## Examples\n\n")
 
 	for _, example := range p.template.FewShotExamples[:1] { // Add one example to save tokens
-		examples.WriteString(fmt.Sprintf("User: %s\n", example.Query))
-		examples.WriteString(fmt.Sprintf("%s%s\n", p.template.OutputFormat.ThoughtPrefix, example.Thought))
-		examples.WriteString(fmt.Sprintf("%s%s\n", p.template.OutputFormat.ActionPrefix, example.Action))
-		examples.WriteString(fmt.Sprintf("%s%s\n\n", p.template.OutputFormat.FinalAnswerPrefix, example.FinalAnswer))
+		fmt.Fprintf(&examples, "User: %s\n", example.Query)
+		fmt.Fprintf(&examples, "%s%s\n", p.template.OutputFormat.ThoughtPrefix, example.Thought)
+		fmt.Fprintf(&examples, "%s%s\n", p.template.OutputFormat.ActionPrefix, example.Action)
+		fmt.Fprintf(&examples, "%s%s\n\n", p.template.OutputFormat.FinalAnswerPrefix, example.FinalAnswer)
 	}
 
 	// Insert examples before conversation

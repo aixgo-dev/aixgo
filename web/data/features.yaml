@@ -343,6 +343,25 @@ categories:
 
   - name: "Infrastructure & Operations"
     subcategories:
+      - title: "CLI & Developer Tools"
+        features:
+          - name: "Interactive Chat Assistant"
+            status: "complete"
+            tooltip:
+              content: "Multi-model coding assistant with file operations (read/write/glob/grep), git integration (status/diff/commit/log), terminal execution, and real-time cost tracking. Switch models mid-conversation, save/resume sessions, stream responses with markdown rendering."
+          - name: "Session Management"
+            status: "complete"
+            tooltip:
+              content: "Persistent chat sessions stored in ~/.aixgo/sessions/ with JSON format. List, resume, and delete sessions via CLI. Automatic save after each interaction with cost tracking and conversation history."
+          - name: "Model Information"
+            status: "complete"
+            tooltip:
+              content: "View all available LLM models with pricing information via 'aixgo models' command. Shows input/output token costs for 25+ models across 7+ providers."
+          - name: "Cobra CLI Framework"
+            status: "complete"
+            tooltip:
+              content: "Modern CLI with subcommands (run, chat, session, models) replacing flag-based interface. Better help text, command discovery, and user experience."
+
       - title: "Configuration"
         features:
           - name: "Phased Agent Startup"

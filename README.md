@@ -3,13 +3,16 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/aixgo-dev/aixgo)](https://go.dev/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/aixgo-dev/aixgo)](https://goreportcard.com/report/github.com/aixgo-dev/aixgo)
 
-Production-grade AI agent framework for Go. Build secure, scalable multi-agent systems without Python dependencies.
+Production-grade AI agent framework for Go. Build secure, scalable multi-agent systems without Python
+dependencies.
 
-**[Documentation](https://aixgo.dev)** | **[Quick Start](#quick-start)** | **[Features](docs/FEATURES.md)** | **[Examples](examples/)** | **[Contributing](docs/CONTRIBUTING.md)**
+**[Documentation](https://aixgo.dev)** | **[Quick Start](#quick-start)** | **[Features](docs/FEATURES.md)** |
+**[Examples](examples/)** | **[Contributing](docs/CONTRIBUTING.md)**
 
 ## Why Aixgo?
 
-Python AI frameworks excel at prototyping but struggle in production. Aixgo is built for systems that ship, scale, and stay running.
+Python AI frameworks excel at prototyping but struggle in production. Aixgo is built for systems that ship,
+scale, and stay running.
 
 | Dimension       | Python Frameworks      | Aixgo                    |
 | --------------- | ---------------------- | ------------------------ |
@@ -25,41 +28,46 @@ Python AI frameworks excel at prototyping but struggle in production. Aixgo is b
 - **13 Orchestration Patterns** - All production-proven patterns implemented
 - **6+ LLM Providers** - OpenAI, Anthropic, Gemini, xAI, Vertex AI, HuggingFace, plus local inference
 - **Session Persistence** - Built-in conversation memory with JSONL and Redis storage
-- **Enterprise Security** - 4 auth modes, RBAC, rate limiting, SSRF protection, comprehensive hardening
+- **Enterprise Security** - 4 auth modes, RBAC, rate limiting, SSRF protection, hardening
 - **Full Observability** - OpenTelemetry, Prometheus, Langfuse, cost tracking
 - **Cost Optimization** - 25-50% savings with Router pattern, 70% token reduction with RAG
 
-> 📖 **Complete Feature Catalog**: See [docs/FEATURES.md](docs/FEATURES.md) for all features with code references and technical details.
+> 📖 **Complete Feature Catalog**: See [docs/FEATURES.md](docs/FEATURES.md) for all features with code
+> references and technical details.
 
-### What's New in v0.5.0
+### What's New in v0.6.0
 
-**Public Provider API** - LLM providers now available as a public API for external projects:
+**Interactive Coding Assistant** - Multi-model chat interface with file operations, git integration, and cost tracking:
 
-```go
-import "github.com/aixgo-dev/aixgo/pkg/llm/provider"
+```bash
+# Start interactive session
+aixgo chat --model claude-3-5-sonnet
 
-// Create any provider directly
-openai, _ := provider.NewOpenAI(apiKey, "gpt-4-turbo")
-resp, _ := openai.Complete(ctx, &provider.Request{
-    Messages: []provider.Message{{Role: "user", Content: "Hello"}},
-})
+# Resume existing session
+aixgo session list
+aixgo session resume <id>
+
+# List available models with pricing
+aixgo models
 ```
 
-**Guided ReAct Workflows** - Step-by-step execution with LLM verification for improved reliability:
+**Key Features**:
 
-```yaml
-agents:
-  - name: processor
-    role: react
-    guided_config:
-      enabled: true
-      max_iterations: 5
-      verification_prompt: "Review results. Respond 'continue' or 'done'."
-```
+- 7+ LLM providers with mid-conversation model switching
+- File operations (read, write, glob, grep)
+- Git operations (status, diff, commit, log)
+- Terminal command execution with safety prompts
+- Real-time cost tracking per session
+- Session persistence and resume
 
-**Key Improvements** - 40-70% improved reliability with guided workflows, 30-50% reduced LLM calls through parallel tool execution.
+**CLI Modernization** - Cobra-based subcommands replacing flag-based interface:
 
-Read the full release notes: [v0.5.0 Release Blog Post](https://aixgo.dev/blog/v0-5-0-release/)
+- `aixgo run` - Run orchestrator from YAML config
+- `aixgo chat` - Interactive coding assistant
+- `aixgo session` - Session management
+- `aixgo models` - List models with pricing
+
+Read the full release notes: [v0.6.0 Release Blog Post](https://aixgo.dev/blog/v0-6-0-release/)
 
 ## Quick Start
 
@@ -79,7 +87,12 @@ This downloads only the Go framework source code (~2MB), not the website or docu
 
 #### CLI Binary
 
-The `aixgo` CLI runs agents from YAML configuration files.
+The `aixgo` CLI provides multiple capabilities:
+
+- **Agent orchestration** - Run multi-agent systems from YAML configs
+- **Interactive coding assistant** - Multi-model chat with file/git operations
+- **Session management** - Save and resume conversations
+- **Model information** - View available models and pricing
 
 **Option 1: Install via `go install`** (requires Go 1.26+):
 
@@ -121,7 +134,8 @@ This includes the full repository with website source (`web/`), examples, and do
 
 ### Setup
 
-Before running your agents, you need to configure API keys for LLM providers. Create a `.env` file in your project root (or set environment variables):
+Before running your agents, you need to configure API keys for LLM providers. Create a `.env` file in your
+project root (or set environment variables):
 
 ```bash
 # Copy the example environment file
@@ -201,6 +215,43 @@ go run main.go
 ```
 
 That's it! You now have a running multi-agent system with producer, analyzer, and logger agents orchestrated by a supervisor.
+
+### Interactive Coding Assistant
+
+Get started with the interactive chat assistant in seconds:
+
+```bash
+# Start a chat session
+aixgo chat
+
+# Use a specific model
+aixgo chat --model gpt-4o
+
+# Resume a previous session
+aixgo session list
+aixgo session resume <session-id>
+
+# View available models and pricing
+aixgo models
+```
+
+**What you can do**:
+
+- Ask coding questions and get instant answers
+- Read, write, and modify files with natural language
+- Execute git operations (status, diff, commit, log)
+- Run terminal commands with safety confirmations
+- Track costs in real-time per session
+- Switch models mid-conversation with `/model`
+
+**In-session commands**:
+
+- `/model <name>` - Switch to a different model
+- `/cost` - Show session cost summary
+- `/save` - Save the current session
+- `/clear` - Clear conversation history
+- `/help` - Show available commands
+- `/quit` - Exit and save session
 
 ## Use Cases
 
