@@ -322,13 +322,13 @@ func (cm *ContextManager) buildPrompt(window *ContextWindow) string {
 	if len(window.Tools) > 0 {
 		sb.WriteString("Available Tools:\n")
 		for _, tool := range window.Tools {
-			sb.WriteString(fmt.Sprintf("- %s: %s\n", tool.Name, tool.Description))
+			fmt.Fprintf(&sb, "- %s: %s\n", tool.Name, tool.Description)
 			if len(tool.Schema) > 0 {
 				cm.mu.RLock()
 				cachedSchema := cm.toolSchemaCache[fmt.Sprintf("%s:%s", tool.Name, tool.Description)]
 				cm.mu.RUnlock()
 				if cachedSchema != "" {
-					sb.WriteString(fmt.Sprintf("  Schema: %s\n", cachedSchema))
+					fmt.Fprintf(&sb, "  Schema: %s\n", cachedSchema)
 				}
 			}
 		}
@@ -339,11 +339,11 @@ func (cm *ContextManager) buildPrompt(window *ContextWindow) string {
 	for _, msg := range window.Messages {
 		switch msg.Role {
 		case "user":
-			sb.WriteString(fmt.Sprintf("User: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "User: %s\n\n", msg.Content)
 		case "assistant":
-			sb.WriteString(fmt.Sprintf("Assistant: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "Assistant: %s\n\n", msg.Content)
 		case "system":
-			sb.WriteString(fmt.Sprintf("%s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "%s\n\n", msg.Content)
 		}
 	}
 

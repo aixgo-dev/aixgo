@@ -29,10 +29,8 @@ func NewRenderer(config Config) *Renderer {
 		writer = os.Stdout
 	}
 
-	width := config.Width
-	if width == 0 {
-		width = 80
-	}
+	// Note: width currently unused but reserved for future glamour rendering
+	_ = config.Width
 
 	return &Renderer{
 		config: config,
@@ -55,8 +53,8 @@ func (r *Renderer) RenderStreaming(chunks <-chan string) error {
 			return err
 		}
 	}
-	fmt.Fprintln(r.writer)
-	return nil
+	_, err := fmt.Fprintln(r.writer)
+	return err
 }
 
 // RenderCode renders a code block with syntax highlighting.

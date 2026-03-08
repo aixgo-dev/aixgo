@@ -302,7 +302,7 @@ func grepFile(path string, re *regexp.Regexp) ([]GrepMatch, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var matches []GrepMatch
 	scanner := bufio.NewScanner(file)

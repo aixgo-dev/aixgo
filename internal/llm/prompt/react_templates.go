@@ -204,12 +204,12 @@ func (t *ReActTemplate) BuildPrompt(tools []Tool, messages []Message) string {
 	// Tools section with structured descriptions
 	sb.WriteString("## Available Tools\n\n")
 	for _, tool := range tools {
-		sb.WriteString(fmt.Sprintf("### %s\n", tool.Name))
-		sb.WriteString(fmt.Sprintf("Description: %s\n", tool.Description))
+		fmt.Fprintf(&sb, "### %s\n", tool.Name)
+		fmt.Fprintf(&sb, "Description: %s\n", tool.Description)
 		if len(tool.Schema) > 0 {
 			schemaJSON, err := json.MarshalIndent(tool.Schema, "", "  ")
 			if err == nil {
-				sb.WriteString(fmt.Sprintf("Parameters:\n```json\n%s\n```\n", string(schemaJSON)))
+				fmt.Fprintf(&sb, "Parameters:\n```json\n%s\n```\n", string(schemaJSON))
 			}
 		}
 		sb.WriteString("\n")
@@ -218,32 +218,32 @@ func (t *ReActTemplate) BuildPrompt(tools []Tool, messages []Message) string {
 	// Format instructions with examples
 	sb.WriteString("## Response Format\n\n")
 	sb.WriteString("You must follow this exact format for each step:\n\n")
-	sb.WriteString(fmt.Sprintf("%s[Your reasoning about what to do next]\n", t.OutputFormat.ThoughtPrefix))
-	sb.WriteString(fmt.Sprintf("%s[tool_name]\n", t.OutputFormat.ActionPrefix))
+	fmt.Fprintf(&sb, "%s[Your reasoning about what to do next]\n", t.OutputFormat.ThoughtPrefix)
+	fmt.Fprintf(&sb, "%s[tool_name]\n", t.OutputFormat.ActionPrefix)
 
 	if t.OutputFormat.JSONDelimiters {
-		sb.WriteString(fmt.Sprintf("%s```json\n{\"param1\": \"value1\", \"param2\": \"value2\"}\n```\n", t.OutputFormat.ActionInputPrefix))
+		fmt.Fprintf(&sb, "%s```json\n{\"param1\": \"value1\", \"param2\": \"value2\"}\n```\n", t.OutputFormat.ActionInputPrefix)
 	} else {
-		sb.WriteString(fmt.Sprintf("%sparam1=value1, param2=value2\n", t.OutputFormat.ActionInputPrefix))
+		fmt.Fprintf(&sb, "%sparam1=value1, param2=value2\n", t.OutputFormat.ActionInputPrefix)
 	}
 
-	sb.WriteString(fmt.Sprintf("%s[Tool output will appear here]\n", t.OutputFormat.ObservationPrefix))
+	fmt.Fprintf(&sb, "%s[Tool output will appear here]\n", t.OutputFormat.ObservationPrefix)
 	sb.WriteString("... (repeat as needed)\n")
-	sb.WriteString(fmt.Sprintf("%s[Your final response to the user]\n\n", t.OutputFormat.FinalAnswerPrefix))
+	fmt.Fprintf(&sb, "%s[Your final response to the user]\n\n", t.OutputFormat.FinalAnswerPrefix)
 
 	// Few-shot examples
 	if len(t.FewShotExamples) > 0 {
 		sb.WriteString("## Examples\n\n")
 		for i, example := range t.FewShotExamples {
-			sb.WriteString(fmt.Sprintf("### Example %d\n", i+1))
-			sb.WriteString(fmt.Sprintf("User: %s\n\n", example.Query))
-			sb.WriteString(fmt.Sprintf("%s%s\n", t.OutputFormat.ThoughtPrefix, example.Thought))
-			sb.WriteString(fmt.Sprintf("%s%s\n", t.OutputFormat.ActionPrefix, example.Action))
+			fmt.Fprintf(&sb, "### Example %d\n", i+1)
+			fmt.Fprintf(&sb, "User: %s\n\n", example.Query)
+			fmt.Fprintf(&sb, "%s%s\n", t.OutputFormat.ThoughtPrefix, example.Thought)
+			fmt.Fprintf(&sb, "%s%s\n", t.OutputFormat.ActionPrefix, example.Action)
 
 			if t.OutputFormat.JSONDelimiters {
 				inputJSON, err := json.MarshalIndent(example.ActionInput, "", "  ")
 				if err == nil {
-					sb.WriteString(fmt.Sprintf("%s```json\n%s\n```\n", t.OutputFormat.ActionInputPrefix, string(inputJSON)))
+					fmt.Fprintf(&sb, "%s```json\n%s\n```\n", t.OutputFormat.ActionInputPrefix, string(inputJSON))
 				}
 			} else {
 				// Simple key=value format for models that struggle with JSON
@@ -257,11 +257,11 @@ func (t *ReActTemplate) BuildPrompt(tools []Tool, messages []Message) string {
 				for _, k := range keys {
 					params = append(params, fmt.Sprintf("%s=%v", k, example.ActionInput[k]))
 				}
-				sb.WriteString(fmt.Sprintf("%s%s\n", t.OutputFormat.ActionInputPrefix, strings.Join(params, ", ")))
+				fmt.Fprintf(&sb, "%s%s\n", t.OutputFormat.ActionInputPrefix, strings.Join(params, ", "))
 			}
 
-			sb.WriteString(fmt.Sprintf("%s%s\n", t.OutputFormat.ObservationPrefix, example.Observation))
-			sb.WriteString(fmt.Sprintf("%s%s\n\n", t.OutputFormat.FinalAnswerPrefix, example.FinalAnswer))
+			fmt.Fprintf(&sb, "%s%s\n", t.OutputFormat.ObservationPrefix, example.Observation)
+			fmt.Fprintf(&sb, "%s%s\n\n", t.OutputFormat.FinalAnswerPrefix, example.FinalAnswer)
 		}
 	}
 
@@ -270,9 +270,9 @@ func (t *ReActTemplate) BuildPrompt(tools []Tool, messages []Message) string {
 	for _, msg := range messages {
 		switch msg.Role {
 		case "user":
-			sb.WriteString(fmt.Sprintf("User: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "User: %s\n\n", msg.Content)
 		case "assistant":
-			sb.WriteString(fmt.Sprintf("Assistant: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "Assistant: %s\n\n", msg.Content)
 		}
 	}
 

@@ -346,11 +346,11 @@ func (h *StructuredOutputHandler) buildStructuredPrompt(messages []Message, sche
 	for _, msg := range messages {
 		switch msg.Role {
 		case "system":
-			sb.WriteString(fmt.Sprintf("System: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "System: %s\n\n", msg.Content)
 		case "user":
-			sb.WriteString(fmt.Sprintf("User: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "User: %s\n\n", msg.Content)
 		case "assistant":
-			sb.WriteString(fmt.Sprintf("Assistant: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "Assistant: %s\n\n", msg.Content)
 		}
 	}
 

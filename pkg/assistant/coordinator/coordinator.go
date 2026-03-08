@@ -137,7 +137,7 @@ func (c *Coordinator) chatStreaming(ctx context.Context, messages []provider.Mes
 	if err != nil {
 		return nil, fmt.Errorf("streaming failed: %w", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	var content strings.Builder
 	var finishReason string
@@ -156,7 +156,7 @@ func (c *Coordinator) chatStreaming(ctx context.Context, messages []provider.Mes
 		if chunk.Delta != "" {
 			content.WriteString(chunk.Delta)
 			fmt.Print(chunk.Delta)
-			os.Stdout.Sync()
+			_ = os.Stdout.Sync()
 		}
 
 		if chunk.FinishReason != "" {
