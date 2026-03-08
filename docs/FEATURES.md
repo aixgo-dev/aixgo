@@ -5,7 +5,7 @@
 
 ---
 
-## 📖 Authoritative Feature Catalog
+## Authoritative Feature Catalog
 
 **This document is the complete, authoritative reference for ALL Aixgo features.** It is maintained as the single source of truth and is referenced by other projects and documentation.
 
@@ -33,18 +33,11 @@ This catalog contains:
 - **Observability Backends**: 6+ (Langfuse, Jaeger, Honeycomb, Grafana, New Relic, Datadog)
 - **Example Configurations**: 15+ production-ready examples
 
-**Key Performance Metrics**:
+**Typical Performance Characteristics** (measured on Apple M2 Max, Go 1.26, single-node):
 - Binary Size: <20MB
 - Cold Start: <100ms
 - Memory Footprint: ~50MB base
 - Concurrent Agents: 1000+
-- Infrastructure Savings: 60-70% vs Python frameworks
-
-**Cost Optimization**:
-- Router Pattern: 25-50% cost reduction
-- RAG Pattern: 70% token reduction
-- Local Inference: 100% API cost elimination
-- Automatic token counting and cost tracking
 
 ---
 

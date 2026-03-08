@@ -21,10 +21,16 @@ This repository contains essential documentation for contributors and developers
 
 ### Quick Reference
 
-- **[Pattern Catalog](PATTERNS.md)** - 9 orchestration patterns with examples
+- **[Pattern Catalog](PATTERNS.md)** - 13 orchestration patterns with examples
+- **[Features Reference](FEATURES.md)** - Complete feature catalog
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to aixgo
 - **[Testing Guide](TESTING_GUIDE.md)** - Testing strategies and utilities
 - **[Observability Guide](OBSERVABILITY.md)** - OpenTelemetry integration and tracing
+- **[Security Best Practices](SECURITY_BEST_PRACTICES.md)** - Security guidelines
+- **[Deployment Guide](DEPLOYMENT.md)** - Cloud Run, Kubernetes, Docker
+- **[HuggingFace + MCP](HUGGINGFACE_MCP.md)** - Local model integration with MCP tools
+- **[ReAct Optimization](REACT_OPTIMIZATION_GUIDE.md)** - Optimizing ReAct agents with small models
+- **[Sessions](SESSIONS.md)** - Session persistence API reference
 
 ### Additional Resources
 
@@ -59,5 +65,3 @@ Found a documentation issue? We welcome contributions:
 See our [Contributing Guide](CONTRIBUTING.md) for more details.
 
 ---
-
-**Production-grade AI agents in pure Go.**

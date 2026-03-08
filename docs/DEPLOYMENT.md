@@ -1,6 +1,6 @@
-# Deployment Infrastructure Guide
+# Deployment Guide
 
-This guide covers the complete deployment infrastructure for aixgo with HuggingFace + MCP integration.
+This guide covers deployment infrastructure for aixgo applications.
 
 ## Table of Contents
 
@@ -150,9 +150,9 @@ curl http://localhost:8080/metrics
 # Set environment variables
 export GCP_PROJECT_ID="your-project-id"
 export GCP_REGION="us-central1"
-export XAI_API_KEY="your-xai-key"
-export OPENAI_API_KEY="your-openai-key"
-export HUGGINGFACE_API_KEY="your-hf-key"
+export XAI_API_KEY="<your-xai-api-key>"
+export OPENAI_API_KEY="<your-openai-api-key>"
+export HUGGINGFACE_API_KEY="<your-huggingface-api-key>"
 
 # Deploy using gcloud
 gcloud run deploy aixgo-mcp \
@@ -284,9 +284,9 @@ gcloud container clusters get-credentials aixgo-cluster --region=us-central1
 export GCP_PROJECT_ID="your-project-id"
 export GKE_CLUSTER="aixgo-cluster"
 export GKE_ZONE="us-central1-a"
-export XAI_API_KEY="your-xai-key"
-export OPENAI_API_KEY="your-openai-key"
-export HUGGINGFACE_API_KEY="your-hf-key"
+export XAI_API_KEY="<your-xai-api-key>"
+export OPENAI_API_KEY="<your-openai-api-key>"
+export HUGGINGFACE_API_KEY="<your-huggingface-api-key>"
 
 # Get cluster credentials
 gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE

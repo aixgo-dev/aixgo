@@ -227,15 +227,17 @@ stops: ["Observation:", "User:", "<|end|>"]
 
 ## Performance Benchmarks
 
+The following metrics are approximate values observed during internal testing on Apple M2 Max with Ollama, using INT4 quantization. Results will vary based on hardware, model version, quantization level, and prompt design.
+
 ### Evaluation Metrics
 
 | Metric                 | Phi-3.5 Mini | Gemma 2B |
 | ---------------------- | ------------ | -------- |
-| Tool Call Success Rate | 85-90%       | 75-80%   |
-| Average Latency        | 1.2s         | 1.5s     |
-| JSON Parse Success     | 92%          | 78%      |
+| Tool Call Success Rate | ~85-90%      | ~75-80%  |
+| Average Latency        | ~1.2s        | ~1.5s    |
+| JSON Parse Success     | ~92%         | ~78%     |
 | Context Efficiency     | High         | Medium   |
-| Token Usage (avg)      | 180          | 220      |
+| Token Usage (avg)      | ~180         | ~220     |
 
 ### Benchmark Categories
 
@@ -388,22 +390,6 @@ log.Printf("Retry %d/%d for: %s", i, maxRetries, err)
 - Reduce max iterations
 - Use smaller model (Phi-3.5)
 - Implement request batching
-
-## Future Improvements
-
-### Short Term
-
-- [ ] Implement actual tokenizer for accurate counting
-- [ ] Add streaming support for better UX
-- [ ] Implement parallel tool execution
-- [ ] Add more comprehensive benchmarks
-
-### Long Term
-
-- [ ] Fine-tune models for ReAct specifically
-- [ ] Implement reinforcement learning from feedback
-- [ ] Add multi-agent coordination
-- [ ] Support for structured output (JSON mode)
 
 ## Conclusion
 

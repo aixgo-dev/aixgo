@@ -191,29 +191,26 @@ docker run -d aixgo:latest
 
 ## Model Selection Guide
 
-| Model            | Size | Context | Quality | Speed  | Recommended For  |
-| ---------------- | ---- | ------- | ------- | ------ | ---------------- |
-| **Phi-3.5 Mini** | 3.8B | 128K    | ★★★★☆   | Fast   | **Best overall** |
-| Gemma 2B         | 2.5B | 8K      | ★★★☆☆   | Faster | Simple tasks     |
-| Qwen2.5 3B       | 3B   | 32K     | ★★★★☆   | Fast   | Reasoning        |
-| Llama 3.2 3B     | 3B   | 128K    | ★★★★☆   | Medium | General purpose  |
+| Model            | Parameters | Context Window | Tool Calling Support | Notes |
+| ---------------- | ---------- | -------------- | -------------------- | ----- |
+| Phi-3.5 Mini     | 3.8B       | 128K           | ReAct prompting      | Strong instruction following |
+| Gemma 2B         | 2.5B       | 8K             | ReAct prompting      | Smaller context window |
+| Qwen2.5 3B       | 3B         | 32K            | ReAct prompting      | Good reasoning capability |
+| Llama 3.2 3B     | 3B         | 128K           | ReAct prompting      | General purpose |
 
-### Why Phi-3.5 Mini?
-
-- ✅ 128K context window (vs 8K for Gemma)
-- ✅ Better reasoning capabilities
-- ✅ Similar speed and size
-- ✅ Handles complex tool calling better
+Model choice depends on your context window requirements, available hardware, and task complexity. See [REACT_OPTIMIZATION_GUIDE.md](REACT_OPTIMIZATION_GUIDE.md) for detailed benchmarks.
 
 ## Tool Calling Reliability
 
 ### Expected Success Rates
 
-| Model        | Native Function Calling | ReAct Success Rate | Notes           |
-| ------------ | ----------------------- | ------------------ | --------------- |
-| GPT-4        | ✅ Yes                  | 99%                | Native support  |
-| Phi-3.5 Mini | ❌ No                   | 80-85%             | Good with ReAct |
-| Gemma 2B     | ❌ No                   | 70-80%             | More errors     |
+Models without native function calling use ReAct prompting for tool invocation. Success rates vary by task complexity, prompt engineering, and model version. The following are approximate ranges observed during internal testing (not formal benchmarks):
+
+| Model        | Native Function Calling | Approximate ReAct Success Rate | Notes           |
+| ------------ | ----------------------- | ------------------------------ | --------------- |
+| GPT-4        | Yes                     | ~99%                           | Native support  |
+| Phi-3.5 Mini | No                      | ~80-85%                        | ReAct prompting |
+| Gemma 2B     | No                      | ~70-80%                        | ReAct prompting |
 
 ### Improving Reliability
 

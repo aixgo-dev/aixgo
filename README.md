@@ -9,20 +9,7 @@ dependencies.
 **[Documentation](https://aixgo.dev)** | **[Quick Start](#quick-start)** | **[Features](docs/FEATURES.md)** |
 **[Examples](examples/)** | **[Contributing](docs/CONTRIBUTING.md)**
 
-## Why Aixgo?
-
-Python AI frameworks excel at prototyping but struggle in production. Aixgo is built for systems that ship,
-scale, and stay running.
-
-| Dimension       | Python Frameworks      | Aixgo                    |
-| --------------- | ---------------------- | ------------------------ |
-| **Deployment**  | 1GB+ containers        | <20MB binary             |
-| **Cold Start**  | 10-45 seconds          | <100ms                   |
-| **Type Safety** | Runtime errors         | Compile-time checks      |
-| **Concurrency** | GIL limitations        | True parallelism         |
-| **Scaling**     | Manual queues/services | Built-in channels → gRPC |
-
-### Key Features
+## Key Features
 
 - **6 Agent Types** - ReAct, Classifier, Aggregator, Planner, Producer, Logger
 - **13 Orchestration Patterns** - All production-proven patterns implemented
@@ -30,44 +17,7 @@ scale, and stay running.
 - **Session Persistence** - Built-in conversation memory with JSONL and Redis storage
 - **Enterprise Security** - 4 auth modes, RBAC, rate limiting, SSRF protection, hardening
 - **Full Observability** - OpenTelemetry, Prometheus, Langfuse, cost tracking
-- **Cost Optimization** - 25-50% savings with Router pattern, 70% token reduction with RAG
-
-> 📖 **Complete Feature Catalog**: See [docs/FEATURES.md](docs/FEATURES.md) for all features with code
-> references and technical details.
-
-### What's New in v0.6.0
-
-**Interactive Coding Assistant** - Multi-model chat interface with file operations, git integration, and cost tracking:
-
-```bash
-# Start interactive session
-aixgo chat --model claude-3-5-sonnet
-
-# Resume existing session
-aixgo session list
-aixgo session resume <id>
-
-# List available models with pricing
-aixgo models
-```
-
-**Key Features**:
-
-- 7+ LLM providers with mid-conversation model switching
-- File operations (read, write, glob, grep)
-- Git operations (status, diff, commit, log)
-- Terminal command execution with safety prompts
-- Real-time cost tracking per session
-- Session persistence and resume
-
-**CLI Modernization** - Cobra-based subcommands replacing flag-based interface:
-
-- `aixgo run` - Run orchestrator from YAML config
-- `aixgo chat` - Interactive coding assistant
-- `aixgo session` - Session management
-- `aixgo models` - List models with pricing
-
-Read the full release notes: [v0.6.0 Release Blog Post](https://aixgo.dev/blog/v0-6-0-release/)
+> See [docs/FEATURES.md](docs/FEATURES.md) for the complete feature catalog with code references.
 
 ## Quick Start
 
@@ -216,50 +166,6 @@ go run main.go
 
 That's it! You now have a running multi-agent system with producer, analyzer, and logger agents orchestrated by a supervisor.
 
-### Interactive Coding Assistant
-
-Get started with the interactive chat assistant in seconds:
-
-```bash
-# Start a chat session
-aixgo chat
-
-# Use a specific model
-aixgo chat --model gpt-4o
-
-# Resume a previous session
-aixgo session list
-aixgo session resume <session-id>
-
-# View available models and pricing
-aixgo models
-```
-
-**What you can do**:
-
-- Ask coding questions and get instant answers
-- Read, write, and modify files with natural language
-- Execute git operations (status, diff, commit, log)
-- Run terminal commands with safety confirmations
-- Track costs in real-time per session
-- Switch models mid-conversation with `/model`
-
-**In-session commands**:
-
-- `/model <name>` - Switch to a different model
-- `/cost` - Show session cost summary
-- `/save` - Save the current session
-- `/clear` - Clear conversation history
-- `/help` - Show available commands
-- `/quit` - Exit and save session
-
-## Use Cases
-
-- **Data Pipelines** - Add AI enrichment to high-throughput ETL workflows
-- **API Services** - Production AI endpoints with Go's performance
-- **Edge Deployment** - Run AI agents on resource-constrained devices
-- **Multi-Agent Systems** - Coordinate complex workflows with supervisor patterns
-
 ## Architecture
 
 Aixgo provides a flexible, layered architecture:
@@ -287,7 +193,7 @@ Aixgo provides a flexible, layered architecture:
 
 - **[FEATURES.md](docs/FEATURES.md)** - Complete feature catalog with code references
 - **[PATTERNS.md](docs/PATTERNS.md)** - 13 orchestration patterns with examples
-- **[SECURITY_BEST_PRACTICES.md](docs/SECURITY_BEST_PRACTICES.md)** - Security guidelines
+- **[SECURITY_BEST_PRACTICES.md](docs/SECURITY_BEST_PRACTICES.md)** - Security best practices
 - **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Cloud Run, Kubernetes, Docker
 - **[OBSERVABILITY.md](docs/OBSERVABILITY.md)** - OpenTelemetry and cost tracking
 - **[API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo)** - GoDoc documentation
@@ -337,5 +243,3 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Production-grade AI agents in pure Go.**
-
-Build AI agents that ship with the same performance, security, and operational simplicity as the rest of your Go stack.
