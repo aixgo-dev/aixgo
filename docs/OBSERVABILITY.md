@@ -16,7 +16,7 @@ OpenTelemetry-compatible backend.
 
 ## Quick Start with Langfuse
 
-Langfuse is a powerful LLM observability platform that helps you trace, analyze, and debug AI agent workflows.
+Langfuse is an open-source LLM observability platform for tracing, analyzing, and debugging AI agent workflows.
 
 ### 1. Get Your Langfuse API Keys
 

@@ -76,7 +76,7 @@ Built something with aixgo? Share it!
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.26 or later
 - Git
 - Make (optional, for convenience commands)
 
@@ -164,7 +164,7 @@ golangci-lint run
 - Add godoc comments for exported functions and types
 - Update README.md if adding features
 - Add examples if introducing new patterns
-- Update CHANGELOG.md (if we have one)
+- Update relevant documentation
 
 ### 6. Submit Pull Request
 

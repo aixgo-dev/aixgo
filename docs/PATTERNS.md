@@ -1245,6 +1245,6 @@ Planned for future releases:
 
 ---
 
-**Questions?** See [FAQ](./FAQ.md) or [open an issue](https://github.com/aixgo-dev/aixgo/issues).
+**Questions?** [Open an issue](https://github.com/aixgo-dev/aixgo/issues) or start a [discussion](https://github.com/aixgo-dev/aixgo/discussions).
 
 **Want to contribute?** See [CONTRIBUTING](./CONTRIBUTING.md) for pattern implementation guidelines.

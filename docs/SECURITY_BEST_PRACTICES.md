@@ -1,6 +1,6 @@
-# Security Best Practices for aixgo Development
+# Security Best Practices
 
-This document outlines security best practices for developing and deploying the aixgo HuggingFace + MCP integration.
+This document outlines security best practices for developing and deploying aixgo applications.
 
 ---
 
