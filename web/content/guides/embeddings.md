@@ -1,6 +1,7 @@
 ---
 title: 'Embeddings in Aixgo'
 description: 'Complete guide to choosing and using embedding providers for RAG, semantic search, and similarity matching'
+category: 'RAG & Embeddings'
 weight: 5
 ---
 

@@ -1,6 +1,7 @@
 ---
 title: 'Extending Aixgo'
 description: 'Guide to adding custom LLM providers, vector databases, and embedding services'
+category: 'Advanced'
 weight: 7
 ---
 

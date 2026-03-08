@@ -346,9 +346,10 @@ categories:
       - title: "CLI & Developer Tools"
         features:
           - name: "Interactive Chat Assistant"
-            status: "complete"
+            status: "in_progress"
             tooltip:
-              content: "Multi-model coding assistant with file operations (read/write/glob/grep), git integration (status/diff/commit/log), terminal execution, and real-time cost tracking. Switch models mid-conversation, save/resume sessions, stream responses with markdown rendering."
+              content: "Alpha: Multi-model coding assistant with basic file operations (read/write/glob/grep), git integration (status/diff/commit/log), and terminal execution. Early development with core features working—more capabilities coming soon."
+              roadmap: "Planned: MCP tool integration, code refactoring tools, test generation, project scaffolding, and IDE integration."
           - name: "Session Management"
             status: "complete"
             tooltip:

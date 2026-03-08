@@ -1,6 +1,7 @@
 ---
 title: "Session Persistence"
 description: "Build AI agents that remember with built-in session persistence, checkpoints, and multiple storage backends"
+category: "Tools"
 weight: 8
 ---
 

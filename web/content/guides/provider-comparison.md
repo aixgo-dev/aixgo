@@ -1,6 +1,7 @@
 ---
 title: 'Provider Comparison'
 description: 'Compare vectorstore and embedding providers to choose the right stack'
+category: 'Reference'
 weight: 9
 ---
 

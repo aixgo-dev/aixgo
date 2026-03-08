@@ -1,6 +1,7 @@
 ---
 title: 'Vector Databases in Aixgo'
 description: 'Complete guide to building RAG systems with vector databases and embeddings'
+category: 'RAG & Embeddings'
 weight: 4
 ---
 

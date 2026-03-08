@@ -1,6 +1,7 @@
 ---
 title: 'Using Public Interfaces'
 description: 'Build custom agents and integrate Aixgo into existing Go applications with the public agent package'
+category: 'Advanced'
 weight: 8
 ---
 
