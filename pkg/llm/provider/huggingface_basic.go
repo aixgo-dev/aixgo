@@ -223,10 +223,10 @@ func (p *HuggingFaceProvider) buildReActPrompt(messages []Message, tools []Tool)
 
 	allTools := p.toolRegistry.ListTools()
 	for _, tool := range allTools {
-		sb.WriteString(fmt.Sprintf("- %s: %s\n", tool.Name, tool.Description))
+		fmt.Fprintf(&sb, "- %s: %s\n", tool.Name, tool.Description)
 		if len(tool.Schema) > 0 {
 			schemaJSON, _ := json.Marshal(tool.Schema)
-			sb.WriteString(fmt.Sprintf("  Input schema: %s\n", string(schemaJSON)))
+			fmt.Fprintf(&sb, "  Input schema: %s\n", string(schemaJSON))
 		}
 	}
 
@@ -243,9 +243,9 @@ func (p *HuggingFaceProvider) buildReActPrompt(messages []Message, tools []Tool)
 	for _, msg := range messages {
 		switch msg.Role {
 		case "user":
-			sb.WriteString(fmt.Sprintf("User: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "User: %s\n\n", msg.Content)
 		case "assistant":
-			sb.WriteString(fmt.Sprintf("Assistant: %s\n\n", msg.Content))
+			fmt.Fprintf(&sb, "Assistant: %s\n\n", msg.Content)
 		}
 	}
 

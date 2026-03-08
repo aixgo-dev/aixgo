@@ -59,19 +59,19 @@ func Select(question string, options []Option) (string, error) {
 
 // Select prompts the user to select one option from a list.
 func (p *Prompter) Select(question string, options []Option) (string, error) {
-	fmt.Fprintln(p.out)
-	fmt.Fprintln(p.out, question)
-	fmt.Fprintln(p.out)
+	_, _ = fmt.Fprintln(p.out)
+	_, _ = fmt.Fprintln(p.out, question)
+	_, _ = fmt.Fprintln(p.out)
 
 	for i, opt := range options {
-		fmt.Fprintf(p.out, "  %d. %s\n", i+1, opt.Label)
+		_, _ = fmt.Fprintf(p.out, "  %d. %s\n", i+1, opt.Label)
 		if opt.Description != "" {
-			fmt.Fprintf(p.out, "     %s\n", opt.Description)
+			_, _ = fmt.Fprintf(p.out, "     %s\n", opt.Description)
 		}
 	}
 
-	fmt.Fprintln(p.out)
-	fmt.Fprint(p.out, "Enter your choice (1-", len(options), "): ")
+	_, _ = fmt.Fprintln(p.out)
+	_, _ = fmt.Fprint(p.out, "Enter your choice (1-", len(options), "): ")
 
 	reader := bufio.NewReader(p.in)
 	input, err := reader.ReadString('\n')
@@ -95,7 +95,7 @@ func (p *Prompter) Select(question string, options []Option) (string, error) {
 
 	// If "Other" selected, prompt for custom input
 	if selected.Value == "" {
-		fmt.Fprint(p.out, "Enter model name: ")
+		_, _ = fmt.Fprint(p.out, "Enter model name: ")
 		input, err = reader.ReadString('\n')
 		if err != nil {
 			return "", fmt.Errorf("failed to read input: %w", err)
@@ -113,20 +113,20 @@ func MultiSelect(question string, options []Option) ([]string, error) {
 
 // MultiSelect prompts the user to select multiple options.
 func (p *Prompter) MultiSelect(question string, options []Option) ([]string, error) {
-	fmt.Fprintln(p.out)
-	fmt.Fprintln(p.out, question)
-	fmt.Fprintln(p.out, "(Enter comma-separated numbers, e.g., 1,3,4)")
-	fmt.Fprintln(p.out)
+	_, _ = fmt.Fprintln(p.out)
+	_, _ = fmt.Fprintln(p.out, question)
+	_, _ = fmt.Fprintln(p.out, "(Enter comma-separated numbers, e.g., 1,3,4)")
+	_, _ = fmt.Fprintln(p.out)
 
 	for i, opt := range options {
-		fmt.Fprintf(p.out, "  %d. %s\n", i+1, opt.Label)
+		_, _ = fmt.Fprintf(p.out, "  %d. %s\n", i+1, opt.Label)
 		if opt.Description != "" {
-			fmt.Fprintf(p.out, "     %s\n", opt.Description)
+			_, _ = fmt.Fprintf(p.out, "     %s\n", opt.Description)
 		}
 	}
 
-	fmt.Fprintln(p.out)
-	fmt.Fprint(p.out, "Your choices: ")
+	_, _ = fmt.Fprintln(p.out)
+	_, _ = fmt.Fprint(p.out, "Your choices: ")
 
 	reader := bufio.NewReader(p.in)
 	input, err := reader.ReadString('\n')
@@ -157,7 +157,7 @@ func Confirm(question string) (bool, error) {
 
 // Confirm prompts the user for a yes/no confirmation.
 func (p *Prompter) Confirm(question string) (bool, error) {
-	fmt.Fprintf(p.out, "%s (y/N): ", question)
+	_, _ = fmt.Fprintf(p.out, "%s (y/N): ", question)
 
 	reader := bufio.NewReader(p.in)
 	input, err := reader.ReadString('\n')
@@ -176,7 +176,7 @@ func Input(prompt string) (string, error) {
 
 // Input prompts the user for free text input.
 func (p *Prompter) Input(prompt string) (string, error) {
-	fmt.Fprint(p.out, prompt)
+	_, _ = fmt.Fprint(p.out, prompt)
 
 	reader := bufio.NewReader(p.in)
 	input, err := reader.ReadString('\n')
@@ -195,9 +195,9 @@ func InputWithDefault(prompt, defaultValue string) (string, error) {
 // InputWithDefault prompts for input with a default value.
 func (p *Prompter) InputWithDefault(prompt, defaultValue string) (string, error) {
 	if defaultValue != "" {
-		fmt.Fprintf(p.out, "%s [%s]: ", prompt, defaultValue)
+		_, _ = fmt.Fprintf(p.out, "%s [%s]: ", prompt, defaultValue)
 	} else {
-		fmt.Fprintf(p.out, "%s: ", prompt)
+		_, _ = fmt.Fprintf(p.out, "%s: ", prompt)
 	}
 
 	reader := bufio.NewReader(p.in)
@@ -223,7 +223,7 @@ func Password(prompt string) (string, error) {
 
 // Password prompts for password input (no echo).
 func (p *Prompter) Password(prompt string) (string, error) {
-	fmt.Fprint(p.out, prompt)
+	_, _ = fmt.Fprint(p.out, prompt)
 
 	reader := bufio.NewReader(p.in)
 	input, err := reader.ReadString('\n')
@@ -241,10 +241,10 @@ func ConfirmAction(action, description string) (bool, error) {
 
 // ConfirmAction prompts for confirmation with a description.
 func (p *Prompter) ConfirmAction(action, description string) (bool, error) {
-	fmt.Fprintln(p.out)
-	fmt.Fprintf(p.out, "Action: %s\n", action)
+	_, _ = fmt.Fprintln(p.out)
+	_, _ = fmt.Fprintf(p.out, "Action: %s\n", action)
 	if description != "" {
-		fmt.Fprintf(p.out, "Description: %s\n", description)
+		_, _ = fmt.Fprintf(p.out, "Description: %s\n", description)
 	}
 	return p.Confirm("Proceed?")
 }
@@ -256,10 +256,10 @@ func ConfirmDangerous(action string) (bool, error) {
 
 // ConfirmDangerous prompts for confirmation of a dangerous action.
 func (p *Prompter) ConfirmDangerous(action string) (bool, error) {
-	fmt.Fprintln(p.out)
-	fmt.Fprintln(p.out, "⚠️  DANGEROUS ACTION")
-	fmt.Fprintf(p.out, "This will: %s\n", action)
-	fmt.Fprintln(p.out)
+	_, _ = fmt.Fprintln(p.out)
+	_, _ = fmt.Fprintln(p.out, "⚠️  DANGEROUS ACTION")
+	_, _ = fmt.Fprintf(p.out, "This will: %s\n", action)
+	_, _ = fmt.Fprintln(p.out)
 
 	confirmation, err := p.Input("Type 'yes' to confirm: ")
 	if err != nil {

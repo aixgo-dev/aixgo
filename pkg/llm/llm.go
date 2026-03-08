@@ -191,7 +191,7 @@ func (c *AnthropicClient) Chat(ctx context.Context, messages []Message, opts ...
 		if i > 0 {
 			prompt.WriteString("\n\n")
 		}
-		prompt.WriteString(fmt.Sprintf("%s: %s", msg.Role, msg.Content))
+		fmt.Fprintf(&prompt, "%s: %s", msg.Role, msg.Content)
 	}
 
 	return c.Complete(ctx, prompt.String(), opts...)

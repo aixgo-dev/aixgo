@@ -192,10 +192,9 @@ func TestNewWithInvalidProvider(t *testing.T) {
 	// New will fail because the provider doesn't exist
 	_, err := New(config)
 	// We expect an error because no provider factory is registered for this model
-	if err == nil {
-		// If it doesn't fail, that's also acceptable as the provider
-		// system might have fallback behavior
-	}
+	// If it doesn't fail, that's also acceptable as the provider
+	// system might have fallback behavior
+	_ = err
 }
 
 func TestCoordinatorWithMockProvider(t *testing.T) {
@@ -257,9 +256,7 @@ func TestCoordinatorWithMockProvider(t *testing.T) {
 		err := coord.SetModel("mock-model")
 		// This will fail because mock-model doesn't have a registered factory
 		// but that's expected - we're just testing the flow
-		if err != nil {
-			// Expected
-		}
+		_ = err
 	})
 }
 

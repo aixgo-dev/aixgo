@@ -27,7 +27,7 @@ func TestManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create manager with custom sessions dir
 	mgr := &Manager{
@@ -118,7 +118,7 @@ func TestManager(t *testing.T) {
 		// Clear existing sessions
 		entries, _ := os.ReadDir(tmpDir)
 		for _, e := range entries {
-			os.Remove(filepath.Join(tmpDir, e.Name()))
+			_ = os.Remove(filepath.Join(tmpDir, e.Name()))
 		}
 
 		// Create multiple sessions
@@ -289,7 +289,7 @@ func TestManager_EmptyDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	mgr := &Manager{sessionsDir: tmpDir}
 
@@ -307,7 +307,7 @@ func TestManager_NotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	mgr := &Manager{sessionsDir: tmpDir}
 
@@ -322,7 +322,7 @@ func TestManager_DeleteNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	mgr := &Manager{sessionsDir: tmpDir}
 
