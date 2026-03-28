@@ -1,6 +1,6 @@
 ---
 title: 'Provider Integration Guide'
-description: 'Integrate Aixgo with OpenAI, Anthropic, Google Vertex AI, HuggingFace, Ollama (local), and vector databases.'
+description: 'Integrate Aixgo with OpenAI, Anthropic, Google Vertex AI, Amazon Bedrock, HuggingFace, Ollama (local), and vector databases.'
 breadcrumb: 'Reference'
 category: 'Reference'
 weight: 11
@@ -17,6 +17,7 @@ weight: 11
 | Google Gemini      | {{< status-badge status="available" >}} | GenerateContent API, streaming SSE, function calling      |
 | xAI (Grok)         | {{< status-badge status="available" >}} | Chat, streaming SSE, function calling (OpenAI-compatible) |
 | Vertex AI          | {{< status-badge status="available" >}} | Google Cloud AI Platform, streaming SSE, function calling |
+| Amazon Bedrock     | {{< status-badge status="available" >}} | Claude, Llama, Nova, Titan via AWS, Converse API          |
 | HuggingFace        | {{< status-badge status="available" >}} | Free Inference API, cloud backends                        |
 | Ollama             | {{< status-badge status="available" >}} | Local models, zero costs, enterprise SSRF protection, hybrid fallback |
 
@@ -701,6 +702,89 @@ export XAI_API_KEY=xai-...
 - ✅ Tool calling
 - ✅ Long context window
 
+### Amazon Bedrock
+
+Amazon Bedrock provides access to foundation models from multiple providers through a single AWS API.
+
+**Supported models:**
+
+| Provider  | Models                                                          |
+| --------- | --------------------------------------------------------------- |
+| Anthropic | `anthropic.claude-3-5-sonnet-20240620-v1:0`, `anthropic.claude-3-haiku-20240307-v1:0`, `anthropic.claude-3-opus-20240229-v1:0` |
+| Amazon    | `amazon.nova-pro-v1:0`, `amazon.nova-lite-v1:0`, `amazon.nova-micro-v1:0` |
+| Meta      | `meta.llama3-70b-instruct-v1:0`, `meta.llama3-8b-instruct-v1:0` |
+| Mistral   | `mistral.mistral-large-2407-v1:0`                               |
+| Amazon    | `amazon.titan-text-express-v1`, `amazon.titan-text-lite-v1`     |
+
+**Configuration:**
+
+```yaml
+agents:
+  - name: analyst
+    role: react
+    model: anthropic.claude-3-5-sonnet-20240620-v1:0
+    provider: bedrock
+```
+
+**Environment variables:**
+
+```bash
+# AWS Region (required)
+export AWS_REGION=us-east-1
+
+# Option 1: Access keys
+export AWS_ACCESS_KEY_ID=AKIA...
+export AWS_SECRET_ACCESS_KEY=...
+
+# Option 2: Named profile
+export AWS_PROFILE=my-profile
+
+# Option 3: IAM role (for EC2/ECS/EKS) - no env vars needed
+```
+
+**Go code:**
+
+```go
+import "github.com/aixgo-dev/aixgo/pkg/llm/provider"
+
+p, err := provider.CreateProvider("bedrock", map[string]any{
+    "region": "us-east-1",
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+resp, err := p.CreateCompletion(ctx, provider.CompletionRequest{
+    Model: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    Messages: []provider.Message{
+        {Role: "user", Content: "Explain Go interfaces"},
+    },
+})
+```
+
+**Features:**
+
+- ✅ Multi-model access via single API
+- ✅ Unified Converse API for all models
+- ✅ Streaming responses (ConverseStream)
+- ✅ Tool calling
+- ✅ Structured output
+- ✅ AWS IAM authentication
+- ✅ VPC endpoints for private connectivity
+- ✅ Guardrails integration
+
+**Pricing (per 1M tokens):**
+
+| Model                    | Input    | Output   |
+| ------------------------ | -------- | -------- |
+| Claude 3.5 Sonnet        | $3.00    | $15.00   |
+| Claude 3 Haiku           | $0.25    | $1.25    |
+| Amazon Nova Pro          | $0.80    | $3.20    |
+| Amazon Nova Lite         | $0.06    | $0.24    |
+| Llama 3 70B              | $2.65    | $3.50    |
+
+**See also:** [AWS Bedrock Guide](/guides/aws-bedrock/) for comprehensive setup and production deployment.
+
 ## Provider Comparison
 
 | Provider          | Best For                          | Context Length | Tool Support | Cost      |
@@ -708,6 +792,7 @@ export XAI_API_KEY=xai-...
 | **OpenAI**        | General purpose, function calling | 128K tokens    | ✅ Excellent | $$$       |
 | **Anthropic**     | Long documents, safety            | 200K tokens    | ✅ Excellent | $$$$      |
 | **Google Vertex** | Multimodal, grounding             | 2M tokens      | ✅ Good      | $$        |
+| **Amazon Bedrock**| Multi-model access, enterprise    | 200K tokens    | ✅ Excellent | $$ - $$$$ |
 | **HuggingFace**   | Open source, custom models        | Varies         | ⚠️ Limited   | $         |
 | **xAI**           | Real-time info, research          | 128K tokens    | ✅ Good      | $$$       |
 | **Ollama**        | Local inference, data privacy     | Varies (4K-32K)| ⚠️ Limited   | Free      |

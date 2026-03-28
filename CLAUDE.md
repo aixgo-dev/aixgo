@@ -37,7 +37,7 @@ Aixgo is a **production-grade AI agent framework for Go** enabling secure, scala
 
 - **13 orchestration patterns** - Supervisor, Sequential, Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier, Aggregation, Planning, MapReduce
 - **6 agent types** - ReAct, Classifier, Aggregator, Planner, Producer, Logger
-- **7+ LLM providers** - OpenAI, Anthropic, Gemini, xAI, Vertex AI, HuggingFace, + inference services (Ollama, vLLM)
+- **8+ LLM providers** - OpenAI, Anthropic, Gemini, xAI, Vertex AI, Amazon Bedrock, HuggingFace, + inference services (Ollama, vLLM)
 - **Validation retry** - Pydantic AI-style structured output validation with automatic retry (40-70% improved reliability)
 - **MCP support** - Model Context Protocol for tool calling (local, gRPC, multi-server)
 
@@ -360,18 +360,24 @@ agents:
 **Producer** (`agents/producer.go`): Message generation at intervals
 **Logger** (`agents/logger.go`): Message logging
 
-### LLM Providers (7+)
+### LLM Providers (8+)
 
-**Supported**: OpenAI, Anthropic (Claude), Google Gemini, xAI (Grok), Vertex AI, HuggingFace
+**Supported**: OpenAI, Anthropic (Claude), Google Gemini, xAI (Grok), Vertex AI, Amazon Bedrock, HuggingFace
 
 **Provider Selection** (automatic by model prefix):
 - `gpt-*` → OpenAI
-- `claude-*` → Anthropic
+- `claude-*` → Anthropic (direct API)
 - `gemini-*` → Google Gemini
 - `grok-*`, `xai-*` → xAI
+- `bedrock/`, `anthropic.`, `amazon.`, `meta.`, `mistral.`, `cohere.`, `ai21.` → Amazon Bedrock
 - `meta-llama/*`, `mistralai/*` → HuggingFace
 
-**Code**: `internal/llm/provider/<provider>.go`
+**Amazon Bedrock Environment Variables**:
+- `AWS_REGION` / `AWS_DEFAULT_REGION` (default: us-east-1)
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (or IAM role)
+- `AWS_PROFILE` (optional)
+
+**Code**: `pkg/llm/provider/<provider>.go`
 
 ### Orchestration Patterns
 

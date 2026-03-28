@@ -26,7 +26,7 @@ This catalog contains:
 
 **Core Statistics**:
 - **Agent Types**: 6 (ReAct, Classifier, Aggregator, Planner, Producer, Logger)
-- **LLM Providers**: 6+ (OpenAI, Anthropic, Gemini, xAI, Vertex AI, HuggingFace)
+- **LLM Providers**: 7+ (OpenAI, Anthropic, Gemini, xAI, Vertex AI, Amazon Bedrock, HuggingFace)
 - **Orchestration Patterns**: 13 (All implemented, 2 in roadmap)
 - **Deployment Options**: 5+ (Binary, Docker, K8s, Cloud Run, Distributed)
 - **Security Modes**: 4 (Disabled, Delegated, Builtin, Hybrid)
@@ -520,6 +520,47 @@ agents:
 **Authentication**: Google Cloud credentials
 
 **Keywords**: vertex ai, google cloud, enterprise, gemini, iam
+
+### Amazon Bedrock
+
+**Status**: ✅ Implemented
+**Code**: `pkg/llm/provider/bedrock.go`
+
+| Feature | Status |
+|---------|--------|
+| Multi-Model Access (Claude, Llama, Nova, Titan, Mistral) | ✅ |
+| Converse API (unified messaging) | ✅ |
+| Streaming (ConverseStream) | ✅ |
+| Tool Calling | ✅ |
+| Structured Output | ✅ |
+| AWS IAM Authentication | ✅ |
+| Cross-Region Support | ✅ |
+| Retry with Exponential Backoff | ✅ |
+
+**Supported Models**:
+- **Anthropic Claude**: claude-3-5-sonnet, claude-3-haiku, claude-3-opus
+- **Amazon Nova**: nova-pro, nova-lite, nova-micro
+- **Meta Llama**: llama3-70b, llama3-8b, llama4 series
+- **Mistral**: mistral-large
+- **Amazon Titan**: titan-text-express, titan-text-lite
+- **Cohere**: command-r, command-r-plus
+- **AI21**: jamba-1-5-large, jamba-1-5-mini
+
+**Configuration Example**:
+```yaml
+agents:
+  - name: analyst
+    role: react
+    model: anthropic.claude-3-5-sonnet-20240620-v1:0
+    provider: bedrock
+```
+
+**Environment Variables**:
+- `AWS_REGION` / `AWS_DEFAULT_REGION`
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (or IAM role)
+- `AWS_PROFILE` (optional)
+
+**Keywords**: amazon bedrock, aws, claude on bedrock, nova, llama, enterprise ai, iam authentication
 
 ### HuggingFace
 
@@ -1433,7 +1474,7 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 ### By Keyword
 
 **Agent**: ReAct, Classifier, Aggregator, Planner, Producer, Logger
-**LLM**: OpenAI, Anthropic, Gemini, xAI, Vertex AI, HuggingFace, Ollama
+**LLM**: OpenAI, Anthropic, Gemini, xAI, Vertex AI, Amazon Bedrock, HuggingFace, Ollama
 **Pattern**: Supervisor, Sequential, Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier, Aggregation, Planning, MapReduce
 **Security**: Authentication, Authorization, RBAC, Rate Limiting, Input Validation, Prompt Injection, SSRF, Audit Logging
 **Observability**: OpenTelemetry, Langfuse, Prometheus, Health Checks, Cost Tracking, Distributed Tracing

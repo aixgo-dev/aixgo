@@ -113,6 +113,12 @@ func (a *ModelAggregator) getAvailableProviders() map[string]map[string]any {
 		providers["xai"] = map[string]any{}
 	}
 
+	// Check AWS/Bedrock (credentials can come from environment, IAM role, or config file)
+	// We check for common AWS credential environment variables
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" || os.Getenv("AWS_PROFILE") != "" || os.Getenv("AWS_ROLE_ARN") != "" {
+		providers["bedrock"] = map[string]any{}
+	}
+
 	return providers
 }
 
@@ -144,6 +150,9 @@ func GetAvailableProviderNames() []string {
 	}
 	if os.Getenv("XAI_API_KEY") != "" {
 		names = append(names, "xai")
+	}
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" || os.Getenv("AWS_PROFILE") != "" || os.Getenv("AWS_ROLE_ARN") != "" {
+		names = append(names, "bedrock")
 	}
 
 	return names

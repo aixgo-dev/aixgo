@@ -109,6 +109,21 @@ func CreateProvider(name string, config map[string]any) (Provider, error) {
 
 // DetectProvider detects the provider type from model name
 func DetectProvider(model string) string {
+	// Check for Bedrock prefix
+	if len(model) >= 8 && model[:8] == "bedrock/" {
+		return "bedrock"
+	}
+
+	// Check for Bedrock model ID patterns (provider.model-name format)
+	bedrockPrefixes := []string{
+		"anthropic.", "amazon.", "meta.", "mistral.", "cohere.", "ai21.",
+	}
+	for _, prefix := range bedrockPrefixes {
+		if len(model) >= len(prefix) && model[:len(prefix)] == prefix {
+			return "bedrock"
+		}
+	}
+
 	// Check for HuggingFace model patterns
 	hfPatterns := []string{
 		"meta-llama/", "mistralai/", "tiiuae/", "EleutherAI/",
@@ -129,7 +144,7 @@ func DetectProvider(model string) string {
 		}
 	}
 
-	// Check for Anthropic models
+	// Check for Anthropic models (direct API, not via Bedrock)
 	if len(model) >= 6 && model[:6] == "claude" {
 		return "anthropic"
 	}
