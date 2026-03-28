@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 )
 
@@ -213,14 +212,8 @@ func TestAnthropicProvider_ErrorHandling(t *testing.T) {
 }
 
 func TestAnthropicProvider_Factory(t *testing.T) {
-	// Clear environment to ensure test isolation
-	oldKey := os.Getenv("ANTHROPIC_API_KEY")
-	os.Unsetenv("ANTHROPIC_API_KEY")
-	defer func() {
-		if oldKey != "" {
-			os.Setenv("ANTHROPIC_API_KEY", oldKey)
-		}
-	}()
+	// Clear environment to ensure test isolation (t.Setenv restores after test)
+	t.Setenv("ANTHROPIC_API_KEY", "")
 
 	// Test factory without API key
 	_, err := CreateProvider("anthropic", map[string]any{})
