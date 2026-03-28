@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -85,24 +86,39 @@ func buildModelOptions(models []provider.ModelInfo) []Option {
 	var options []Option
 	seen := make(map[string]bool)
 
-	// Add priority models first if available
+	// Collect priority models first, then sort by priority
+	type priorityModel struct {
+		model    provider.ModelInfo
+		priority int
+	}
+	var priorityList []priorityModel
 	for _, m := range models {
-		if _, isPriority := priorityModels[m.ID]; isPriority {
-			label := m.ID
-			if m.ID == "claude-sonnet-4-6" {
-				label += " (Recommended)"
-			}
-			desc := m.Description
-			if desc == "" {
-				desc = m.Provider + " model"
-			}
-			options = append(options, Option{
-				Label:       label,
-				Value:       m.ID,
-				Description: truncateDescription(desc, 50),
-			})
+		if priority, isPriority := priorityModels[m.ID]; isPriority {
+			priorityList = append(priorityList, priorityModel{model: m, priority: priority})
 			seen[m.ID] = true
 		}
+	}
+
+	// Sort by priority (lower number = higher priority)
+	sort.Slice(priorityList, func(i, j int) bool {
+		return priorityList[i].priority < priorityList[j].priority
+	})
+
+	// Add priority models in sorted order
+	for _, pm := range priorityList {
+		label := pm.model.ID
+		if pm.model.ID == "claude-sonnet-4-6" {
+			label += " (Recommended)"
+		}
+		desc := pm.model.Description
+		if desc == "" {
+			desc = pm.model.Provider + " model"
+		}
+		options = append(options, Option{
+			Label:       label,
+			Value:       pm.model.ID,
+			Description: truncateDescription(desc, 50),
+		})
 	}
 
 	// Add remaining models (limit to 10 total)
