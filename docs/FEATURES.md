@@ -94,6 +94,7 @@ This catalog contains:
 | **Model Switching** | ✅ Implemented | Switch models mid-conversation (/model) | `cmd/aixgo/cmd/chat.go` |
 | **Interactive Prompts** | ✅ Implemented | Selection menus and confirmations | `pkg/assistant/prompt/` |
 | **Non-Interactive Mode** | ✅ Implemented | One-shot prompts via `-p`, stdin piping, `--output json` for scripting | `cmd/aixgo/cmd/chat.go` |
+| **Readline Input** | ✅ Implemented | Arrow-key history recall, line editing, persisted history (`~/.aixgo/chat_history`), tab-completion for slash commands | `cmd/aixgo/cmd/chat.go` |
 
 ### Assistant Tools
 
