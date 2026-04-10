@@ -41,8 +41,8 @@ func Execute() {
 }
 
 func init() {
-	// Global flags can be added here
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	// Default `completion` subcommand is enabled so users can generate
+	// bash/zsh/fish/powershell completion scripts via `aixgo completion <shell>`.
 }
 
 // SetVersion sets the version string for the CLI.

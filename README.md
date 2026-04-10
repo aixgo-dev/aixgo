@@ -62,6 +62,29 @@ sudo mv aixgo /usr/local/bin/
 
 Available for Linux, macOS, and Windows (amd64, arm64).
 
+**Shell Completion**
+
+Generate completion scripts for your shell:
+
+```bash
+# Bash (Linux)
+aixgo completion bash | sudo tee /etc/bash_completion.d/aixgo
+
+# Bash (macOS with Homebrew)
+aixgo completion bash > $(brew --prefix)/etc/bash_completion.d/aixgo
+
+# Zsh
+aixgo completion zsh > "${fpath[1]}/_aixgo"
+
+# Fish
+aixgo completion fish > ~/.config/fish/completions/aixgo.fish
+
+# PowerShell
+aixgo completion powershell | Out-String | Invoke-Expression
+```
+
+Completion includes dynamic suggestions for `--model` (live model list), `--session` (saved session IDs), and `--config` (YAML files).
+
 #### Full Repository (Contributors)
 
 For contributing or exploring examples:

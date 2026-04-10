@@ -41,6 +41,13 @@ func init() {
 	runCmd.Flags().StringVarP(&configFile, "config", "c", getEnv("CONFIG_FILE", "config/agents.yaml"), "Agent configuration file")
 	runCmd.Flags().IntVar(&httpPort, "http-port", getEnvInt("PORT", 8080), "HTTP server port for observability")
 	runCmd.Flags().StringVar(&logLevel, "log-level", getEnv("LOG_LEVEL", "info"), "Log level (debug, info, warn, error)")
+
+	_ = runCmd.RegisterFlagCompletionFunc("config", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"yaml", "yml"}, cobra.ShellCompDirectiveFilterFileExt
+	})
+	_ = runCmd.RegisterFlagCompletionFunc("log-level", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"debug", "info", "warn", "error"}, cobra.ShellCompDirectiveNoFileComp
+	})
 }
 
 func runOrchestrator(_ *cobra.Command, _ []string) error {
