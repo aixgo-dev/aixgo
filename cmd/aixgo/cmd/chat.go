@@ -281,13 +281,19 @@ func persistChatHistory(line *liner.State, path string) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return
 	}
+	// History may contain sensitive prompt content (including pasted secrets),
+	// so the file must be readable only by the owner. Use OpenFile with an
+	// explicit 0o600 mode rather than os.Create (which uses 0o666 & ~umask).
 	// #nosec G304 -- path is constructed from os.UserHomeDir() and a fixed
 	// relative path (.aixgo/chat_history); not influenced by untrusted input.
-	f, err := os.Create(path)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return
 	}
 	defer func() { _ = f.Close() }()
+	// Defensively re-apply 0o600 in case the file pre-existed with wider perms
+	// (OpenFile honors existing modes when the file already exists).
+	_ = os.Chmod(path, 0o600)
 	_, _ = line.WriteHistory(f)
 }
 
