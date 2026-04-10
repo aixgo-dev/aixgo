@@ -41,8 +41,9 @@ var sessionResumeCmd = &cobra.Command{
 
 Example:
   aixgo session resume abc123`,
-	Args: cobra.ExactArgs(1),
-	RunE: runSessionResume,
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: completeSessionIDs,
+	RunE:              runSessionResume,
 }
 
 // sessionDeleteCmd deletes a session.
@@ -53,8 +54,9 @@ var sessionDeleteCmd = &cobra.Command{
 
 Example:
   aixgo session delete abc123`,
-	Args: cobra.ExactArgs(1),
-	RunE: runSessionDelete,
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: completeSessionIDs,
+	RunE:              runSessionDelete,
 }
 
 func init() {

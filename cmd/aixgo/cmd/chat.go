@@ -60,6 +60,9 @@ func init() {
 	chatCmd.Flags().StringVarP(&chatModel, "model", "m", getEnv("AIXGO_MODEL", "claude-sonnet-4-6"), "Model to use for chat")
 	chatCmd.Flags().StringVarP(&chatSessionID, "session", "s", "", "Resume an existing session by ID")
 	chatCmd.Flags().BoolVar(&chatNoStream, "no-stream", false, "Disable streaming output")
+
+	_ = chatCmd.RegisterFlagCompletionFunc("model", completeModelNames)
+	_ = chatCmd.RegisterFlagCompletionFunc("session", completeSessionIDs)
 }
 
 func runChat(cmd *cobra.Command, _ []string) error {

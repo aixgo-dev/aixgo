@@ -81,6 +81,7 @@ This catalog contains:
 | **chat Command** | ✅ Implemented | Interactive multi-model coding assistant | `cmd/aixgo/cmd/chat.go` |
 | **session Command** | ✅ Implemented | Session management (list, resume, delete) | `cmd/aixgo/cmd/session.go` |
 | **models Command** | ✅ Implemented | List available LLM models with pricing | `cmd/aixgo/cmd/models.go` |
+| **Shell Completion** | ✅ Implemented | bash/zsh/fish/powershell completion with dynamic model/session/config suggestions | `cmd/aixgo/cmd/completion.go` |
 
 ### Interactive Chat Assistant
 
