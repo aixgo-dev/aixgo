@@ -93,6 +93,7 @@ This catalog contains:
 | **Streaming Output** | ✅ Implemented | Real-time streaming responses | `pkg/assistant/coordinator/streaming.go` |
 | **Model Switching** | ✅ Implemented | Switch models mid-conversation (/model) | `cmd/aixgo/cmd/chat.go` |
 | **Interactive Prompts** | ✅ Implemented | Selection menus and confirmations | `pkg/assistant/prompt/` |
+| **Non-Interactive Mode** | ✅ Implemented | One-shot prompts via `-p`, stdin piping, `--output json` for scripting | `cmd/aixgo/cmd/chat.go` |
 
 ### Assistant Tools
 
