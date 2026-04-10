@@ -283,7 +283,7 @@ func persistChatHistory(line *liner.State, path string) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	_, _ = line.WriteHistory(f)
 }
 
