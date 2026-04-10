@@ -3,7 +3,9 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -21,6 +23,9 @@ var (
 	chatModel     string
 	chatSessionID string
 	chatNoStream  bool
+	chatPrompt    string
+	chatStdin     bool
+	chatOutput    string
 )
 
 // chatCmd represents the chat command for interactive coding assistant.
@@ -42,7 +47,10 @@ Examples:
   aixgo chat
   aixgo chat --model claude-sonnet-4-6
   aixgo chat --model gpt-4o
-  aixgo chat --session abc123  # Resume a session
+  aixgo chat --session abc123                      # Resume a session
+  aixgo chat -p "Explain this error"               # One-shot prompt
+  git diff | aixgo chat -p "Review this diff"      # Pipe stdin
+  aixgo chat -p "List providers" --output json     # Machine-readable output
 
 In-session commands:
   /model <name>  - Switch to a different model
@@ -60,14 +68,30 @@ func init() {
 	chatCmd.Flags().StringVarP(&chatModel, "model", "m", getEnv("AIXGO_MODEL", "claude-sonnet-4-6"), "Model to use for chat")
 	chatCmd.Flags().StringVarP(&chatSessionID, "session", "s", "", "Resume an existing session by ID")
 	chatCmd.Flags().BoolVar(&chatNoStream, "no-stream", false, "Disable streaming output")
+	chatCmd.Flags().StringVarP(&chatPrompt, "prompt", "p", "", "Run a one-shot prompt and exit (non-interactive)")
+	chatCmd.Flags().BoolVar(&chatStdin, "stdin", false, "Append piped stdin to the prompt (auto-enabled when stdin is not a TTY)")
+	chatCmd.Flags().StringVarP(&chatOutput, "output", "o", "text", "Output format for non-interactive mode: text, json")
 
 	_ = chatCmd.RegisterFlagCompletionFunc("model", completeModelNames)
 	_ = chatCmd.RegisterFlagCompletionFunc("session", completeSessionIDs)
+	_ = chatCmd.RegisterFlagCompletionFunc("output", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"text", "json"}, cobra.ShellCompDirectiveNoFileComp
+	})
 }
 
 func runChat(cmd *cobra.Command, _ []string) error {
 	ctx, cancel := context.WithCancel(cmd.Context())
 	defer cancel()
+
+	if chatOutput != "text" && chatOutput != "json" {
+		return fmt.Errorf("invalid --output %q: must be 'text' or 'json'", chatOutput)
+	}
+
+	// Non-interactive one-shot mode: -p provided OR stdin is piped.
+	stdinPiped := !isTerminal(os.Stdin)
+	if chatPrompt != "" || chatStdin || (stdinPiped && chatPrompt == "") {
+		return runChatOneShot(ctx, stdinPiped)
+	}
 
 	// Handle shutdown signals
 	sigChan := make(chan os.Signal, 1)
@@ -282,6 +306,109 @@ func printWelcome(model string) {
 	fmt.Printf("  Model: %s\n", model)
 	fmt.Println("  Type /help for commands, /quit to exit")
 	fmt.Println()
+}
+
+// isTerminal reports whether f is a character device (TTY).
+func isTerminal(f *os.File) bool {
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return (fi.Mode() & os.ModeCharDevice) != 0
+}
+
+// runChatOneShot executes a single non-interactive chat turn and exits.
+// The prompt is built from --prompt and/or piped stdin, sent to the
+// coordinator as a single user message, and the response is printed to
+// stdout in the requested format (text or json).
+func runChatOneShot(ctx context.Context, stdinPiped bool) error {
+	userInput := chatPrompt
+	if chatStdin || (stdinPiped && userInput == "") {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("read stdin: %w", err)
+		}
+		piped := strings.TrimSpace(string(data))
+		if piped != "" {
+			if userInput == "" {
+				userInput = piped
+			} else {
+				userInput = userInput + "\n\n" + piped
+			}
+		}
+	}
+	if strings.TrimSpace(userInput) == "" {
+		return fmt.Errorf("no prompt provided (use --prompt or pipe input via stdin)")
+	}
+
+	sessionMgr, err := session.NewManager()
+	if err != nil {
+		return fmt.Errorf("failed to initialize session manager: %w", err)
+	}
+
+	var sess *session.Session
+	if chatSessionID != "" {
+		sess, err = sessionMgr.Get(chatSessionID)
+		if err != nil {
+			return fmt.Errorf("failed to resume session %s: %w", chatSessionID, err)
+		}
+	} else {
+		sess, err = sessionMgr.Create(chatModel)
+		if err != nil {
+			return fmt.Errorf("failed to create session: %w", err)
+		}
+	}
+
+	coord, err := coordinator.New(coordinator.Config{
+		Model:     chatModel,
+		Streaming: false,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize coordinator: %w", err)
+	}
+
+	sess.AddMessage(session.Message{
+		Role:      "user",
+		Content:   userInput,
+		Timestamp: time.Now(),
+	})
+
+	response, err := coord.Chat(ctx, sess.Messages)
+	if err != nil {
+		return fmt.Errorf("chat failed: %w", err)
+	}
+
+	sess.AddMessage(session.Message{
+		Role:      "assistant",
+		Content:   response.Content,
+		Timestamp: time.Now(),
+		Model:     chatModel,
+		Cost:      response.Cost,
+	})
+	sess.TotalCost += response.Cost
+
+	if saveErr := sessionMgr.Save(sess); saveErr != nil {
+		fmt.Fprintf(os.Stderr, "warning: failed to save session: %v\n", saveErr)
+	}
+
+	switch chatOutput {
+	case "json":
+		out := map[string]any{
+			"content":       response.Content,
+			"cost":          response.Cost,
+			"model":         chatModel,
+			"session_id":    sess.ID,
+			"input_tokens":  response.InputTokens,
+			"output_tokens": response.OutputTokens,
+			"finish_reason": response.FinishReason,
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(out)
+	default:
+		fmt.Println(response.Content)
+		return nil
+	}
 }
 
 func printHelp() {
