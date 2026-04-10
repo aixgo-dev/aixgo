@@ -172,6 +172,8 @@ func runChat(cmd *cobra.Command, _ []string) error {
 	})
 
 	historyPath := chatHistoryFilePath()
+	// #nosec G304 -- historyPath is constructed from os.UserHomeDir() and a fixed
+	// relative path (.aixgo/chat_history); not influenced by untrusted input.
 	if f, err := os.Open(historyPath); err == nil {
 		_, _ = line.ReadHistory(f)
 		_ = f.Close()
@@ -267,7 +269,7 @@ func chatHistoryFilePath() string {
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(home, ".aixgo", "chat_history")
+	return filepath.Clean(filepath.Join(home, ".aixgo", "chat_history"))
 }
 
 // persistChatHistory writes the current liner history to disk, capped at
@@ -279,6 +281,8 @@ func persistChatHistory(line *liner.State, path string) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return
 	}
+	// #nosec G304 -- path is constructed from os.UserHomeDir() and a fixed
+	// relative path (.aixgo/chat_history); not influenced by untrusted input.
 	f, err := os.Create(path)
 	if err != nil {
 		return
