@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -16,8 +17,12 @@ import (
 	"github.com/aixgo-dev/aixgo/pkg/assistant/output"
 	"github.com/aixgo-dev/aixgo/pkg/assistant/prompt"
 	"github.com/aixgo-dev/aixgo/pkg/assistant/session"
+	"github.com/peterh/liner"
 	"github.com/spf13/cobra"
 )
+
+// chatSlashCommands is the set of in-session commands used for tab-completion.
+var chatSlashCommands = []string{"/model", "/cost", "/save", "/clear", "/help", "/quit", "/exit"}
 
 var (
 	chatModel     string
@@ -150,25 +155,54 @@ func runChat(cmd *cobra.Command, _ []string) error {
 	// Print welcome message
 	printWelcome(chatModel)
 
-	// Main chat loop
-	scanner := bufio.NewScanner(os.Stdin)
-	for {
-		fmt.Print("\n> ")
+	// Initialize readline with history, tab completion, and Ctrl+C handling.
+	line := liner.NewLiner()
+	line.SetCtrlCAborts(true)
+	line.SetCompleter(func(prefix string) []string {
+		if !strings.HasPrefix(prefix, "/") {
+			return nil
+		}
+		var out []string
+		for _, c := range chatSlashCommands {
+			if strings.HasPrefix(c, prefix) {
+				out = append(out, c)
+			}
+		}
+		return out
+	})
 
+	historyPath := chatHistoryFilePath()
+	if f, err := os.Open(historyPath); err == nil {
+		_, _ = line.ReadHistory(f)
+		_ = f.Close()
+	}
+	defer func() {
+		persistChatHistory(line, historyPath)
+		_ = line.Close()
+	}()
+
+	// Main chat loop
+	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
 		}
 
-		if !scanner.Scan() {
-			break
+		raw, err := line.Prompt("\n> ")
+		if err != nil {
+			if errors.Is(err, liner.ErrPromptAborted) || errors.Is(err, io.EOF) {
+				fmt.Println("\nGoodbye!")
+				return nil
+			}
+			return fmt.Errorf("read input: %w", err)
 		}
 
-		input := strings.TrimSpace(scanner.Text())
+		input := strings.TrimSpace(raw)
 		if input == "" {
 			continue
 		}
+		line.AppendHistory(input)
 
 		// Handle in-session commands
 		if strings.HasPrefix(input, "/") {
@@ -225,8 +259,32 @@ func runChat(cmd *cobra.Command, _ []string) error {
 			fmt.Printf("\n[Cost: $%.4f | Session total: $%.4f]\n", response.Cost, sess.TotalCost)
 		}
 	}
+}
 
-	return nil
+// chatHistoryFilePath returns the path to the persisted readline history file.
+func chatHistoryFilePath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".aixgo", "chat_history")
+}
+
+// persistChatHistory writes the current liner history to disk, capped at
+// chatHistoryMaxLines entries. Failures are non-fatal.
+func persistChatHistory(line *liner.State, path string) {
+	if path == "" {
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, _ = line.WriteHistory(f)
 }
 
 func handleCommand(_ context.Context, input string, sess *session.Session, mgr *session.Manager, coord *coordinator.Coordinator) (bool, error) {
