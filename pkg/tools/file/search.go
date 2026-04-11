@@ -297,8 +297,21 @@ func grepHandler(_ context.Context, args map[string]any) (any, error) {
 }
 
 // grepFile searches a single file for matches.
+//
+// Although callers only reach grepFile for paths that live under a
+// ValidatePath-approved base (either the direct `path` argument to
+// grepHandler or a descendant produced by filepath.Walk of that base),
+// we re-run ValidatePath here so the helper is safe in isolation and
+// so a symlink planted mid-walk cannot escape the allowlisted roots.
 func grepFile(path string, re *regexp.Regexp) ([]GrepMatch, error) {
-	file, err := os.Open(path)
+	if err := ValidatePath(path); err != nil {
+		return nil, err
+	}
+	// G304: Use the cleaned absolute path so the open target matches the
+	// path ValidatePath actually approved (defends against "./foo/../bar"
+	// style aliasing where the raw arg differs from the canonical form).
+	cleanPath := filepath.Clean(path)
+	file, err := os.Open(cleanPath) // #nosec G304 -- path validated by ValidatePath (allowlist + symlink-escape check)
 	if err != nil {
 		return nil, err
 	}
