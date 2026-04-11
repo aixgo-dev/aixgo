@@ -149,6 +149,10 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	}
 
 	s.ctx, s.cancel = context.WithCancel(ctx)
+	// Ensure cancel is always invoked when Start returns, releasing
+	// context resources even if Stop() is never called. Cancelling an
+	// already-cancelled context is a no-op.
+	defer s.cancel()
 	s.isRunning = true
 	s.mu.Unlock()
 
