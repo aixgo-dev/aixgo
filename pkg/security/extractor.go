@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -19,6 +20,54 @@ import (
 	"sync"
 	"time"
 )
+
+// ErrJWKEndpointBlocked is returned when a JWK fetch target is rejected by
+// the SSRF allowlist. It indicates misconfiguration (allowlist drift) rather
+// than an attack, but is surfaced so operators can distinguish it from a
+// transport error.
+var ErrJWKEndpointBlocked = errors.New("jwk endpoint blocked by ssrf policy")
+
+// googleJWKHosts is the set of hostnames trusted to serve Google's JWT
+// public keys. Kept next to the endpoint constants in fetchGooglePublicKey
+// so any future Google JWKS host change is a single-file edit.
+var googleJWKHosts = []string{
+	"www.gstatic.com",
+	"www.googleapis.com",
+}
+
+// googleJWKClient is the lazily-constructed SSRF-safe HTTP client used to
+// fetch Google's JWK set. It enforces: host allowlist, private/metadata IP
+// blocks (DNS-rebinding safe via re-validating DialContext), redirect denial,
+// and a 10-second hard timeout.
+var (
+	googleJWKClientOnce sync.Once
+	googleJWKClient     *http.Client
+	googleJWKValidator  *SSRFValidator
+)
+
+func getGoogleJWKClient() (*http.Client, *SSRFValidator) {
+	googleJWKClientOnce.Do(func() {
+		googleJWKValidator = NewSSRFValidator(SSRFConfig{
+			AllowedHosts:    googleJWKHosts,
+			AllowedSchemes:  []string{"https"},
+			AllowLocalhost:  false,
+			BlockPrivateIPs: true,
+			BlockMetadata:   true,
+			BlockLinkLocal:  true,
+		})
+		googleJWKClient = &http.Client{
+			Transport: googleJWKValidator.CreateSecureTransport(),
+			Timeout:   10 * time.Second,
+			// JWKS endpoints never legitimately redirect. Denying redirects
+			// avoids any chance of an open-redirect-style escape off the
+			// allowlisted host.
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+	})
+	return googleJWKClient, googleJWKValidator
+}
 
 // allowedRoles defines the valid roles that can be assigned via headers
 var allowedRoles = map[string]bool{
@@ -267,8 +316,18 @@ type JWKSet struct {
 	Keys []JWK `json:"keys"`
 }
 
-// fetchGooglePublicKey fetches Google's public key for JWT verification
-// It caches keys with a 1-hour TTL and handles key rotation
+// fetchGooglePublicKey fetches Google's public key for JWT verification.
+// It caches keys with a 1-hour TTL and handles key rotation.
+//
+// All HTTP traffic flows through getGoogleJWKClient, which enforces:
+//   - host allowlist (googleJWKHosts) — G107 resolution
+//   - https-only
+//   - private/metadata/link-local IP blocks via re-validating DialContext
+//   - 10s hard timeout
+//   - redirect denial
+//
+// The function iterates over candidate JWK endpoints, closing each response
+// body explicitly before moving to the next (no loop-scoped defer).
 func fetchGooglePublicKey(keyID string) (*rsa.PublicKey, error) {
 	// Check cache first
 	globalJWKCache.mu.RLock()
@@ -280,30 +339,56 @@ func fetchGooglePublicKey(keyID string) (*rsa.PublicKey, error) {
 	}
 	globalJWKCache.mu.RUnlock()
 
-	// Fetch JWK set from Google
-	// Try both IAP and OAuth2 endpoints
+	// Fetch JWK set from Google. Try both IAP and OAuth2 endpoints.
+	// Any future host must also be added to googleJWKHosts above, or
+	// the SSRF validator will reject it with ErrJWKEndpointBlocked.
 	endpoints := []string{
 		"https://www.gstatic.com/iap/verify/public_key-jwk",
 		"https://www.googleapis.com/oauth2/v3/certs",
 	}
 
+	client, validator := getGoogleJWKClient()
+
+	// Use a dedicated background context with the client's timeout.
+	// verifyJWT does not currently thread a caller context — if that
+	// changes, accept ctx here and plumb it through instead.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	var lastErr error
 	for _, endpoint := range endpoints {
-		resp, err := http.Get(endpoint)
-		if err != nil {
-			lastErr = err
+		// Defense-in-depth: reject any endpoint whose host is not on the
+		// JWK allowlist before a request is built. Even though the endpoints
+		// are compile-time constants today, validating at the boundary makes
+		// future drift a loud failure rather than a silent egress.
+		if err := validator.ValidateURL(endpoint); err != nil {
+			lastErr = fmt.Errorf("%w: %s: %v", ErrJWKEndpointBlocked, endpoint, err)
 			continue
 		}
-		defer func() { _ = resp.Body.Close() }()
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		if err != nil {
+			lastErr = fmt.Errorf("build JWK request: %w", err)
+			continue
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("fetch JWK: %w", err)
+			continue
+		}
 
 		if resp.StatusCode != http.StatusOK {
+			_ = resp.Body.Close()
 			lastErr = fmt.Errorf("JWK endpoint returned status %d", resp.StatusCode)
 			continue
 		}
 
 		var jwkSet JWKSet
-		if err := json.NewDecoder(resp.Body).Decode(&jwkSet); err != nil {
-			lastErr = fmt.Errorf("failed to decode JWK set: %w", err)
+		decodeErr := json.NewDecoder(resp.Body).Decode(&jwkSet)
+		_ = resp.Body.Close()
+		if decodeErr != nil {
+			lastErr = fmt.Errorf("failed to decode JWK set: %w", decodeErr)
 			continue
 		}
 
