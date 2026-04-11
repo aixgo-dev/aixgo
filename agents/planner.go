@@ -835,7 +835,13 @@ func (p *PlannerAgent) simulateFromNode(ctx context.Context, problem string, nod
 		depthScore = 1.0
 	}
 
-	// Add randomness based on seed
+	// Add randomness based on seed. This is a Monte Carlo Tree Search
+	// simulation factor used purely to diversify reward estimates across
+	// rollouts; it is not used for any security-sensitive purpose (no IDs,
+	// tokens, nonces, or authorization decisions), so the non-cryptographic
+	// math/rand PRNG is appropriate and deterministic seeding is desirable
+	// for reproducibility of planner runs.
+	// #nosec G404 -- non-security MCTS rollout noise; see comment above.
 	rng := rand.New(rand.NewSource(int64(seed * (depth + 1))))
 	randomFactor := 0.5 + rng.Float64()*0.5
 
