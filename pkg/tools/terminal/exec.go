@@ -162,6 +162,20 @@ func execHandler(ctx context.Context, args map[string]any) (any, error) {
 
 	// Execute command
 	start := time.Now()
+	// Threat model for gosec G204 (subprocess launched with variable):
+	//  (a) Caller authorization is enforced upstream by the agent policy
+	//      layer and this tool's RequiresConfirmation=true gate, so only a
+	//      confirmed, authorized agent action reaches this point.
+	//  (b) The `command` string has already passed ValidateCommand above,
+	//      which enforces a base-command allowlist (AllowedCommands), a
+	//      per-command subcommand denylist (BlockedSubcommands), and a
+	//      shell-operator denylist (&&, ||, ;, |, >, <, `, $( ) with a
+	//      narrow safe-pipe / safe-redirect carve-out.
+	//  (c) This tool is intended to run inside a sandbox/cgroup-isolated
+	//      deployment (container, jailed user, or VM) per
+	//      docs/SECURITY_BEST_PRACTICES.md; untrusted input must never
+	//      reach an unsandboxed host.
+	// #nosec G204 -- see threat model above; command is allowlist-validated.
 	cmd := exec.CommandContext(ctx, "sh", "-c", command)
 	cmd.Dir = workingDir
 

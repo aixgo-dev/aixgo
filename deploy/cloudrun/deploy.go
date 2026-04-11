@@ -7,10 +7,59 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/aixgo-dev/aixgo/pkg/security"
 )
+
+// allowedBinaries is the tight allowlist of external binaries this deploy
+// tool is permitted to invoke. Any other binary name is rejected before it
+// ever reaches exec.Command, which eliminates the command-injection surface
+// of the variable `name` argument (gosec G204).
+var allowedBinaries = map[string]struct{}{
+	"gcloud": {},
+	"docker": {},
+}
+
+// safeArgPattern restricts command arguments to a conservative set of
+// characters used by gcloud/docker flags, values, image tags, and human
+// readable description strings. It explicitly forbids shell metacharacters
+// ($, ;, &, |, >, <, backticks, quotes, newline, tab) so that even if an
+// argument is composed from a variable it cannot smuggle extra arguments
+// into the subprocess. exec.Command never invokes a shell, but keeping the
+// allowlist tight also defends against flag-injection into gcloud/docker.
+// Note: space and parentheses are permitted because several literal gcloud
+// flags legitimately contain them (e.g. `--description=Aixgo container
+// images`, `--format=value(status.url)`).
+var safeArgPattern = regexp.MustCompile(`^[A-Za-z0-9 ._:@/=+,()-]+$`)
+
+// validateCmd enforces the binary allowlist and argument character
+// allowlist. All run helpers call it before exec.Command so the gosec
+// G204 subprocess-with-variable warnings on the exec.Command lines below
+// are justified.
+func validateCmd(name string, args []string) error {
+	if _, ok := allowedBinaries[name]; !ok {
+		return fmt.Errorf("binary %q is not in the allowlist", name)
+	}
+	for i, a := range args {
+		if a == "" {
+			return fmt.Errorf("argument %d is empty", i)
+		}
+		if len(a) > 512 {
+			return fmt.Errorf("argument %d exceeds max length", i)
+		}
+		if !safeArgPattern.MatchString(a) {
+			return fmt.Errorf("argument %d contains disallowed characters: %q", i, a)
+		}
+	}
+	return nil
+}
+
+// secretNamePattern mirrors GCP Secret Manager naming rules and is used
+// to validate the single dynamic argument passed to createSecret before
+// it is handed to exec.Command.
+var secretNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,254}$`)
 
 // ANSI colors
 const (
@@ -41,6 +90,10 @@ func logWarn(msg string)  { fmt.Printf("%s[WARN]%s %s\n", yellow, reset, msg) }
 func logError(msg string) { fmt.Printf("%s[ERROR]%s %s\n", red, reset, msg) }
 
 func run(name string, args ...string) error {
+	if err := validateCmd(name, args); err != nil {
+		return fmt.Errorf("run: %w", err)
+	}
+	// #nosec G204 -- binary and args validated by validateCmd (allowlist + regex).
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -48,10 +101,18 @@ func run(name string, args ...string) error {
 }
 
 func runQuiet(name string, args ...string) error {
+	if err := validateCmd(name, args); err != nil {
+		return fmt.Errorf("runQuiet: %w", err)
+	}
+	// #nosec G204 -- binary and args validated by validateCmd (allowlist + regex).
 	return exec.Command(name, args...).Run()
 }
 
 func runOutput(name string, args ...string) (string, error) {
+	if err := validateCmd(name, args); err != nil {
+		return "", fmt.Errorf("runOutput: %w", err)
+	}
+	// #nosec G204 -- binary and args validated by validateCmd (allowlist + regex).
 	out, err := exec.Command(name, args...).Output()
 	return strings.TrimSpace(string(out)), err
 }
@@ -131,9 +192,18 @@ func createSecret(name, value string) {
 	if value == "" {
 		return
 	}
+	// Validate the secret name against a tight regex allowlist so that it
+	// cannot carry shell metacharacters or gcloud flag smuggling into the
+	// subprocess invocation below.
+	if !secretNamePattern.MatchString(name) {
+		logError(fmt.Sprintf("invalid secret name: %q", name))
+		return
+	}
+	// #nosec G204 -- secret name validated by secretNamePattern; other args are constant literals.
 	cmd := exec.Command("gcloud", "secrets", "create", name, "--data-file=-", "--replication-policy=automatic")
 	cmd.Stdin = strings.NewReader(value)
 	if err := cmd.Run(); err != nil {
+		// #nosec G204 -- secret name validated by secretNamePattern; other args are constant literals.
 		cmd = exec.Command("gcloud", "secrets", "versions", "add", name, "--data-file=-")
 		cmd.Stdin = strings.NewReader(value)
 		_ = cmd.Run()
