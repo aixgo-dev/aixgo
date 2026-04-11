@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -24,6 +25,14 @@ import (
 
 // chatSlashCommands is the set of in-session commands used for tab-completion.
 var chatSlashCommands = []string{"/model", "/cost", "/save", "/clear", "/help", "/quit", "/exit"}
+
+// chatUntrustedTagPattern matches any opening or closing <untrusted_input>
+// tag with tolerant spacing and case, so buildOneShotInput can neutralize
+// wrapper-escape attempts from piped payloads. Matches:
+//
+//	</untrusted_input>, </UNTRUSTED_INPUT>, </untrusted_input >,
+//	< / untrusted_input >, <untrusted_input>, <UNTRUSTED_INPUT>, etc.
+var chatUntrustedTagPattern = regexp.MustCompile(`(?i)<\s*/?\s*untrusted_input\s*>`)
 
 // chatSecretPattern matches common secret/token shapes that must never be
 // appended to the readline history file. Keep this conservative: prefer false
@@ -42,6 +51,14 @@ var chatSecretPattern = regexp.MustCompile(
 		`|-----BEGIN [A-Z ]*PRIVATE KEY-----`, // PEM private key block
 )
 
+// Package-level vars are retained ONLY as cobra flag-binding targets
+// (chatCmd.Flags().StringVarP requires an *string). They are NEVER read
+// directly by runChat or downstream helpers — instead, runChat snapshots
+// them once into a chatOptions value at entry, and that value is threaded
+// explicitly through all helpers. This eliminates the confused-deputy risk
+// where, e.g., runSessionResume mutated chatSessionID before re-entering
+// runChat: the snapshot still happens after the mutation, so behavior is
+// preserved while preventing other code from observing the mutated globals.
 var (
 	chatModel        string
 	chatSessionID    string
@@ -53,6 +70,38 @@ var (
 	chatMaxTokens    int
 	chatMaxOutputKiB int
 )
+
+// chatOptions captures the per-invocation chat configuration. A fresh value
+// is built from the cobra flag globals at the start of every runChat call,
+// then passed by value to every downstream helper. No helper reads the
+// package-level chatX vars directly.
+type chatOptions struct {
+	Model        string
+	SessionID    string
+	NoStream     bool
+	Prompt       string
+	Stdin        bool
+	Output       string
+	NoHistory    bool
+	MaxTokens    int
+	MaxOutputKiB int
+}
+
+// snapshotChatOptions builds a chatOptions value from the current cobra
+// flag globals. Called exactly once per runChat invocation.
+func snapshotChatOptions() chatOptions {
+	return chatOptions{
+		Model:        chatModel,
+		SessionID:    chatSessionID,
+		NoStream:     chatNoStream,
+		Prompt:       chatPrompt,
+		Stdin:        chatStdin,
+		Output:       chatOutput,
+		NoHistory:    chatNoHistory,
+		MaxTokens:    chatMaxTokens,
+		MaxOutputKiB: chatMaxOutputKiB,
+	}
+}
 
 // chatDefaultMaxOutputKiB is the default soft byte cap on non-interactive
 // chat output (1 MiB). It bounds the worst-case blast radius for scripts
@@ -117,14 +166,18 @@ func runChat(cmd *cobra.Command, _ []string) error {
 	ctx, cancel := context.WithCancel(cmd.Context())
 	defer cancel()
 
-	if chatOutput != "text" && chatOutput != "json" {
-		return fmt.Errorf("invalid --output %q: must be 'text' or 'json'", chatOutput)
+	// Snapshot flag globals into a per-invocation options value. This is the
+	// ONLY place the chatX globals are read in runChat's downstream flow.
+	opts := snapshotChatOptions()
+
+	if opts.Output != "text" && opts.Output != "json" {
+		return fmt.Errorf("invalid --output %q: must be 'text' or 'json'", opts.Output)
 	}
 
 	// Non-interactive one-shot mode: -p provided OR stdin is piped.
 	stdinPiped := !isTerminal(os.Stdin)
-	if chatPrompt != "" || chatStdin || (stdinPiped && chatPrompt == "") {
-		return runChatOneShot(ctx, stdinPiped)
+	if opts.Prompt != "" || opts.Stdin || (stdinPiped && opts.Prompt == "") {
+		return runChatOneShot(ctx, opts, stdinPiped)
 	}
 
 	// Handle shutdown signals
@@ -144,34 +197,34 @@ func runChat(cmd *cobra.Command, _ []string) error {
 
 	// Initialize or resume session
 	var sess *session.Session
-	if chatSessionID != "" {
-		sess, err = sessionMgr.Get(chatSessionID)
+	if opts.SessionID != "" {
+		sess, err = sessionMgr.Get(opts.SessionID)
 		if err != nil {
-			return fmt.Errorf("failed to resume session %s: %w", chatSessionID, err)
+			return fmt.Errorf("failed to resume session %s: %w", opts.SessionID, err)
 		}
 		fmt.Printf("Resumed session: %s\n", sess.ID)
 	} else {
 		// Prompt for model selection if not specified via flag
-		if chatModel == "" || chatModel == "claude-sonnet-4-6" {
+		if opts.Model == "" || opts.Model == "claude-sonnet-4-6" {
 			selectedModel, err := prompt.SelectModel()
 			if err != nil {
 				return fmt.Errorf("model selection failed: %w", err)
 			}
-			chatModel = selectedModel
+			opts.Model = selectedModel
 		}
 
-		sess, err = sessionMgr.Create(chatModel)
+		sess, err = sessionMgr.Create(opts.Model)
 		if err != nil {
 			return fmt.Errorf("failed to create session: %w", err)
 		}
-		fmt.Printf("New session: %s (model: %s)\n", sess.ID, chatModel)
+		fmt.Printf("New session: %s (model: %s)\n", sess.ID, opts.Model)
 	}
 
 	// Initialize coordinator
 	coord, err := coordinator.New(coordinator.Config{
-		Model:     chatModel,
-		Streaming: !chatNoStream,
-		MaxTokens: chatMaxTokens,
+		Model:     opts.Model,
+		Streaming: !opts.NoStream,
+		MaxTokens: opts.MaxTokens,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize coordinator: %w", err)
@@ -179,11 +232,11 @@ func runChat(cmd *cobra.Command, _ []string) error {
 
 	// Initialize output renderer
 	renderer := output.NewRenderer(output.Config{
-		Streaming: !chatNoStream,
+		Streaming: !opts.NoStream,
 	})
 
 	// Print welcome message
-	printWelcome(chatModel)
+	printWelcome(opts.Model)
 
 	// Initialize readline with history, tab completion, and Ctrl+C handling.
 	line := liner.NewLiner()
@@ -202,16 +255,23 @@ func runChat(cmd *cobra.Command, _ []string) error {
 	})
 
 	historyPath := chatHistoryFilePath()
-	if !chatNoHistory {
-		// #nosec G304 -- historyPath is constructed from os.UserHomeDir() and a fixed
-		// relative path (.aixgo/chat_history); not influenced by untrusted input.
-		if f, err := os.Open(historyPath); err == nil {
+	if !opts.NoHistory {
+		// Use O_NOFOLLOW on Unix (see chat_history_unix.go) to reject history
+		// files that have been replaced with a symlink. On Windows this falls
+		// back to a plain open (see chat_history_windows.go).
+		f, err := openChatHistoryForRead(historyPath)
+		if err == nil {
 			_, _ = line.ReadHistory(f)
 			_ = f.Close()
+		} else if !errors.Is(err, os.ErrNotExist) {
+			// ENOENT is normal (first run). Anything else — most notably
+			// ELOOP from O_NOFOLLOW rejecting a symlinked history file —
+			// is worth surfacing so users notice tampering or perms issues.
+			fmt.Fprintf(os.Stderr, "warning: could not load chat history (%v); continuing without it\n", err)
 		}
 	}
 	defer func() {
-		if !chatNoHistory {
+		if !opts.NoHistory {
 			persistChatHistory(line, historyPath)
 		}
 		_ = line.Close()
@@ -242,7 +302,7 @@ func runChat(cmd *cobra.Command, _ []string) error {
 
 		// Handle in-session commands
 		if strings.HasPrefix(input, "/") {
-			handled, err := handleCommand(ctx, input, sess, sessionMgr, coord)
+			handled, err := handleCommand(ctx, input, sess, sessionMgr, coord, &opts)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
@@ -278,7 +338,7 @@ func runChat(cmd *cobra.Command, _ []string) error {
 			Role:      "assistant",
 			Content:   response.Content,
 			Timestamp: time.Now(),
-			Model:     chatModel,
+			Model:     opts.Model,
 			Cost:      response.Cost,
 		})
 
@@ -297,16 +357,34 @@ func runChat(cmd *cobra.Command, _ []string) error {
 	}
 }
 
+// chatHistorySuppressionNotice prints a one-time stderr notice when a line
+// is dropped from readline history because it matched chatSecretPattern.
+// Declared as a var-of-func so tests can stub it without rewriting
+// appendChatHistorySafe.
+var chatHistorySuppressionNotice = func() {
+	fmt.Fprintln(os.Stderr, "note: suppressed 1 line from history (matched secret pattern); use --no-history to fully disable")
+}
+
+// chatHistorySuppressedOnce ensures the suppression notice is emitted at
+// most once per process invocation. Subsequent suppressions continue
+// silently so the chat loop does not get noisy.
+var chatHistorySuppressedOnce sync.Once
+
 // appendChatHistorySafe appends input to the liner history only when it does
 // not look like a secret (API key, bearer token, JWT, PEM block, etc.). This
 // is a best-effort defense against pasted credentials being written to the
 // on-disk history file. For fully guaranteed suppression, users should run
 // with --no-history.
+//
+// On the FIRST suppression per process, a one-line notice is emitted to
+// stderr via chatHistorySuppressionNotice so users whose legitimate input
+// happened to match the regex understand why up-arrow recall is missing.
 func appendChatHistorySafe(line *liner.State, input string) {
 	if line == nil || input == "" {
 		return
 	}
 	if chatSecretPattern.MatchString(input) {
+		chatHistorySuppressedOnce.Do(chatHistorySuppressionNotice)
 		return
 	}
 	line.AppendHistory(input)
@@ -346,7 +424,12 @@ func persistChatHistory(line *liner.State, path string) {
 	_, _ = line.WriteHistory(f)
 }
 
-func handleCommand(_ context.Context, input string, sess *session.Session, mgr *session.Manager, coord *coordinator.Coordinator) (bool, error) {
+// handleCommand processes in-session slash commands. opts is passed by
+// pointer (unlike runChatOneShot which takes chatOptions by value) because
+// /model needs to mutate opts.Model so that subsequent iterations of the
+// chat loop record the new model on outgoing session.Message values. No
+// mutation of opts leaks back to the package-level chatX globals.
+func handleCommand(_ context.Context, input string, sess *session.Session, mgr *session.Manager, coord *coordinator.Coordinator, opts *chatOptions) (bool, error) {
 	parts := strings.Fields(input)
 	if len(parts) == 0 {
 		return false, nil
@@ -373,7 +456,7 @@ func handleCommand(_ context.Context, input string, sess *session.Session, mgr *
 		if err := coord.SetModel(newModel); err != nil {
 			return true, fmt.Errorf("failed to switch model: %w", err)
 		}
-		chatModel = newModel
+		opts.Model = newModel
 		sess.Model = newModel
 		fmt.Printf("Switched to model: %s\n", newModel)
 		return true, nil
@@ -434,37 +517,67 @@ func isTerminal(f *os.File) bool {
 	return (fi.Mode() & os.ModeCharDevice) != 0
 }
 
-// runChatOneShot executes a single non-interactive chat turn and exits.
-// The prompt is built from --prompt and/or piped stdin, sent to the
-// coordinator as a single user message, and the response is printed to
-// stdout in the requested format (text or json).
-func runChatOneShot(ctx context.Context, stdinPiped bool) error {
-	userInput := chatPrompt
-	if chatStdin || (stdinPiped && userInput == "") {
-		data, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			return fmt.Errorf("read stdin: %w", err)
-		}
-		piped := strings.TrimSpace(string(data))
-		if piped != "" {
+// buildOneShotInput produces the final user message for a non-interactive
+// chat turn from a caller-supplied --prompt flag and already-read piped
+// stdin content. It is pure (does no I/O) so it can be unit-tested without
+// stubbing os.Stdin.
+//
+// Semantics:
+//   - prompt only: return prompt verbatim
+//   - stdin only (stdinPiped && promptFlag == ""): return piped verbatim
+//   - prompt + stdin: wrap piped in <untrusted_input>...</untrusted_input>
+//     delimiters so downstream models can distinguish operator instructions
+//     from potentially untrusted external content (L2 prompt-injection
+//     mitigation). Any literal opening or closing wrapper tag inside the
+//     piped payload — in any case and with any internal whitespace — is
+//     escaped via chatUntrustedTagPattern so it cannot break out of, or
+//     open a confusing nested region inside, the wrapper.
+//   - both empty: return ("", error)
+//
+// The caller is responsible for reading os.Stdin and passing the trimmed
+// result as `piped`, along with whether stdin was actually a pipe.
+func buildOneShotInput(promptFlag, piped string, stdinPiped bool) (string, error) {
+	userInput := promptFlag
+	if stdinPiped || piped != "" {
+		trimmed := strings.TrimSpace(piped)
+		if trimmed != "" {
 			if userInput == "" {
-				// Stdin is the entire prompt (no user-supplied -p); pass through
-				// verbatim as direct user input.
-				userInput = piped
+				userInput = trimmed
 			} else {
-				// L2 defense-in-depth: when piped stdin is appended to a
-				// user-supplied --prompt, wrap it in delimiters so downstream
-				// models can distinguish operator instructions from potentially
-				// untrusted external content (prompt-injection mitigation).
-				// Neutralize any literal closing tag inside the piped content
-				// so it cannot escape the wrapper and re-enter "trusted" scope.
-				safe := strings.ReplaceAll(piped, "</untrusted_input>", "<\\/untrusted_input>")
+				// Escape any wrapper-tag-shaped substring (open or close,
+				// case-insensitive, whitespace-tolerant) by inserting a
+				// backslash after the opening '<'. This neutralizes both
+				// break-out attempts via </untrusted_input> variants and
+				// nested-region confusion via <untrusted_input> variants.
+				safe := chatUntrustedTagPattern.ReplaceAllStringFunc(trimmed, func(m string) string {
+					return "<\\" + m[1:]
+				})
 				userInput = userInput + "\n\n<untrusted_input>\n" + safe + "\n</untrusted_input>"
 			}
 		}
 	}
 	if strings.TrimSpace(userInput) == "" {
-		return fmt.Errorf("no prompt provided (use --prompt or pipe input via stdin)")
+		return "", fmt.Errorf("no prompt provided (use --prompt or pipe input via stdin)")
+	}
+	return userInput, nil
+}
+
+// runChatOneShot executes a single non-interactive chat turn and exits.
+// The prompt is built from --prompt and/or piped stdin, sent to the
+// coordinator as a single user message, and the response is printed to
+// stdout in the requested format (text or json).
+func runChatOneShot(ctx context.Context, opts chatOptions, stdinPiped bool) error {
+	var piped string
+	if opts.Stdin || (stdinPiped && opts.Prompt == "") {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("read stdin: %w", err)
+		}
+		piped = string(data)
+	}
+	userInput, err := buildOneShotInput(opts.Prompt, piped, stdinPiped)
+	if err != nil {
+		return err
 	}
 
 	sessionMgr, err := session.NewManager()
@@ -474,26 +587,26 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 
 	appendedToExisting := false
 	var sess *session.Session
-	if chatSessionID != "" {
-		sess, err = sessionMgr.Get(chatSessionID)
+	if opts.SessionID != "" {
+		sess, err = sessionMgr.Get(opts.SessionID)
 		if err != nil {
-			return fmt.Errorf("failed to resume session %s: %w", chatSessionID, err)
+			return fmt.Errorf("failed to resume session %s: %w", opts.SessionID, err)
 		}
 		appendedToExisting = true
 		// M3: make the append-to-existing-session behavior explicit so users
 		// are not silently mutating history in one-shot mode.
 		fmt.Fprintf(os.Stderr, "appending to existing session %s\n", sess.ID)
 	} else {
-		sess, err = sessionMgr.Create(chatModel)
+		sess, err = sessionMgr.Create(opts.Model)
 		if err != nil {
 			return fmt.Errorf("failed to create session: %w", err)
 		}
 	}
 
 	coord, err := coordinator.New(coordinator.Config{
-		Model:     chatModel,
+		Model:     opts.Model,
 		Streaming: false,
-		MaxTokens: chatMaxTokens,
+		MaxTokens: opts.MaxTokens,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize coordinator: %w", err)
@@ -514,7 +627,7 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 		Role:      "assistant",
 		Content:   response.Content,
 		Timestamp: time.Now(),
-		Model:     chatModel,
+		Model:     opts.Model,
 		Cost:      response.Cost,
 	})
 	sess.TotalCost += response.Cost
@@ -523,14 +636,14 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 		fmt.Fprintf(os.Stderr, "warning: failed to save session: %v\n", saveErr)
 	}
 
-	content, truncated := truncateForOutput(response.Content, chatMaxOutputKiB)
+	content, truncated := truncateForOutput(response.Content, opts.MaxOutputKiB)
 
-	switch chatOutput {
+	switch opts.Output {
 	case "json":
 		out := map[string]any{
 			"content":                      content,
 			"cost":                         response.Cost,
-			"model":                        chatModel,
+			"model":                        opts.Model,
 			"session_id":                   sess.ID,
 			"input_tokens":                 response.InputTokens,
 			"output_tokens":                response.OutputTokens,
@@ -544,7 +657,7 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 	default:
 		fmt.Println(content)
 		if truncated {
-			fmt.Fprintf(os.Stderr, "warning: output truncated to %d KiB (use --max-output-kib to raise the cap)\n", chatMaxOutputKiB)
+			fmt.Fprintf(os.Stderr, "warning: output truncated to %d KiB (use --max-output-kib to raise the cap)\n", opts.MaxOutputKiB)
 		}
 		return nil
 	}
