@@ -138,14 +138,20 @@ func writeFileHandler(_ context.Context, args map[string]any) (any, error) {
 		return nil, err
 	}
 
-	// Create parent directories if needed
+	// Create parent directories if needed.
+	// G301: directory permissions must be <=0750 — group-readable for
+	// operator audit but no world access. Writes are confirmation-gated,
+	// so the narrower perms do not affect legitimate use.
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// Write file
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	// Write file.
+	// G306: WriteFile permissions must be <=0600 — user-only read/write.
+	// Agent-written files contain tool output that may include secrets
+	// extracted from stdout; world/group read is not appropriate.
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		return nil, fmt.Errorf("failed to write file: %w", err)
 	}
 
