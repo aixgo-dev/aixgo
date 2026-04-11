@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -35,7 +36,11 @@ Use "aixgo [command] --help" for more information about a command.`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		// doctor renders its own report and returns a sentinel purely to
+		// drive the exit code; don't double-print its message.
+		if !errors.Is(err, errDoctorChecksFailed) {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		os.Exit(1)
 	}
 }
