@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"unicode/utf8"
+)
 
 // TestChatSecretPattern locks in the categories chatSecretPattern is required
 // to suppress (positive cases) AND the categories it must NOT suppress
@@ -44,4 +48,60 @@ func TestChatSecretPattern(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestTruncateForOutput covers the soft byte cap applied to non-interactive
+// chat responses. The function must be a no-op when the cap is disabled or
+// the content fits, must truncate oversized content, and must always return
+// valid UTF-8 (never slice in the middle of a multi-byte rune).
+func TestTruncateForOutput(t *testing.T) {
+	t.Run("disabled cap passes through", func(t *testing.T) {
+		in := strings.Repeat("x", 10_000)
+		got, trunc := truncateForOutput(in, 0)
+		if got != in || trunc {
+			t.Errorf("cap=0: got trunc=%v len=%d, want passthrough", trunc, len(got))
+		}
+	})
+
+	t.Run("negative cap passes through", func(t *testing.T) {
+		got, trunc := truncateForOutput("hello", -1)
+		if got != "hello" || trunc {
+			t.Errorf("cap=-1: got trunc=%v content=%q, want passthrough", trunc, got)
+		}
+	})
+
+	t.Run("under cap unchanged", func(t *testing.T) {
+		in := strings.Repeat("x", 500)
+		got, trunc := truncateForOutput(in, 1)
+		if got != in || trunc {
+			t.Errorf("under cap: got trunc=%v len=%d, want unchanged", trunc, len(got))
+		}
+	})
+
+	t.Run("over cap truncated", func(t *testing.T) {
+		in := strings.Repeat("x", 3000)
+		got, trunc := truncateForOutput(in, 1)
+		if !trunc {
+			t.Error("over cap: expected truncated=true")
+		}
+		if len(got) > 1024 {
+			t.Errorf("over cap: got len=%d, want <=1024", len(got))
+		}
+	})
+
+	t.Run("multibyte rune boundary", func(t *testing.T) {
+		// Japanese chars are 3 bytes in UTF-8. Build content that would slice
+		// a rune if truncation used a raw byte cut.
+		in := strings.Repeat("あ", 500) // 1500 bytes
+		got, trunc := truncateForOutput(in, 1)
+		if !trunc {
+			t.Error("expected truncated=true")
+		}
+		if !utf8.ValidString(got) {
+			t.Errorf("truncated output is not valid UTF-8: %q", got)
+		}
+		if len(got) > 1024 {
+			t.Errorf("got len=%d, want <=1024", len(got))
+		}
+	})
 }
