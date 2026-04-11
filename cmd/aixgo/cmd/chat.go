@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -24,6 +25,23 @@ import (
 // chatSlashCommands is the set of in-session commands used for tab-completion.
 var chatSlashCommands = []string{"/model", "/cost", "/save", "/clear", "/help", "/quit", "/exit"}
 
+// chatSecretPattern matches common secret/token shapes that must never be
+// appended to the readline history file. Keep this conservative: prefer false
+// negatives over false positives, but cover the well-known provider prefixes.
+var chatSecretPattern = regexp.MustCompile(
+	`(?i)` +
+		`sk-[A-Za-z0-9_\-]{20,}` + // OpenAI / Anthropic style
+		`|xai-[A-Za-z0-9_\-]{20,}` + // xAI
+		`|ghp_[A-Za-z0-9]{20,}` + // GitHub personal access token
+		`|ghs_[A-Za-z0-9]{20,}` + // GitHub server token
+		`|AKIA[0-9A-Z]{16}` + // AWS access key id
+		`|xoxb-[A-Za-z0-9\-]{10,}` + // Slack bot token
+		`|xoxp-[A-Za-z0-9\-]{10,}` + // Slack user token
+		`|Bearer\s+[A-Za-z0-9._\-]{20,}` + // generic bearer token
+		`|eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+` + // JWT (header.payload)
+		`|-----BEGIN [A-Z ]*PRIVATE KEY-----`, // PEM private key block
+)
+
 var (
 	chatModel     string
 	chatSessionID string
@@ -31,6 +49,7 @@ var (
 	chatPrompt    string
 	chatStdin     bool
 	chatOutput    string
+	chatNoHistory bool
 )
 
 // chatCmd represents the chat command for interactive coding assistant.
@@ -76,6 +95,7 @@ func init() {
 	chatCmd.Flags().StringVarP(&chatPrompt, "prompt", "p", "", "Run a one-shot prompt and exit (non-interactive)")
 	chatCmd.Flags().BoolVar(&chatStdin, "stdin", false, "Append piped stdin to the prompt (auto-enabled when stdin is not a TTY)")
 	chatCmd.Flags().StringVarP(&chatOutput, "output", "o", "text", "Output format for non-interactive mode: text, json")
+	chatCmd.Flags().BoolVar(&chatNoHistory, "no-history", false, "Disable loading and saving readline history for this session")
 
 	_ = chatCmd.RegisterFlagCompletionFunc("model", completeModelNames)
 	_ = chatCmd.RegisterFlagCompletionFunc("session", completeSessionIDs)
@@ -172,14 +192,18 @@ func runChat(cmd *cobra.Command, _ []string) error {
 	})
 
 	historyPath := chatHistoryFilePath()
-	// #nosec G304 -- historyPath is constructed from os.UserHomeDir() and a fixed
-	// relative path (.aixgo/chat_history); not influenced by untrusted input.
-	if f, err := os.Open(historyPath); err == nil {
-		_, _ = line.ReadHistory(f)
-		_ = f.Close()
+	if !chatNoHistory {
+		// #nosec G304 -- historyPath is constructed from os.UserHomeDir() and a fixed
+		// relative path (.aixgo/chat_history); not influenced by untrusted input.
+		if f, err := os.Open(historyPath); err == nil {
+			_, _ = line.ReadHistory(f)
+			_ = f.Close()
+		}
 	}
 	defer func() {
-		persistChatHistory(line, historyPath)
+		if !chatNoHistory {
+			persistChatHistory(line, historyPath)
+		}
 		_ = line.Close()
 	}()
 
@@ -204,7 +228,7 @@ func runChat(cmd *cobra.Command, _ []string) error {
 		if input == "" {
 			continue
 		}
-		line.AppendHistory(input)
+		appendChatHistorySafe(line, input)
 
 		// Handle in-session commands
 		if strings.HasPrefix(input, "/") {
@@ -263,6 +287,21 @@ func runChat(cmd *cobra.Command, _ []string) error {
 	}
 }
 
+// appendChatHistorySafe appends input to the liner history only when it does
+// not look like a secret (API key, bearer token, JWT, PEM block, etc.). This
+// is a best-effort defense against pasted credentials being written to the
+// on-disk history file. For fully guaranteed suppression, users should run
+// with --no-history.
+func appendChatHistorySafe(line *liner.State, input string) {
+	if line == nil || input == "" {
+		return
+	}
+	if chatSecretPattern.MatchString(input) {
+		return
+	}
+	line.AppendHistory(input)
+}
+
 // chatHistoryFilePath returns the path to the persisted readline history file.
 func chatHistoryFilePath() string {
 	home, err := os.UserHomeDir()
@@ -281,13 +320,19 @@ func persistChatHistory(line *liner.State, path string) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return
 	}
+	// History may contain sensitive prompt content (including pasted secrets),
+	// so the file must be readable only by the owner. Use OpenFile with an
+	// explicit 0o600 mode rather than os.Create (which uses 0o666 & ~umask).
 	// #nosec G304 -- path is constructed from os.UserHomeDir() and a fixed
 	// relative path (.aixgo/chat_history); not influenced by untrusted input.
-	f, err := os.Create(path)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return
 	}
 	defer func() { _ = f.Close() }()
+	// Defensively re-apply 0o600 in case the file pre-existed with wider perms
+	// (OpenFile honors existing modes when the file already exists).
+	_ = os.Chmod(path, 0o600)
 	_, _ = line.WriteHistory(f)
 }
 
@@ -393,9 +438,18 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 		piped := strings.TrimSpace(string(data))
 		if piped != "" {
 			if userInput == "" {
+				// Stdin is the entire prompt (no user-supplied -p); pass through
+				// verbatim as direct user input.
 				userInput = piped
 			} else {
-				userInput = userInput + "\n\n" + piped
+				// L2 defense-in-depth: when piped stdin is appended to a
+				// user-supplied --prompt, wrap it in delimiters so downstream
+				// models can distinguish operator instructions from potentially
+				// untrusted external content (prompt-injection mitigation).
+				// Neutralize any literal closing tag inside the piped content
+				// so it cannot escape the wrapper and re-enter "trusted" scope.
+				safe := strings.ReplaceAll(piped, "</untrusted_input>", "<\\/untrusted_input>")
+				userInput = userInput + "\n\n<untrusted_input>\n" + safe + "\n</untrusted_input>"
 			}
 		}
 	}
@@ -408,12 +462,17 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 		return fmt.Errorf("failed to initialize session manager: %w", err)
 	}
 
+	appendedToExisting := false
 	var sess *session.Session
 	if chatSessionID != "" {
 		sess, err = sessionMgr.Get(chatSessionID)
 		if err != nil {
 			return fmt.Errorf("failed to resume session %s: %w", chatSessionID, err)
 		}
+		appendedToExisting = true
+		// M3: make the append-to-existing-session behavior explicit so users
+		// are not silently mutating history in one-shot mode.
+		fmt.Fprintf(os.Stderr, "appending to existing session %s\n", sess.ID)
 	} else {
 		sess, err = sessionMgr.Create(chatModel)
 		if err != nil {
@@ -456,13 +515,14 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 	switch chatOutput {
 	case "json":
 		out := map[string]any{
-			"content":       response.Content,
-			"cost":          response.Cost,
-			"model":         chatModel,
-			"session_id":    sess.ID,
-			"input_tokens":  response.InputTokens,
-			"output_tokens": response.OutputTokens,
-			"finish_reason": response.FinishReason,
+			"content":                      response.Content,
+			"cost":                         response.Cost,
+			"model":                        chatModel,
+			"session_id":                   sess.ID,
+			"input_tokens":                 response.InputTokens,
+			"output_tokens":                response.OutputTokens,
+			"finish_reason":                response.FinishReason,
+			"appended_to_existing_session": appendedToExisting,
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")

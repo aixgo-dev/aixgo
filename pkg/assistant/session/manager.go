@@ -2,15 +2,36 @@ package session
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// ErrInvalidSessionID is returned when a caller supplies a session identifier
+// that is empty, too short, or does not match the canonical 12-char hex format
+// produced by generateID.
+var ErrInvalidSessionID = errors.New("invalid session id")
+
+// minSessionIDLen is the minimum length accepted by lookup operations that
+// support prefix matching (Get, Delete). Shorter prefixes are rejected to
+// avoid accidental broad matches.
+const minSessionIDLen = 6
+
+// sessionIDPattern is the accepted format for session IDs persisted to disk:
+// 11 or 12 lowercase hex characters. New IDs produced by generateID are always
+// 12 characters; the 11-character form is accepted for backward compatibility
+// with sessions created by earlier releases (which stripped a UUID dash from a
+// 12-char slice and yielded an 11-char ID). Either width still rejects path
+// separators, dots, and any non-hex byte, which is what the validation exists
+// to prevent.
+var sessionIDPattern = regexp.MustCompile(`^[a-f0-9]{11,12}$`)
 
 // Manager handles session CRUD operations.
 type Manager struct {
@@ -58,6 +79,9 @@ func (m *Manager) Create(model string) (*Session, error) {
 
 // Get retrieves a session by ID.
 func (m *Manager) Get(id string) (*Session, error) {
+	if id == "" || len(id) < minSessionIDLen {
+		return nil, ErrInvalidSessionID
+	}
 	// Support partial ID matching
 	matches, err := m.findByPrefix(id)
 	if err != nil {
@@ -77,6 +101,9 @@ func (m *Manager) Get(id string) (*Session, error) {
 
 // Save persists a session to disk.
 func (m *Manager) Save(sess *Session) error {
+	if sess == nil || !sessionIDPattern.MatchString(sess.ID) {
+		return ErrInvalidSessionID
+	}
 	sess.UpdatedAt = time.Now()
 
 	data, err := json.MarshalIndent(sess, "", "  ")
@@ -94,6 +121,9 @@ func (m *Manager) Save(sess *Session) error {
 
 // Delete removes a session by ID.
 func (m *Manager) Delete(id string) error {
+	if id == "" || len(id) < minSessionIDLen {
+		return ErrInvalidSessionID
+	}
 	// Support partial ID matching
 	matches, err := m.findByPrefix(id)
 	if err != nil {
@@ -195,9 +225,12 @@ func (m *Manager) sessionPath(id string) string {
 	return filepath.Join(m.sessionsDir, id+".json")
 }
 
-// generateID generates a short unique session ID.
+// generateID generates a short unique session ID consisting of exactly 12
+// lowercase hex characters. The format is enforced by sessionIDPattern and
+// validated on Save.
 func generateID() string {
-	id := uuid.New().String()
-	// Use first 12 chars for shorter IDs
-	return strings.ReplaceAll(id[:12], "-", "")
+	// A uuid v4 string contains dashes at fixed positions; strip them first so
+	// the leading 12 characters are always pure hex.
+	hex := strings.ReplaceAll(uuid.New().String(), "-", "")
+	return hex[:12]
 }

@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -339,11 +340,83 @@ func TestGenerateID(t *testing.T) {
 	if id1 == "" {
 		t.Error("generateID should not return empty string")
 	}
-	// UUID first 12 chars is "xxxxxxxx-xxx" which becomes 11 chars after removing hyphen
-	if len(id1) < 10 || len(id1) > 12 {
-		t.Errorf("generateID should return 10-12 char ID, got %d", len(id1))
+	if len(id1) != 12 {
+		t.Errorf("generateID should return 12-char ID, got %d", len(id1))
+	}
+	if !sessionIDPattern.MatchString(id1) {
+		t.Errorf("generateID = %q, want match for %s", id1, sessionIDPattern)
 	}
 	if id1 == id2 {
 		t.Error("generateID should return unique IDs")
 	}
+}
+
+func TestManager_Validation(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "aixgo-session-validation")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	mgr := &Manager{sessionsDir: tmpDir}
+
+	t.Run("Get rejects empty id", func(t *testing.T) {
+		if _, err := mgr.Get(""); !errors.Is(err, ErrInvalidSessionID) {
+			t.Errorf("Get(\"\") error = %v, want ErrInvalidSessionID", err)
+		}
+	})
+	t.Run("Get rejects short id", func(t *testing.T) {
+		if _, err := mgr.Get("abc"); !errors.Is(err, ErrInvalidSessionID) {
+			t.Errorf("Get(\"abc\") error = %v, want ErrInvalidSessionID", err)
+		}
+	})
+	t.Run("Delete rejects empty id", func(t *testing.T) {
+		if err := mgr.Delete(""); !errors.Is(err, ErrInvalidSessionID) {
+			t.Errorf("Delete(\"\") error = %v, want ErrInvalidSessionID", err)
+		}
+	})
+	t.Run("Delete rejects short id", func(t *testing.T) {
+		if err := mgr.Delete("xyz"); !errors.Is(err, ErrInvalidSessionID) {
+			t.Errorf("Delete(\"xyz\") error = %v, want ErrInvalidSessionID", err)
+		}
+	})
+	t.Run("Save rejects malformed id", func(t *testing.T) {
+		bad := &Session{ID: "not-hex!"}
+		if err := mgr.Save(bad); !errors.Is(err, ErrInvalidSessionID) {
+			t.Errorf("Save(bad) error = %v, want ErrInvalidSessionID", err)
+		}
+	})
+	t.Run("Save rejects nil session", func(t *testing.T) {
+		if err := mgr.Save(nil); !errors.Is(err, ErrInvalidSessionID) {
+			t.Errorf("Save(nil) error = %v, want ErrInvalidSessionID", err)
+		}
+	})
+	t.Run("Save rejects path traversal id", func(t *testing.T) {
+		bad := &Session{ID: "../../etc/pa"}
+		if err := mgr.Save(bad); !errors.Is(err, ErrInvalidSessionID) {
+			t.Errorf("Save(traversal) error = %v, want ErrInvalidSessionID", err)
+		}
+	})
+	t.Run("Save accepts legacy 11-char hex id", func(t *testing.T) {
+		// Pre-v0.5.x sessions used an 11-character hex ID (the old generateID
+		// stripped a single UUID dash from a 12-char slice). Resuming such a
+		// session must remain possible: Save MUST accept it so the chat loop's
+		// auto-save does not error out on every turn.
+		legacy := &Session{ID: "54e95d35cae", Model: "gpt-4o", Messages: []Message{}}
+		if err := mgr.Save(legacy); err != nil {
+			t.Errorf("Save(legacy 11-char id) error = %v, want nil", err)
+		}
+	})
+	t.Run("Save accepts canonical 12-char hex id", func(t *testing.T) {
+		ok := &Session{ID: "abcdef012345", Model: "gpt-4o", Messages: []Message{}}
+		if err := mgr.Save(ok); err != nil {
+			t.Errorf("Save(12-char id) error = %v, want nil", err)
+		}
+	})
+	t.Run("Save rejects 10-char id", func(t *testing.T) {
+		bad := &Session{ID: "abcdef0123"}
+		if err := mgr.Save(bad); !errors.Is(err, ErrInvalidSessionID) {
+			t.Errorf("Save(10-char id) error = %v, want ErrInvalidSessionID", err)
+		}
+	})
 }
