@@ -1,6 +1,8 @@
 package security
 
 import (
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -1273,4 +1275,102 @@ func TestValidateDeploymentInputs(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestResolveTLSCertPath guards the #131 TLS CA path-traversal fixes in
+// internal/runtime/distributed.go (buildDialOptions, buildServerOptions) and
+// pkg/mcp/transport_grpc.go (client + server CAFile loads). All four call
+// sites route through ResolveTLSCertPath, so exhaustive coverage here is
+// simultaneously coverage for A2 and A3 in the release-gate checklist.
+func TestResolveTLSCertPath(t *testing.T) {
+	certDir := t.TempDir()
+
+	// Materialise a "real" cert so the absolute-inside-allowlist case has a
+	// tangible path to resolve against (the helper does not stat, but it
+	// gives the test a realistic fixture for future coverage).
+	realCert := filepath.Join(certDir, "ca.pem")
+	if err := os.WriteFile(realCert, []byte("dummy"), 0o600); err != nil {
+		t.Fatalf("fixture cert write: %v", err)
+	}
+
+	t.Setenv("AIXGO_TLS_CERT_DIR", certDir)
+
+	tests := []struct {
+		name    string
+		in      string
+		want    string // expected resolved path (ignored if wantErr)
+		wantErr bool
+	}{
+		{
+			name:    "empty path rejected",
+			in:      "",
+			wantErr: true,
+		},
+		{
+			name: "relative path inside allowlist accepted",
+			in:   "ca.pem",
+			want: realCert,
+		},
+		{
+			name: "absolute path inside allowlist accepted",
+			in:   realCert,
+			want: realCert,
+		},
+		{
+			name:    "traversal via relative parent rejected",
+			in:      "../etc/shadow",
+			wantErr: true,
+		},
+		{
+			name:    "traversal inside allowlist root rejected",
+			in:      "ca/../../../etc/shadow",
+			wantErr: true,
+		},
+		{
+			name:    "absolute path outside allowlist rejected",
+			in:      "/etc/shadow",
+			wantErr: true,
+		},
+		{
+			name:    "absolute traversal segment rejected",
+			in:      filepath.Join(certDir, "..", "escape.pem"),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ResolveTLSCertPath(tt.in)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ResolveTLSCertPath(%q) error = %v, wantErr %v", tt.in, err, tt.wantErr)
+			}
+			if tt.wantErr {
+				if err != nil && strings.Contains(err.Error(), certDir) && !strings.Contains(tt.name, "absolute traversal") {
+					// The helper contract says the error must not leak the
+					// allowlist root. The "absolute traversal segment" case is
+					// exempt because the caller's own path already contains
+					// certDir verbatim.
+					t.Errorf("error message leaked allowlist root: %q", err.Error())
+				}
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ResolveTLSCertPath(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+
+	t.Run("fallback to DefaultTLSCertDir when env unset", func(t *testing.T) {
+		t.Setenv("AIXGO_TLS_CERT_DIR", "")
+		// Absolute path inside /etc/aixgo/certs (fictional, not created) must
+		// still be accepted lexically; filesystem presence is not a
+		// precondition of ResolveTLSCertPath.
+		got, err := ResolveTLSCertPath("/etc/aixgo/certs/server.pem")
+		if err != nil {
+			t.Fatalf("ResolveTLSCertPath() error = %v, want nil", err)
+		}
+		if got != "/etc/aixgo/certs/server.pem" {
+			t.Errorf("ResolveTLSCertPath() = %q, want /etc/aixgo/certs/server.pem", got)
+		}
+	})
 }

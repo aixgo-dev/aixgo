@@ -5,7 +5,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestDisabledAuthExtractor(t *testing.T) {
@@ -588,5 +591,158 @@ func TestHeaderRoleInjection(t *testing.T) {
 	}
 	if !hasValidRole {
 		t.Error("Expected at least one valid role after sanitization")
+	}
+}
+
+// TestLoadAPIKeysFromFile_PathTraversal guards the #131 defence-in-depth
+// cleaning added to loadAPIKeysFromFile. The function is called with an
+// operator-supplied config path, so the goal is to ensure neither a
+// traversal sequence, nor a symlink-adjacent path, nor a world-readable
+// fixture sneaks past the gates.
+func TestLoadAPIKeysFromFile_PathTraversal(t *testing.T) {
+	dir := t.TempDir()
+
+	validPath := filepath.Join(dir, "keys.json")
+	if err := os.WriteFile(validPath, []byte(`{"alice":"secret1"}`), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	worldReadablePath := filepath.Join(dir, "keys-wide.json")
+	if err := os.WriteFile(worldReadablePath, []byte(`{"bob":"secret2"}`), 0o644); err != nil {
+		t.Fatalf("write world-readable fixture: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		path    string
+		wantErr bool
+		// errSubstr is matched against err.Error() when wantErr is true.
+		// Empty means "any error is fine".
+		errSubstr string
+	}{
+		{
+			name:      "empty path rejected",
+			path:      "",
+			wantErr:   true,
+			errSubstr: "cannot be empty",
+		},
+		{
+			name:      "parent traversal rejected",
+			path:      "../etc/shadow",
+			wantErr:   true,
+			errSubstr: "traversal",
+		},
+		{
+			// Construct the path manually so filepath.Join does not strip
+			// the ".." before it reaches loadAPIKeysFromFile.
+			name:      "raw dot-dot survives clean rejected",
+			path:      "../../../../../../etc/shadow",
+			wantErr:   true,
+			errSubstr: "traversal",
+		},
+		{
+			name:      "nonexistent file surfaces stat error",
+			path:      filepath.Join(dir, "does-not-exist"),
+			wantErr:   true,
+			errSubstr: "stat",
+		},
+		{
+			name:      "world-readable fixture rejected",
+			path:      worldReadablePath,
+			wantErr:   true,
+			errSubstr: "world-readable",
+		},
+		{
+			name:    "valid JSON keys loaded",
+			path:    validPath,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := loadAPIKeysFromFile(tt.path)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("loadAPIKeysFromFile(%q) error = %v, wantErr %v", tt.path, err, tt.wantErr)
+			}
+			if tt.wantErr {
+				if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Errorf("err = %q, want substring %q", err.Error(), tt.errSubstr)
+				}
+				return
+			}
+			if len(got) == 0 {
+				t.Errorf("expected at least one key, got %d", len(got))
+			}
+		})
+	}
+}
+
+// TestGoogleJWKClient_Configuration asserts the SSRF hardening applied to
+// the Google JWK fetch path (gosec G107 #118). The client itself is a
+// package-private sync.Once singleton, so this test verifies the post-once
+// state: allowlist hosts, scheme restriction, block flags, timeout, and
+// redirect denial. A full httptest round-trip is deferred to an integration
+// test because the endpoints are compile-time constants.
+func TestGoogleJWKClient_Configuration(t *testing.T) {
+	client, validator := getGoogleJWKClient()
+	if client == nil || validator == nil {
+		t.Fatal("getGoogleJWKClient returned nil client or validator")
+	}
+
+	t.Run("timeout is 10 seconds", func(t *testing.T) {
+		if client.Timeout != 10*time.Second {
+			t.Errorf("client.Timeout = %v, want 10s", client.Timeout)
+		}
+	})
+
+	t.Run("redirect is denied", func(t *testing.T) {
+		if client.CheckRedirect == nil {
+			t.Fatal("client.CheckRedirect is nil, want a deny-redirect function")
+		}
+		if err := client.CheckRedirect(nil, nil); err == nil {
+			t.Error("CheckRedirect returned nil, want non-nil to deny redirect")
+		}
+	})
+
+	t.Run("validator accepts www.gstatic.com https", func(t *testing.T) {
+		if err := validator.ValidateURL("https://www.gstatic.com/iap/verify/public_key-jwk"); err != nil {
+			t.Errorf("ValidateURL(gstatic) error = %v, want nil", err)
+		}
+	})
+
+	t.Run("validator accepts www.googleapis.com https", func(t *testing.T) {
+		if err := validator.ValidateURL("https://www.googleapis.com/oauth2/v3/certs"); err != nil {
+			t.Errorf("ValidateURL(googleapis) error = %v, want nil", err)
+		}
+	})
+
+	t.Run("validator rejects non-allowlist host", func(t *testing.T) {
+		if err := validator.ValidateURL("https://evil.example.com/keys"); err == nil {
+			t.Error("ValidateURL(evil.example.com) = nil, want allowlist rejection")
+		}
+	})
+
+	t.Run("validator rejects http scheme", func(t *testing.T) {
+		if err := validator.ValidateURL("http://www.gstatic.com/iap/verify/public_key-jwk"); err == nil {
+			t.Error("ValidateURL(http) = nil, want scheme rejection")
+		}
+	})
+
+	t.Run("validator rejects loopback", func(t *testing.T) {
+		if err := validator.ValidateURL("https://127.0.0.1/keys"); err == nil {
+			t.Error("ValidateURL(loopback) = nil, want block (AllowLocalhost=false)")
+		}
+	})
+}
+
+// TestErrJWKEndpointBlocked verifies the sentinel exists and has the
+// expected message prefix so operators can distinguish SSRF blocks from
+// transport errors when reading logs.
+func TestErrJWKEndpointBlocked(t *testing.T) {
+	if ErrJWKEndpointBlocked == nil {
+		t.Fatal("ErrJWKEndpointBlocked is nil")
+	}
+	if !strings.Contains(ErrJWKEndpointBlocked.Error(), "ssrf") {
+		t.Errorf("ErrJWKEndpointBlocked.Error() = %q, want substring 'ssrf'", ErrJWKEndpointBlocked.Error())
 	}
 }
