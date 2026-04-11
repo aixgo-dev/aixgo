@@ -58,8 +58,14 @@ func readFileHandler(_ context.Context, args map[string]any) (any, error) {
 		return nil, err
 	}
 
+	// G304: Use the cleaned absolute path for the read so the read target
+	// matches the path that ValidatePath actually approved (defends against
+	// "./foo/../bar" style aliasing where the raw arg differs from the
+	// canonical form).
+	cleanPath := filepath.Clean(path)
+
 	// Read file
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(cleanPath) // #nosec G304 -- path validated by ValidatePath (allowlist + symlink-escape check)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -148,50 +154,80 @@ func writeFileHandler(_ context.Context, args map[string]any) (any, error) {
 
 // ValidatePath validates that a path is safe to access.
 // Exported so other packages can use the same validation logic.
+//
+// Defence layers:
+//  1. Reject empty paths and null bytes.
+//  2. Resolve to a cleaned absolute path.
+//  3. Enforce a non-empty allowlist of acceptable roots
+//     (cwd, $HOME, /usr/local, /etc, /tmp, /var/folders, $TMPDIR).
+//  4. If the file already exists, resolve symlinks and re-check the resolved
+//     target against the same allowlist. This blocks symlink-escape attacks
+//     where an attacker plants a symlink inside cwd that points at /etc/shadow.
 func ValidatePath(path string) error {
-	// Get absolute path
+	if path == "" {
+		return fmt.Errorf("path is required")
+	}
+	if strings.ContainsRune(path, 0) {
+		return fmt.Errorf("null byte in path")
+	}
+
+	// Get absolute, cleaned path
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return fmt.Errorf("invalid path: %w", err)
 	}
+	absPath = filepath.Clean(absPath)
 
-	// Get working directory
+	// Get working directory and home directory for allowlist
 	wd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
-
-	// Check path is within working directory or home directory
 	homeDir, _ := os.UserHomeDir()
 
-	if !strings.HasPrefix(absPath, wd) && !strings.HasPrefix(absPath, homeDir) {
-		// Allow common system paths for reading
-		allowedPrefixes := []string{
-			"/usr/local",
-			"/etc",
-			"/tmp",
-			"/var/folders", // macOS temp directory
-			os.TempDir(),   // System temp directory
-		}
-		allowed := false
-		for _, prefix := range allowedPrefixes {
-			if strings.HasPrefix(absPath, prefix) {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			return fmt.Errorf("path outside allowed directories: %s", path)
-		}
+	if err := pathInAllowlist(absPath, wd, homeDir); err != nil {
+		return err
 	}
 
-	// Check for path traversal
-	if strings.Contains(path, "..") {
-		cleanPath := filepath.Clean(absPath)
-		if !strings.HasPrefix(cleanPath, wd) && !strings.HasPrefix(cleanPath, homeDir) {
-			return fmt.Errorf("path traversal not allowed: %s", path)
+	// Symlink-escape check: if the path exists, resolve symlinks and verify
+	// the real target also lives inside the allowlist. We tolerate
+	// non-existent paths (the caller may be reading a soon-to-be-created file
+	// or the read will fail naturally afterwards).
+	if resolved, err := filepath.EvalSymlinks(absPath); err == nil {
+		if err := pathInAllowlist(resolved, wd, homeDir); err != nil {
+			return fmt.Errorf("symlink target outside allowed directories: %s", path)
 		}
 	}
 
 	return nil
+}
+
+// pathInAllowlist returns nil if absPath sits inside one of the allowed
+// roots. The allowlist is intentionally non-empty so an empty/zero-value cwd
+// or homeDir cannot accidentally permit "/".
+func pathInAllowlist(absPath, wd, homeDir string) error {
+	allowed := []string{
+		"/usr/local",
+		"/etc",
+		"/tmp",
+		"/var/folders", // macOS temp directory
+		os.TempDir(),   // System temp directory
+	}
+	if wd != "" {
+		allowed = append(allowed, wd)
+	}
+	if homeDir != "" {
+		allowed = append(allowed, homeDir)
+	}
+
+	// Filter out any zero-value entries defensively before the prefix walk.
+	for _, root := range allowed {
+		if root == "" {
+			continue
+		}
+		if absPath == root || strings.HasPrefix(absPath, root+string(filepath.Separator)) {
+			return nil
+		}
+	}
+	return fmt.Errorf("path outside allowed directories: %s", absPath)
 }

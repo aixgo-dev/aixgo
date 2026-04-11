@@ -19,6 +19,7 @@ import (
 	"github.com/aixgo-dev/aixgo/internal/agent"
 	"github.com/aixgo-dev/aixgo/internal/graph"
 	"github.com/aixgo-dev/aixgo/internal/observability"
+	"github.com/aixgo-dev/aixgo/pkg/security"
 	"github.com/aixgo-dev/aixgo/pkg/session"
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"go.opentelemetry.io/otel/attribute"
@@ -240,7 +241,11 @@ func (r *DistributedRuntime) buildDialOptions() ([]grpc.DialOption, error) {
 
 		// Load CA certificate if provided
 		if r.tlsConfig.CAFile != "" {
-			caData, err := os.ReadFile(r.tlsConfig.CAFile)
+			caPath, err := security.ResolveTLSCertPath(r.tlsConfig.CAFile)
+			if err != nil {
+				return nil, fmt.Errorf("invalid CA file path: %w", err)
+			}
+			caData, err := os.ReadFile(caPath) // #nosec G304 -- path confined to AIXGO_TLS_CERT_DIR allowlist by security.ResolveTLSCertPath
 			if err != nil {
 				return nil, fmt.Errorf("failed to read CA file: %w", err)
 			}
@@ -660,7 +665,11 @@ func (r *DistributedRuntime) buildServerOptions() ([]grpc.ServerOption, error) {
 
 		// Load CA for mTLS if provided
 		if r.tlsConfig.CAFile != "" {
-			caData, err := os.ReadFile(r.tlsConfig.CAFile)
+			caPath, err := security.ResolveTLSCertPath(r.tlsConfig.CAFile)
+			if err != nil {
+				return nil, fmt.Errorf("invalid CA file path: %w", err)
+			}
+			caData, err := os.ReadFile(caPath) // #nosec G304 -- path confined to AIXGO_TLS_CERT_DIR allowlist by security.ResolveTLSCertPath
 			if err != nil {
 				return nil, fmt.Errorf("failed to read CA file: %w", err)
 			}

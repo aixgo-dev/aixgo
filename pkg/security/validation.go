@@ -2,10 +2,66 @@ package security
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 )
+
+// DefaultTLSCertDir is the fallback allowlist root used by
+// ResolveTLSCertPath when AIXGO_TLS_CERT_DIR is not set. It follows the
+// convention of typical Linux deployments and keeps operator-supplied TLS
+// material confined to a single, predictable location.
+const DefaultTLSCertDir = "/etc/aixgo/certs"
+
+// ResolveTLSCertPath cleans a caller-supplied TLS file path and verifies it
+// falls inside the configured cert-directory allowlist. The allowlist root is
+// read from AIXGO_TLS_CERT_DIR if set, otherwise DefaultTLSCertDir. The
+// function does NOT echo the allowlist root back in the error to avoid
+// leaking the deployment layout; it only identifies the rejected path.
+//
+// G304 defence: all TLS file reads (CA, cert, key) should pass through this
+// helper so that a compromised config cannot coerce callers into reading
+// arbitrary files like /etc/shadow or ~/.ssh/id_rsa.
+//
+// Relative paths are resolved against the allowlist root. Absolute paths are
+// accepted as long as they fall inside the (absolute) allowlist root. The
+// check is lexical: symlinks are not resolved, because the operator, not the
+// end user, controls the cert directory contents and adding EvalSymlinks
+// would break callers that pre-create destinations.
+func ResolveTLSCertPath(path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("tls cert path cannot be empty")
+	}
+
+	allowRoot := os.Getenv("AIXGO_TLS_CERT_DIR")
+	if allowRoot == "" {
+		allowRoot = DefaultTLSCertDir
+	}
+	absRoot, err := filepath.Abs(filepath.Clean(allowRoot))
+	if err != nil {
+		return "", fmt.Errorf("invalid tls cert directory: %w", err)
+	}
+
+	cleaned := filepath.Clean(path)
+	if strings.Contains(cleaned, "..") {
+		return "", fmt.Errorf("path traversal detected in tls cert path: %s", path)
+	}
+
+	var candidate string
+	if filepath.IsAbs(cleaned) {
+		candidate = cleaned
+	} else {
+		candidate = filepath.Join(absRoot, cleaned)
+	}
+	candidate = filepath.Clean(candidate)
+
+	if candidate != absRoot && !strings.HasPrefix(candidate, absRoot+string(filepath.Separator)) {
+		return "", fmt.Errorf("tls cert path is outside allowed directory: %s", path)
+	}
+
+	return candidate, nil
+}
 
 // ArgValidator defines an interface for validating arguments
 type ArgValidator interface {

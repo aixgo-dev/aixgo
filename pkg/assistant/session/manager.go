@@ -181,8 +181,18 @@ func (m *Manager) List() ([]*Session, error) {
 
 // loadSession loads a session from disk.
 func (m *Manager) loadSession(id string) (*Session, error) {
+	// G304 defence-in-depth: reject any id that does not match the canonical
+	// 11/12-char hex format produced by generateID before constructing the
+	// session path. Save() already enforces this on write, but loadSession
+	// has historically been reachable from List() and Get() with values that
+	// originate on disk or from user CLI input — confirming the format here
+	// guarantees sessionPath() can never be coerced into traversing out of
+	// sessionsDir, regardless of how the id was obtained.
+	if !sessionIDPattern.MatchString(id) {
+		return nil, ErrInvalidSessionID
+	}
 	path := m.sessionPath(id)
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- id format constrained to ^[a-f0-9]{11,12}$ above
 	if err != nil {
 		return nil, fmt.Errorf("failed to read session file: %w", err)
 	}

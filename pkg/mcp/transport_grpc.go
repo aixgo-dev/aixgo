@@ -183,12 +183,16 @@ func (t *GRPCTransport) buildTLSConfig() (*tls.Config, error) {
 
 	// Load CA certificate if provided
 	if tlsCfg.CAFile != "" {
-		// Validate CA file path to prevent path traversal attacks
-		if err := security.ValidateFilePath(tlsCfg.CAFile); err != nil {
+		// G304: confine CA path to AIXGO_TLS_CERT_DIR allowlist (defaults to
+		// /etc/aixgo/certs) to prevent operator-supplied config from coercing
+		// arbitrary file reads. Rejects traversal sequences and paths outside
+		// the allowlist root.
+		caPath, err := security.ResolveTLSCertPath(tlsCfg.CAFile)
+		if err != nil {
 			return nil, fmt.Errorf("invalid CA file path: %w", err)
 		}
 
-		caCert, err := os.ReadFile(tlsCfg.CAFile)
+		caCert, err := os.ReadFile(caPath) // #nosec G304 -- path confined to AIXGO_TLS_CERT_DIR allowlist by ResolveTLSCertPath
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA file: %w", err)
 		}
@@ -808,12 +812,16 @@ func (s *GRPCServer) buildServerTLSConfig() (*tls.Config, error) {
 
 	// Load CA for client verification (mTLS)
 	if s.tlsConfig.CAFile != "" {
-		// Validate CA file path to prevent path traversal attacks
-		if err := security.ValidateFilePath(s.tlsConfig.CAFile); err != nil {
+		// G304: confine CA path to AIXGO_TLS_CERT_DIR allowlist (defaults to
+		// /etc/aixgo/certs) to prevent operator-supplied config from coercing
+		// arbitrary file reads. Rejects traversal sequences and paths outside
+		// the allowlist root.
+		caPath, err := security.ResolveTLSCertPath(s.tlsConfig.CAFile)
+		if err != nil {
 			return nil, fmt.Errorf("invalid CA file path: %w", err)
 		}
 
-		caCert, err := os.ReadFile(s.tlsConfig.CAFile)
+		caCert, err := os.ReadFile(caPath) // #nosec G304 -- path confined to AIXGO_TLS_CERT_DIR allowlist by ResolveTLSCertPath
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA file: %w", err)
 		}

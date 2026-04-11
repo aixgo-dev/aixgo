@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -625,8 +626,21 @@ func (e *HybridAuthExtractor) ExtractAuth(ctx context.Context, r *http.Request) 
 // 1. Line-based format: user_id=api_key (one per line)
 // 2. JSON format: {"user_id": "api_key", ...}
 func loadAPIKeysFromFile(filePath string) (map[string]*Principal, error) {
+	// G304: Defensively clean the operator-supplied path and reject any
+	// traversal sequences before touching the filesystem. The path comes from
+	// trusted configuration, but cleaning eliminates ambiguous encodings (e.g.
+	// "./foo//bar", "foo/../bar") so downstream stat/open operate on a
+	// canonical path.
+	if filePath == "" {
+		return nil, fmt.Errorf("api key file path cannot be empty")
+	}
+	cleanPath := filepath.Clean(filePath)
+	if strings.Contains(cleanPath, "..") {
+		return nil, fmt.Errorf("path traversal detected in api key file path")
+	}
+
 	// Check file permissions for security
-	fileInfo, err := os.Stat(filePath)
+	fileInfo, err := os.Stat(cleanPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to stat file: %w", err)
 	}
@@ -640,7 +654,7 @@ func loadAPIKeysFromFile(filePath string) (map[string]*Principal, error) {
 	}
 
 	// Open file
-	file, err := os.Open(filePath)
+	file, err := os.Open(cleanPath) // #nosec G304 -- path cleaned and traversal-checked above
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}

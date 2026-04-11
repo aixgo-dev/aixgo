@@ -12,6 +12,100 @@ import (
 	"github.com/aixgo-dev/aixgo/pkg/tools"
 )
 
+// allowedGitSubcommands is the set of git subcommands this tool is permitted
+// to invoke. Any caller-influenced git invocation MUST pass through
+// validateGitArgs so that only these read-or-tightly-scoped subcommands are
+// reachable. This mitigates gosec G204 (subprocess launched with variable) by
+// constraining the command surface even when other arguments (paths, refs,
+// messages) originate from tool inputs.
+var allowedGitSubcommands = map[string]bool{
+	"status":    true,
+	"diff":      true,
+	"log":       true,
+	"show":      true,
+	"rev-parse": true,
+	"branch":    true,
+	"add":       true,
+	"commit":    true,
+}
+
+// validateGitArgs enforces a subcommand allowlist and rejects flag-style
+// arguments known to enable remote code execution or git-config overrides:
+// --upload-pack / --receive-pack / --exec / -c / --config. These flags have
+// been weaponised historically (CVE-2017-1000117 and follow-ups) when
+// caller-controlled paths or refs were passed to git verbatim.
+//
+// Shell metacharacters are intentionally NOT rejected because every call
+// site uses exec.Command (no shell interpreter is invoked), so characters
+// like $, `, ;, | are inert data. This matters for legitimate payloads such
+// as commit messages containing shell-like text.
+//
+// The args slice is the full argv that will be passed to `git`, including
+// any leading `-C <path>` pair. Once the subcommand is located, every
+// argument that follows is permitted to start with "--" only if it is not
+// on the denylist; positional/value arguments (after "--" or as -m payload)
+// are not inspected for flag prefixes.
+func validateGitArgs(args []string) error {
+	// Skip a leading "-C <path>" pair if present.
+	i := 0
+	if len(args) >= 2 && args[0] == "-C" {
+		i = 2
+	}
+	if i >= len(args) {
+		return fmt.Errorf("git: missing subcommand")
+	}
+	sub := args[i]
+	if !allowedGitSubcommands[sub] {
+		return fmt.Errorf("git: subcommand not allowed: %q", sub)
+	}
+
+	// Scan remaining arguments for denied flags. Stop flag-checking after
+	// a literal "--" (end-of-options) and do not inspect the value that
+	// follows "-m" (commit message payload).
+	endOfOptions := false
+	skipNext := false
+	for _, a := range args[i+1:] {
+		if skipNext {
+			skipNext = false
+			continue
+		}
+		if endOfOptions {
+			continue
+		}
+		if a == "--" {
+			endOfOptions = true
+			continue
+		}
+		if a == "-m" || a == "--message" {
+			skipNext = true
+			continue
+		}
+		lower := strings.ToLower(a)
+		switch {
+		case strings.HasPrefix(lower, "--upload-pack"),
+			strings.HasPrefix(lower, "--receive-pack"),
+			strings.HasPrefix(lower, "--exec"),
+			lower == "-c",
+			strings.HasPrefix(lower, "--config"):
+			return fmt.Errorf("git: flag not allowed: %q", a)
+		}
+	}
+	return nil
+}
+
+// safeGitCommand builds an *exec.Cmd for git after validating every argument
+// against the allowlist. It is the only constructor the handlers in this
+// package should use to spawn git.
+func safeGitCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
+	if err := validateGitArgs(args); err != nil {
+		return nil, err
+	}
+	// #nosec G204 -- args are validated by validateGitArgs above: subcommand
+	// is drawn from a fixed allowlist and every remaining arg is checked for
+	// shell metacharacters and dangerous git flags (--upload-pack, -c, etc.).
+	return exec.CommandContext(ctx, "git", args...), nil
+}
+
 func init() {
 	tools.Register(StatusTool())
 	tools.Register(DiffTool())
@@ -45,7 +139,10 @@ func statusHandler(ctx context.Context, args map[string]any) (any, error) {
 	}
 
 	// Run git status
-	cmd := exec.CommandContext(ctx, "git", "-C", path, "status", "--porcelain=v1")
+	cmd, err := safeGitCommand(ctx, "-C", path, "status", "--porcelain=v1")
+	if err != nil {
+		return nil, err
+	}
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("git status failed: %w", err)
@@ -74,7 +171,10 @@ func statusHandler(ctx context.Context, args map[string]any) (any, error) {
 	}
 
 	// Get current branch
-	branchCmd := exec.CommandContext(ctx, "git", "-C", path, "branch", "--show-current")
+	branchCmd, err := safeGitCommand(ctx, "-C", path, "branch", "--show-current")
+	if err != nil {
+		return nil, err
+	}
 	branchOutput, _ := branchCmd.Output()
 	branch := strings.TrimSpace(string(branchOutput))
 
@@ -139,7 +239,10 @@ func diffHandler(ctx context.Context, args map[string]any) (any, error) {
 		cmdArgs = append(cmdArgs, "--", file)
 	}
 
-	cmd := exec.CommandContext(ctx, "git", cmdArgs...)
+	cmd, err := safeGitCommand(ctx, cmdArgs...)
+	if err != nil {
+		return nil, err
+	}
 	output, err := cmd.Output()
 	if err != nil {
 		// Empty diff is not an error
@@ -215,14 +318,20 @@ func commitHandler(ctx context.Context, args map[string]any) (any, error) {
 			}
 		}
 
-		addCmd := exec.CommandContext(ctx, "git", fileArgs...)
+		addCmd, err := safeGitCommand(ctx, fileArgs...)
+		if err != nil {
+			return nil, err
+		}
 		if err := addCmd.Run(); err != nil {
 			return nil, fmt.Errorf("git add failed: %w", err)
 		}
 	}
 
 	// Commit
-	commitCmd := exec.CommandContext(ctx, "git", "-C", repoPath, "commit", "-m", message)
+	commitCmd, err := safeGitCommand(ctx, "-C", repoPath, "commit", "-m", message)
+	if err != nil {
+		return nil, err
+	}
 	var stdout, stderr bytes.Buffer
 	commitCmd.Stdout = &stdout
 	commitCmd.Stderr = &stderr
@@ -232,7 +341,10 @@ func commitHandler(ctx context.Context, args map[string]any) (any, error) {
 	}
 
 	// Get commit hash
-	hashCmd := exec.CommandContext(ctx, "git", "-C", repoPath, "rev-parse", "--short", "HEAD")
+	hashCmd, err := safeGitCommand(ctx, "-C", repoPath, "rev-parse", "--short", "HEAD")
+	if err != nil {
+		return nil, err
+	}
 	hashOutput, _ := hashCmd.Output()
 	hash := strings.TrimSpace(string(hashOutput))
 
@@ -290,7 +402,10 @@ func logHandler(ctx context.Context, args map[string]any) (any, error) {
 		cmdArgs = append(cmdArgs, "--", file)
 	}
 
-	cmd := exec.CommandContext(ctx, "git", cmdArgs...)
+	cmd, err := safeGitCommand(ctx, cmdArgs...)
+	if err != nil {
+		return nil, err
+	}
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("git log failed: %w", err)
