@@ -420,3 +420,52 @@ func TestManager_Validation(t *testing.T) {
 		}
 	})
 }
+
+// TestLoadSession_RejectsTraversalID is the defence-in-depth companion to
+// TestManager_Validation. Get/Delete/Save already gate their inputs, but
+// loadSession is unexported and historically reachable from internal
+// callers; the A5 guard on the direct entry point must reject malformed
+// ids regardless of how the call site was constructed.
+func TestLoadSession_RejectsTraversalID(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "aixgo-session-loadsession")
+	if err != nil {
+		t.Fatalf("mktemp: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	mgr := &Manager{sessionsDir: tmpDir}
+
+	// Create one real session so the valid-id path has something to load.
+	created, err := mgr.Create("gpt-4o")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		id      string
+		wantErr error
+	}{
+		{"rejects empty", "", ErrInvalidSessionID},
+		{"rejects short", "abc", ErrInvalidSessionID},
+		{"rejects traversal", "../../etc/pa", ErrInvalidSessionID},
+		{"rejects uppercase hex", "ABCDEF012345", ErrInvalidSessionID},
+		{"rejects null byte", "abc\x00def0123", ErrInvalidSessionID},
+		{"accepts valid", created.ID, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := mgr.loadSession(tt.id)
+			if tt.wantErr == nil {
+				if err != nil {
+					t.Errorf("loadSession(%q) err = %v, want nil", tt.id, err)
+				}
+				return
+			}
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("loadSession(%q) err = %v, want ErrInvalidSessionID", tt.id, err)
+			}
+		})
+	}
+}
