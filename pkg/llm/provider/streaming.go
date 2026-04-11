@@ -37,14 +37,23 @@ type HuggingFaceStream struct {
 	closeOnce sync.Once
 }
 
-// NewHuggingFaceStream creates a new streaming response handler
+// NewHuggingFaceStream creates a new streaming response handler.
+//
+// The returned stream owns a cancellable context whose cancel function is
+// stored on the struct and invoked by (*HuggingFaceStream).Close. Callers
+// MUST call Close to release context resources.
 func NewHuggingFaceStream(ctx context.Context) *HuggingFaceStream {
+	// cancel is stored on the returned struct and invoked by Close().
+	// gosec G118 / lostcancel cannot see that the CancelFunc escapes
+	// via the struct field, so silence the warning explicitly.
+	//nolint:govet,gosec // G118: cancel released in (*HuggingFaceStream).Close
 	ctx, cancel := context.WithCancel(ctx)
-	return &HuggingFaceStream{
+	s := &HuggingFaceStream{
 		ctx:    ctx,
 		cancel: cancel,
 		chunks: make(chan *StreamChunk, 100),
 	}
+	return s
 }
 
 // Recv receives the next chunk from the stream

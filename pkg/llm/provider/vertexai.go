@@ -281,7 +281,11 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 	respChan := make(chan *genai.GenerateContentResponse, 10)
 	errChan := make(chan error, 1)
 
-	// Use cancellable context to allow cleanup via Close()
+	// Use cancellable context to allow cleanup via Close().
+	// The CancelFunc escapes to the returned vertexAIStream and is invoked
+	// by (*vertexAIStream).Close; gosec G118 / govet lostcancel cannot see
+	// the escape through the struct field, so suppress the warning here.
+	//nolint:govet,gosec // G118: cancel released in (*vertexAIStream).Close
 	streamCtx, cancel := context.WithCancel(ctx)
 
 	go func() {
