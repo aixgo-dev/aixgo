@@ -243,8 +243,18 @@ func (tm *TimeoutManager) GetTimeout(toolName string) time.Duration {
 	return tm.defaultTimeout
 }
 
-// WithTimeout creates a context with the appropriate timeout for a tool
+// WithTimeout creates a context with the appropriate timeout for a tool.
+//
+// The returned CancelFunc is owned by the caller and MUST be invoked
+// (typically via defer) once the timeout-bounded work is complete in order
+// to release the underlying context resources. Failing to call cancel on
+// a hot path (e.g. per-request tool invocation) will accumulate timer
+// goroutines until the parent context is cancelled.
 func (tm *TimeoutManager) WithTimeout(ctx context.Context, toolName string) (context.Context, context.CancelFunc) {
 	timeout := tm.GetTimeout(toolName)
+	// This is a factory helper: cancel intentionally escapes to the caller.
+	// gosec G118 / govet lostcancel cannot model the escape through a
+	// multi-return, so suppress explicitly. All in-tree callers defer cancel.
+	//nolint:govet,gosec // G118: cancel is returned to and released by the caller
 	return context.WithTimeout(ctx, timeout)
 }
