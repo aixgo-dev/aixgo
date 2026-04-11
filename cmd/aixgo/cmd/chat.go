@@ -43,14 +43,21 @@ var chatSecretPattern = regexp.MustCompile(
 )
 
 var (
-	chatModel     string
-	chatSessionID string
-	chatNoStream  bool
-	chatPrompt    string
-	chatStdin     bool
-	chatOutput    string
-	chatNoHistory bool
+	chatModel        string
+	chatSessionID    string
+	chatNoStream     bool
+	chatPrompt       string
+	chatStdin        bool
+	chatOutput       string
+	chatNoHistory    bool
+	chatMaxTokens    int
+	chatMaxOutputKiB int
 )
+
+// chatDefaultMaxOutputKiB is the default soft byte cap on non-interactive
+// chat output (1 MiB). It bounds the worst-case blast radius for scripts
+// that pipe the response into another tool without breaking typical use.
+const chatDefaultMaxOutputKiB = 1024
 
 // chatCmd represents the chat command for interactive coding assistant.
 var chatCmd = &cobra.Command{
@@ -96,6 +103,8 @@ func init() {
 	chatCmd.Flags().BoolVar(&chatStdin, "stdin", false, "Append piped stdin to the prompt (auto-enabled when stdin is not a TTY)")
 	chatCmd.Flags().StringVarP(&chatOutput, "output", "o", "text", "Output format for non-interactive mode: text, json")
 	chatCmd.Flags().BoolVar(&chatNoHistory, "no-history", false, "Disable loading and saving readline history for this session")
+	chatCmd.Flags().IntVar(&chatMaxTokens, "max-tokens", 0, "Maximum response tokens (0 = provider default)")
+	chatCmd.Flags().IntVar(&chatMaxOutputKiB, "max-output-kib", chatDefaultMaxOutputKiB, "Soft cap on non-interactive output in KiB; oversized responses are truncated")
 
 	_ = chatCmd.RegisterFlagCompletionFunc("model", completeModelNames)
 	_ = chatCmd.RegisterFlagCompletionFunc("session", completeSessionIDs)
@@ -162,6 +171,7 @@ func runChat(cmd *cobra.Command, _ []string) error {
 	coord, err := coordinator.New(coordinator.Config{
 		Model:     chatModel,
 		Streaming: !chatNoStream,
+		MaxTokens: chatMaxTokens,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize coordinator: %w", err)
@@ -483,6 +493,7 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 	coord, err := coordinator.New(coordinator.Config{
 		Model:     chatModel,
 		Streaming: false,
+		MaxTokens: chatMaxTokens,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize coordinator: %w", err)
@@ -512,10 +523,12 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 		fmt.Fprintf(os.Stderr, "warning: failed to save session: %v\n", saveErr)
 	}
 
+	content, truncated := truncateForOutput(response.Content, chatMaxOutputKiB)
+
 	switch chatOutput {
 	case "json":
 		out := map[string]any{
-			"content":                      response.Content,
+			"content":                      content,
 			"cost":                         response.Cost,
 			"model":                        chatModel,
 			"session_id":                   sess.ID,
@@ -523,14 +536,36 @@ func runChatOneShot(ctx context.Context, stdinPiped bool) error {
 			"output_tokens":                response.OutputTokens,
 			"finish_reason":                response.FinishReason,
 			"appended_to_existing_session": appendedToExisting,
+			"truncated":                    truncated,
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		return enc.Encode(out)
 	default:
-		fmt.Println(response.Content)
+		fmt.Println(content)
+		if truncated {
+			fmt.Fprintf(os.Stderr, "warning: output truncated to %d KiB (use --max-output-kib to raise the cap)\n", chatMaxOutputKiB)
+		}
 		return nil
 	}
+}
+
+// truncateForOutput applies a soft byte cap to content. If maxKiB is 0 or
+// negative the content is returned unchanged. Truncation is byte-based on
+// a rune boundary so the result is always valid UTF-8.
+func truncateForOutput(content string, maxKiB int) (string, bool) {
+	if maxKiB <= 0 {
+		return content, false
+	}
+	limit := maxKiB * 1024
+	if len(content) <= limit {
+		return content, false
+	}
+	cut := limit
+	for cut > 0 && (content[cut]&0xC0) == 0x80 {
+		cut--
+	}
+	return content[:cut], true
 }
 
 func printHelp() {
