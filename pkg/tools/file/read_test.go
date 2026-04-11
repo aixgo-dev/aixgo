@@ -34,12 +34,26 @@ func TestValidatePath(t *testing.T) {
 		t.Fatalf("write inside: %v", err)
 	}
 
-	// Symlink that points outside the allowlist.
+	// Symlink that points outside every allowlist entry. We need a target
+	// that (a) exists on both linux and darwin runners, (b) is NOT inside
+	// cwd, $HOME, /usr/local, /etc, /tmp, /var/folders, or $TMPDIR.
+	//
+	// /etc/hosts won't work because /etc is explicitly on the allowlist
+	// (even though it looks "system-y"). /bin/sh is a reliable choice:
+	// it exists on every Unix and /bin is not an allowlist root.
+	// On linux with usrmerge /bin is a symlink to /usr/bin, which still
+	// resolves outside the allowlist (only /usr/local is allowed).
+	evilTarget := "/bin/sh"
+	if _, statErr := os.Lstat(evilTarget); statErr != nil {
+		evilTarget = ""
+	}
 	evil := filepath.Join(tmpDir, "evil.link")
-	if err := os.Symlink("/etc/hosts", evil); err != nil {
-		// /etc/hosts exists on darwin and linux CI; skip the symlink case if
-		// the runtime cannot create a symlink (e.g. restricted filesystems).
-		t.Logf("symlink skipped: %v", err)
+	if evilTarget != "" {
+		if err := os.Symlink(evilTarget, evil); err != nil {
+			t.Logf("symlink skipped: %v", err)
+			evil = ""
+		}
+	} else {
 		evil = ""
 	}
 
