@@ -82,6 +82,7 @@ This catalog contains:
 | **session Command** | ✅ Implemented | Session management (list, resume, delete) | `cmd/aixgo/cmd/session.go` |
 | **models Command** | ✅ Implemented | List available LLM models with pricing | `cmd/aixgo/cmd/models.go` |
 | **Shell Completion** | ✅ Implemented | bash/zsh/fish/powershell completion with dynamic model/session/config suggestions | `cmd/aixgo/cmd/completion.go` |
+| **doctor Command** | ✅ Implemented | Environment diagnostics: Go version, provider keys, state dir perms, config validation, MCP reachability; text/JSON output | `cmd/aixgo/cmd/doctor.go` |
 
 ### Interactive Chat Assistant
 
