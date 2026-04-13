@@ -124,18 +124,18 @@ Load API keys securely from files with automatic permission validation.
 1. **Line-Based Format** (default):
 
 ```text
-user1=sk-1234567890abcdef
-user2=sk-abcdef1234567890
-admin=sk-fedcba0987654321
+user1=<your-api-key-user1>
+user2=<your-api-key-user2>
+admin=<your-api-key-admin>
 ```
 
 1. **JSON Format**:
 
 ```json
 {
-  "user1": "sk-1234567890abcdef",
-  "user2": "sk-abcdef1234567890",
-  "admin": "sk-fedcba0987654321"
+  "user1": "<your-api-key-user1>",
+  "user2": "<your-api-key-user2>",
+  "admin": "<your-api-key-admin>"
 }
 ```
 

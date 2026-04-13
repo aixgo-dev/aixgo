@@ -6,12 +6,26 @@ namespace: aixgo
 resources:
 - namespace.yaml
 - rbac.yaml
-- configmap.yaml
 - secrets.yaml
 - ollama-deployment.yaml
 - aixgo-deployment.yaml
 - mcp-server-deployment.yaml
 - ingress.yaml
+
+configMapGenerator:
+- name: aixgo-config
+  literals:
+  - environment=production
+  - log_level=info
+  - ollama_url=http://ollama-service:11434
+  - mcp_server_url=mcp-server-service:9090
+  - max_rounds=10
+  - agent_timeout=300
+  - enable_tracing=true
+  - enable_metrics=true
+  - metrics_port=8080
+  options:
+    disableNameSuffixHash: true
 
 labels:
 - pairs:

@@ -7,10 +7,36 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/aixgo-dev/aixgo/pkg/tools"
 )
+
+// sanitizePath validates and cleans a repository path argument.
+// It rejects empty paths, null bytes, and paths containing ".." components
+// to prevent path-traversal attacks when the value originates from tool
+// input (e.g. an LLM-generated function call).
+func sanitizePath(p string) (string, error) {
+	if p == "" {
+		return ".", nil
+	}
+	if strings.ContainsRune(p, 0) {
+		return "", fmt.Errorf("path contains null byte")
+	}
+	clean := filepath.Clean(p)
+	// Reject paths that attempt directory traversal.
+	if strings.Contains(clean, "..") {
+		return "", fmt.Errorf("path contains '..' traversal: %q", p)
+	}
+	return clean, nil
+}
+
+// safeRefPattern restricts git ref arguments (commit, branch names) to a
+// conservative set of characters. This prevents flag injection via the
+// commit argument in diff/log operations.
+var safeRefPattern = regexp.MustCompile(`^[A-Za-z0-9._~^/@{}\-]+$`)
 
 // allowedGitSubcommands is the set of git subcommands this tool is permitted
 // to invoke. Any caller-influenced git invocation MUST pass through
@@ -133,9 +159,13 @@ func StatusTool() *tools.Tool {
 }
 
 func statusHandler(ctx context.Context, args map[string]any) (any, error) {
-	path := "."
+	rawPath := "."
 	if p, ok := args["path"].(string); ok && p != "" {
-		path = p
+		rawPath = p
+	}
+	path, err := sanitizePath(rawPath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
 	}
 
 	// Run git status
@@ -219,9 +249,13 @@ func DiffTool() *tools.Tool {
 }
 
 func diffHandler(ctx context.Context, args map[string]any) (any, error) {
-	repoPath := "."
+	rawPath := "."
 	if p, ok := args["path"].(string); ok && p != "" {
-		repoPath = p
+		rawPath = p
+	}
+	repoPath, err := sanitizePath(rawPath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
 	}
 
 	// Build command args
@@ -232,11 +266,18 @@ func diffHandler(ctx context.Context, args map[string]any) (any, error) {
 	}
 
 	if commit, ok := args["commit"].(string); ok && commit != "" {
+		if !safeRefPattern.MatchString(commit) {
+			return nil, fmt.Errorf("invalid commit ref: %q", commit)
+		}
 		cmdArgs = append(cmdArgs, commit)
 	}
 
 	if file, ok := args["file"].(string); ok && file != "" {
-		cmdArgs = append(cmdArgs, "--", file)
+		cleanFile, ferr := sanitizePath(file)
+		if ferr != nil {
+			return nil, fmt.Errorf("invalid file path: %w", ferr)
+		}
+		cmdArgs = append(cmdArgs, "--", cleanFile)
 	}
 
 	cmd, err := safeGitCommand(ctx, cmdArgs...)
@@ -304,9 +345,13 @@ func commitHandler(ctx context.Context, args map[string]any) (any, error) {
 		return nil, fmt.Errorf("commit message is required")
 	}
 
-	repoPath := "."
+	rawPath := "."
 	if p, ok := args["path"].(string); ok && p != "" {
-		repoPath = p
+		rawPath = p
+	}
+	repoPath, err := sanitizePath(rawPath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
 	}
 
 	// Stage files if specified
@@ -314,7 +359,11 @@ func commitHandler(ctx context.Context, args map[string]any) (any, error) {
 		fileArgs := []string{"-C", repoPath, "add"}
 		for _, f := range files {
 			if s, ok := f.(string); ok {
-				fileArgs = append(fileArgs, s)
+				cleanFile, ferr := sanitizePath(s)
+				if ferr != nil {
+					return nil, fmt.Errorf("invalid file path: %w", ferr)
+				}
+				fileArgs = append(fileArgs, cleanFile)
 			}
 		}
 
@@ -383,9 +432,13 @@ func LogTool() *tools.Tool {
 }
 
 func logHandler(ctx context.Context, args map[string]any) (any, error) {
-	repoPath := "."
+	rawPath := "."
 	if p, ok := args["path"].(string); ok && p != "" {
-		repoPath = p
+		rawPath = p
+	}
+	repoPath, err := sanitizePath(rawPath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
 	}
 
 	count := 10
@@ -399,7 +452,11 @@ func logHandler(ctx context.Context, args map[string]any) (any, error) {
 	}
 
 	if file, ok := args["file"].(string); ok && file != "" {
-		cmdArgs = append(cmdArgs, "--", file)
+		cleanFile, ferr := sanitizePath(file)
+		if ferr != nil {
+			return nil, fmt.Errorf("invalid file path: %w", ferr)
+		}
+		cmdArgs = append(cmdArgs, "--", cleanFile)
 	}
 
 	cmd, err := safeGitCommand(ctx, cmdArgs...)

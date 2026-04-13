@@ -2,7 +2,7 @@
 # Use this if you need debugging tools or shell access
 
 # Stage 1: Builder
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26-alpine@sha256:c2a1f7b2095d046ae14b286b18413a05bb82c9bca9b25fe7ff5efef0f0826166 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -27,7 +27,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     ./cmd/aixgo
 
 # Stage 2: Runtime (Alpine - minimal but with shell)
-FROM alpine:3.19
+FROM alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
 
 # Install runtime dependencies only
 RUN apk add --no-cache ca-certificates tzdata && \
@@ -54,11 +54,11 @@ LABEL org.opencontainers.image.url="https://github.com/aixgo-dev/aixgo"
 LABEL org.opencontainers.image.source="https://github.com/aixgo-dev/aixgo"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Drop to non-root user
-USER aixgo:aixgo
+# Drop to non-root user (UID 65534 = nobody)
+USER 65534:65534
 
 # Security best practices:
-# 1. Non-root user (aixgo:1000)
+# 1. Non-root user (UID 65534 = nobody)
 # 2. No shell for user (/sbin/nologin)
 # 3. Minimal attack surface (only ca-certificates and tzdata)
 # 4. Read-only root filesystem (set at runtime with --read-only)

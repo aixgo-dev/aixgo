@@ -199,12 +199,23 @@ func createSecret(name, value string) {
 		logError(fmt.Sprintf("invalid secret name: %q", name))
 		return
 	}
-	// #nosec G204 -- secret name validated by secretNamePattern; other args are constant literals.
-	cmd := exec.Command("gcloud", "secrets", "create", name, "--data-file=-", "--replication-policy=automatic")
+
+	args := []string{"secrets", "create", name, "--data-file=-", "--replication-policy=automatic"}
+	if err := validateCmd("gcloud", args); err != nil {
+		logError(fmt.Sprintf("createSecret: %v", err))
+		return
+	}
+	// #nosec G204 -- binary and args validated by validateCmd (allowlist + regex).
+	cmd := exec.Command("gcloud", args...)
 	cmd.Stdin = strings.NewReader(value)
 	if err := cmd.Run(); err != nil {
-		// #nosec G204 -- secret name validated by secretNamePattern; other args are constant literals.
-		cmd = exec.Command("gcloud", "secrets", "versions", "add", name, "--data-file=-")
+		addArgs := []string{"secrets", "versions", "add", name, "--data-file=-"}
+		if err := validateCmd("gcloud", addArgs); err != nil {
+			logError(fmt.Sprintf("createSecret add: %v", err))
+			return
+		}
+		// #nosec G204 -- binary and args validated by validateCmd (allowlist + regex).
+		cmd = exec.Command("gcloud", addArgs...)
 		cmd.Stdin = strings.NewReader(value)
 		_ = cmd.Run()
 	}

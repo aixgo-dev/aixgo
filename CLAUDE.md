@@ -313,8 +313,8 @@ API_KEY=<your-api-key-here>
 apiKey := "test-fixture-not-a-real-key-1"
 
 # BAD - Looks like real secrets (triggers security scanners)
-OPENAI_API_KEY=sk-1234567890abcdef
-API_KEY=sk-secret123456789
+OPENAI_API_KEY=sk-realistic-looking-key
+API_KEY=sk-another-realistic-key
 ```
 
 2. **Scanner configuration** - The repository uses `.gitleaks.toml` to reduce false positives
@@ -428,9 +428,9 @@ agents:
 **Environment Variables**:
 ```bash
 # LLM Providers (at least one required)
-export OPENAI_API_KEY=sk-...
-export ANTHROPIC_API_KEY=sk-ant-...
-export XAI_API_KEY=xai-...
+export OPENAI_API_KEY=<your-openai-api-key>
+export ANTHROPIC_API_KEY=<your-anthropic-api-key>
+export XAI_API_KEY=<your-xai-api-key>
 
 # Observability (optional)
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318

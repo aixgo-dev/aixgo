@@ -24,18 +24,18 @@ spec:
         app: ollama
         component: llm-runtime
     spec:
-      # Security: Run pod as non-root user
+      # Security: Run pod as non-root user (nobody)
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
         seccompProfile:
           type: RuntimeDefault
 
       containers:
       - name: ollama
-        image: ollama/ollama:0.5.4  # Pin to specific version, not 'latest'
+        image: ollama/ollama:0.5.4@sha256:18bfb1d605604fd53dcad20d0556df4c781e560ebebcd923454d627c994a0e37
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 11434
@@ -47,7 +47,7 @@ spec:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false  # Ollama needs write access to /tmp
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 65534
           capabilities:
             drop:
             - ALL

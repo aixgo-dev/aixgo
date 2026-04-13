@@ -26,9 +26,9 @@ spec:
       # Pod-level security context
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
         seccompProfile:
           type: RuntimeDefault
       # Volumes for writable directories
@@ -45,7 +45,7 @@ spec:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 65534
           capabilities:
             drop:
             - ALL

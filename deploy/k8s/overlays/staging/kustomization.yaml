@@ -5,11 +5,18 @@ namespace: aixgo-staging
 
 namePrefix: staging-
 
-bases:
+resources:
 - ../../base
 
-patchesStrategicMerge:
-- deployment-patch.yaml
+patches:
+- path: deployment-patch.yaml
+  target:
+    kind: Deployment
+    name: aixgo-orchestrator
+- path: mcp-server-patch.yaml
+  target:
+    kind: Deployment
+    name: mcp-server
 
 configMapGenerator:
 - name: aixgo-config

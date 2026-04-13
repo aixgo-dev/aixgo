@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: aixgo-orchestrator
+  name: mcp-server
 spec:
   template:
     spec:
@@ -13,7 +13,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-      - name: aixgo
+      - name: mcp-server
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -24,8 +24,8 @@ spec:
             - ALL
         resources:
           requests:
-            cpu: 1
-            memory: 1Gi
+            cpu: 500m
+            memory: 512Mi
           limits:
-            cpu: 4
-            memory: 4Gi
+            cpu: 2
+            memory: 2Gi

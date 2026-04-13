@@ -5,8 +5,23 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: aixgo
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
         resources:
           requests:
             cpu: 250m
@@ -14,20 +29,3 @@ spec:
           limits:
             cpu: 1
             memory: 1Gi
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mcp-server
-spec:
-  template:
-    spec:
-      containers:
-      - name: mcp-server
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi

@@ -1,6 +1,6 @@
 # Multi-stage build for secure, minimal Docker image
 # Stage 1: Builder
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26-alpine@sha256:c2a1f7b2095d046ae14b286b18413a05bb82c9bca9b25fe7ff5efef0f0826166 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -46,9 +46,8 @@ COPY --from=builder /build/aixgo /usr/local/bin/aixgo
 # Create app directory and set permissions
 WORKDIR /app
 
-# Use non-root user (UID 1000)
-# Note: We'll use the 'nobody' user from the base image
-USER nobody:nogroup
+# Use non-root user (UID 65534 = nobody)
+USER 65534:65534
 
 # Set security labels
 LABEL org.opencontainers.image.title="AIxGo"
@@ -58,7 +57,7 @@ LABEL org.opencontainers.image.url="https://github.com/aixgo-dev/aixgo"
 LABEL org.opencontainers.image.source="https://github.com/aixgo-dev/aixgo"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Security: Run as non-root user (nobody)
+# Security: Run as non-root user (UID 65534 = nobody)
 # Security: No shell available (scratch image)
 # Security: Read-only root filesystem (set at runtime)
 

@@ -340,16 +340,21 @@ func newElasticsearchBackend(config *ElasticsearchConfig, batchSize int, flushIn
 			"Current ENVIRONMENT=%s", SanitizeLogField(env))
 	}
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
-		},
+	// Use SSRF-safe transport to prevent DNS rebinding and redirect-based SSRF
+	ssrfValidator := NewSSRFValidator(DefaultSSRFConfig())
+	transport := ssrfValidator.CreateSecureTransport()
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
 	}
 
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   30 * time.Second,
+		// Disable redirects to prevent SSRF via open redirects
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	backend := &ElasticsearchBackend{
@@ -479,16 +484,21 @@ func newSplunkBackend(config *SplunkConfig, batchSize int, flushInterval time.Du
 			"Current ENVIRONMENT=%s", SanitizeLogField(env))
 	}
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
-		},
+	// Use SSRF-safe transport to prevent DNS rebinding and redirect-based SSRF
+	ssrfValidator := NewSSRFValidator(DefaultSSRFConfig())
+	transport := ssrfValidator.CreateSecureTransport()
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
 	}
 
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   30 * time.Second,
+		// Disable redirects to prevent SSRF via open redirects
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	backend := &SplunkBackend{
@@ -615,16 +625,21 @@ func newWebhookBackend(config *WebhookConfig, batchSize int, flushInterval time.
 			"Current ENVIRONMENT=%s", SanitizeLogField(env))
 	}
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
-		},
+	// Use SSRF-safe transport to prevent DNS rebinding and redirect-based SSRF
+	ssrfValidator := NewSSRFValidator(DefaultSSRFConfig())
+	transport := ssrfValidator.CreateSecureTransport()
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: !config.TLSVerify, // #nosec G402 -- intentionally configurable for dev/test; blocked in production by env check above
 	}
 
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   30 * time.Second,
+		// Disable redirects to prevent SSRF via open redirects
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	backend := &WebhookBackend{

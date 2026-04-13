@@ -25,15 +25,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v9
+      uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9
       with:
         version: latest
         args: --timeout=5m
@@ -46,10 +46,10 @@ jobs:
         go-version: ['1.26.2']
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
       with:
         go-version: ${{ matrix.go-version }}
         cache: true
@@ -67,10 +67,10 @@ jobs:
     needs: [lint, test]
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
       with:
         go-version: ${{ env.GO_VERSION }}
 
@@ -82,7 +82,7 @@ jobs:
         CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -v -o bin/aixgo-windows-amd64.exe .
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       with:
         name: binaries
         path: bin/
@@ -94,13 +94,13 @@ jobs:
     needs: [lint, test]
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
+      uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
 
     - name: Build Aixgo image
-      uses: docker/build-push-action@v7
+      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
       with:
         context: .
         file: ./docker/aixgo.Dockerfile
@@ -110,7 +110,7 @@ jobs:
         cache-to: type=gha,mode=max
 
     - name: Build Ollama image
-      uses: docker/build-push-action@v7
+      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
       with:
         context: .
         file: ./docker/ollama.Dockerfile
@@ -124,17 +124,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
         cache-dependency-path: go.sum
 
     - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
@@ -142,12 +142,12 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4
       with:
         sarif_file: 'trivy-results.sarif'
 
     - name: Run Gosec Security Scanner
-      uses: securego/gosec@v2.25.0
+      uses: securego/gosec@223e19b8856e00f02cc67804499a83f77e208f3c # v2.25.0
       with:
         args: '-no-fail -exclude-dir=proto -fmt sarif -out gosec-results.sarif ./...'
 
@@ -155,7 +155,7 @@ jobs:
     # Gosec still runs completely and findings are visible in workflow logs.
     - name: Upload Gosec results to GitHub Security
       id: upload-gosec-sarif
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4
       continue-on-error: true
       with:
         sarif_file: 'gosec-results.sarif'
@@ -192,26 +192,22 @@ jobs:
         exit $failed
 
     # kube-linter guards the security posture of the Kubernetes manifests.
-    # We lint the rendered BASE kustomization here (not the overlays) because
-    # the base is where the hardening actually lives: runAsNonRoot,
-    # readOnlyRootFilesystem, allowPrivilegeEscalation=false,
-    # capabilities.drop: [ALL], seccompProfile=RuntimeDefault. The staging
-    # and production overlays currently have a pre-existing kustomize
-    # generator bug tracked separately; once the overlays render cleanly
-    # this step should be expanded to lint the full rendered overlays so
-    # operator-facing manifest drift is also caught.
+    # Lints the base and both rendered overlays (staging + production) so
+    # operator-facing manifest drift is caught early.
     #
     # This was added after issues #129 and #130 to prevent a regression in
     # the securityContext or NET_RAW capability drop from silently landing.
     - name: Set up kubectl
-      uses: azure/setup-kubectl@v4
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
 
     - name: Install kube-linter
       run: go install golang.stackrox.io/kube-linter/cmd/kube-linter@latest
 
-    - name: Lint base Kubernetes manifests
+    - name: Lint Kubernetes manifests (base + overlays)
       run: |
         set -e
-        echo "::group::kube-linter deploy/k8s/base"
-        kubectl kustomize deploy/k8s/base | kube-linter --config .kube-linter.yaml lint -
-        echo "::endgroup::"
+        for target in deploy/k8s/base deploy/k8s/overlays/staging deploy/k8s/overlays/production; do
+          echo "::group::kube-linter $target"
+          kubectl kustomize "$target" | kube-linter --config .kube-linter.yaml lint -
+          echo "::endgroup::"
+        done
