@@ -83,9 +83,10 @@ func NewVertexAIProvider(projectID, location string) (*VertexAIProvider, error) 
 		return nil, fmt.Errorf("failed to create Vertex AI client: %w", err)
 	}
 
-	// Only log in debug mode to avoid leaking project info
+	// Only log in debug mode to avoid leaking project info.
+	// #nosec G706 -- projectID and location are sanitised via security.SanitizeLogField before formatting.
 	if os.Getenv("AIXGO_DEBUG") == "true" {
-		log.Printf("[VertexAI] Initialized client (project=%s, location=%s)", projectID, location)
+		log.Printf("[VertexAI] Initialized client (project=%s, location=%s)", security.SanitizeLogField(projectID), security.SanitizeLogField(location))
 	}
 
 	return &VertexAIProvider{
@@ -286,7 +287,7 @@ func (p *VertexAIProvider) CreateStreaming(ctx context.Context, req CompletionRe
 	// by (*vertexAIStream).Close; gosec G118 / govet lostcancel cannot see
 	// the escape through the struct field, so suppress the warning here.
 	//nolint:govet,gosec // G118: cancel released in (*vertexAIStream).Close
-	streamCtx, cancel := context.WithCancel(ctx)
+	streamCtx, cancel := context.WithCancel(ctx) // #nosec G118 -- cancel released in (*vertexAIStream).Close
 
 	go func() {
 		defer close(respChan)

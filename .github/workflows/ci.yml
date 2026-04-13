@@ -11,7 +11,9 @@ on:
       - 'web/**'
 
 env:
-  GO_VERSION: '1.26'
+  # Minimum Go patch release — matches the `toolchain` directive in go.mod
+  # and picks up stdlib CVE fixes that our govulncheck CI guard will flag.
+  GO_VERSION: '1.26.2'
 
 permissions:
   contents: read
@@ -41,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.26']
+        go-version: ['1.26.2']
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
@@ -211,5 +213,5 @@ jobs:
       run: |
         set -e
         echo "::group::kube-linter deploy/k8s/base"
-        kubectl kustomize deploy/k8s/base | kube-linter lint -
+        kubectl kustomize deploy/k8s/base | kube-linter --config .kube-linter.yaml lint -
         echo "::endgroup::"

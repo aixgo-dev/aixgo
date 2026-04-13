@@ -1,0 +1,38 @@
+# kube-linter config for the aixgo base manifests.
+#
+# Scope: this config is intentionally narrow. The CI step exists to guard
+# the #129/#130 security-context fixes, not to enforce broad Kubernetes
+# best practices. Adding more checks here is welcome, but each addition
+# should be a deliberate policy decision with corresponding manifest fixes
+# and, if needed, per-object annotations for documented exemptions.
+#
+# What we explicitly DO enforce:
+#   - run-as-non-root                — pods must set runAsNonRoot: true
+#   - privileged-container           — no container may run privileged
+#   - privilege-escalation-container — no container may allow privilege escalation
+#   - drop-net-raw-capability        — NET_RAW must be dropped
+#   - no-read-only-root-fs           — containers must have readOnlyRootFilesystem
+#                                      (ollama exempted via per-object annotation —
+#                                       it caches models to /root/.ollama)
+#
+# What we explicitly do NOT enforce here (tracked separately if ever
+# needed):
+#   - latest-tag        — base manifests ship placeholder image refs
+#                         (REGION-docker.pkg.dev/PROJECT_ID/...) that are
+#                         substituted at deploy time by the overlays/CD.
+#   - no-anti-affinity  — base manifests are scale-agnostic; anti-affinity
+#                         is an overlay/operator concern.
+#   - default-service-account, deprecated-service-account, etc.
+#
+# To check locally:
+#   kubectl kustomize deploy/k8s/base | kube-linter --config .kube-linter.yaml lint -
+checks:
+  addAllBuiltIn: false
+  doNotAutoAddDefaults: true
+  include:
+    - run-as-non-root
+    - privileged-container
+    - privilege-escalation-container
+    - drop-net-raw-capability
+    - no-read-only-root-fs
+customChecks: []

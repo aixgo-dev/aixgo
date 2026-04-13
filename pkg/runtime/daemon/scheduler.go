@@ -148,7 +148,7 @@ func (s *Scheduler) Start(ctx context.Context) error {
 		return nil
 	}
 
-	s.ctx, s.cancel = context.WithCancel(ctx)
+	s.ctx, s.cancel = context.WithCancel(ctx) // #nosec G118 -- cancel released via defer s.cancel() on next line (belt-and-suspenders on top of Stop)
 	// Ensure cancel is always invoked when Start returns, releasing
 	// context resources even if Stop() is never called. Cancelling an
 	// already-cancelled context is a no-op.

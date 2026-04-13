@@ -222,11 +222,12 @@ func (r *DistributedRuntime) buildDialOptions() ([]grpc.DialOption, error) {
 					"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
 			}
 
-			// Log warning for non-production environments
+			// Log warning for non-production environments.
+			// #nosec G706 -- env is sanitised via security.SanitizeLogField before formatting.
 			log.Printf("[DistributedRuntime] WARNING: TLS certificate verification is disabled (InsecureSkipVerify=true). "+
 				"This is a security risk and should NEVER be used in production. "+
 				"Connections are vulnerable to man-in-the-middle attacks. "+
-				"Current ENVIRONMENT=%s", env)
+				"Current ENVIRONMENT=%s", security.SanitizeLogField(env))
 		}
 
 		tlsCfg := &tls.Config{

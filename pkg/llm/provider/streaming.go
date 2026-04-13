@@ -47,7 +47,7 @@ func NewHuggingFaceStream(ctx context.Context) *HuggingFaceStream {
 	// gosec G118 / lostcancel cannot see that the CancelFunc escapes
 	// via the struct field, so silence the warning explicitly.
 	//nolint:govet,gosec // G118: cancel released in (*HuggingFaceStream).Close
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(ctx) // #nosec G118 -- cancel released in (*HuggingFaceStream).Close
 	s := &HuggingFaceStream{
 		ctx:    ctx,
 		cancel: cancel,

@@ -6,6 +6,13 @@ metadata:
   labels:
     app: ollama
     component: llm-runtime
+  annotations:
+    # Ollama writes downloaded model weights to /root/.ollama (and a few
+    # other cache locations inside its own filesystem), so a read-only
+    # root filesystem breaks `ollama pull`. The container still runs as
+    # non-root, drops ALL capabilities, and denies privilege escalation.
+    # See deploy/k8s/base/ollama-deployment.yaml for the full context.
+    ignore-check.kube-linter.io/no-read-only-root-fs: "ollama requires writable rootfs for model cache at /root/.ollama"
 spec:
   replicas: 1
   selector:

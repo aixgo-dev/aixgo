@@ -256,5 +256,5 @@ func (tm *TimeoutManager) WithTimeout(ctx context.Context, toolName string) (con
 	// gosec G118 / govet lostcancel cannot model the escape through a
 	// multi-return, so suppress explicitly. All in-tree callers defer cancel.
 	//nolint:govet,gosec // G118: cancel is returned to and released by the caller
-	return context.WithTimeout(ctx, timeout)
+	return context.WithTimeout(ctx, timeout) // #nosec G118 -- cancel is returned to and released by the caller
 }

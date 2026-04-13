@@ -332,11 +332,12 @@ func newElasticsearchBackend(config *ElasticsearchConfig, batchSize int, flushIn
 				"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
 		}
 
-		// Log warning for non-production environments
+		// Log warning for non-production environments.
+		// #nosec G706 -- env is sanitised via SanitizeLogField before formatting.
 		log.Printf("WARNING: Elasticsearch TLS certificate verification is disabled (TLSVerify=false). "+
 			"This is a security risk and should NEVER be used in production. "+
 			"Connections are vulnerable to man-in-the-middle attacks. "+
-			"Current ENVIRONMENT=%s", env)
+			"Current ENVIRONMENT=%s", SanitizeLogField(env))
 	}
 
 	transport := &http.Transport{
@@ -470,11 +471,12 @@ func newSplunkBackend(config *SplunkConfig, batchSize int, flushInterval time.Du
 				"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
 		}
 
-		// Log warning for non-production environments
+		// Log warning for non-production environments.
+		// #nosec G706 -- env is sanitised via SanitizeLogField before formatting.
 		log.Printf("WARNING: Splunk TLS certificate verification is disabled (TLSVerify=false). "+
 			"This is a security risk and should NEVER be used in production. "+
 			"Connections are vulnerable to man-in-the-middle attacks. "+
-			"Current ENVIRONMENT=%s", env)
+			"Current ENVIRONMENT=%s", SanitizeLogField(env))
 	}
 
 	transport := &http.Transport{
@@ -605,11 +607,12 @@ func newWebhookBackend(config *WebhookConfig, batchSize int, flushInterval time.
 				"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
 		}
 
-		// Log warning for non-production environments
+		// Log warning for non-production environments.
+		// #nosec G706 -- env is sanitised via SanitizeLogField before formatting.
 		log.Printf("WARNING: Webhook TLS certificate verification is disabled (TLSVerify=false). "+
 			"This is a security risk and should NEVER be used in production. "+
 			"Connections are vulnerable to man-in-the-middle attacks. "+
-			"Current ENVIRONMENT=%s", env)
+			"Current ENVIRONMENT=%s", SanitizeLogField(env))
 	}
 
 	transport := &http.Transport{
