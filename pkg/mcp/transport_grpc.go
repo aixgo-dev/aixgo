@@ -138,11 +138,12 @@ func (t *GRPCTransport) buildTLSConfig() (*tls.Config, error) {
 				"Set ENVIRONMENT to 'development', 'dev', 'staging', 'local', or 'test' to allow insecure TLS", env)
 		}
 
-		// Log warning for non-production environments
+		// Log warning for non-production environments.
+		// #nosec G706 -- env is sanitised via security.SanitizeLogField before formatting.
 		log.Printf("WARNING: TLS certificate verification is disabled (InsecureSkipVerify=true). "+
 			"This is a security risk and should NEVER be used in production. "+
 			"Connections are vulnerable to man-in-the-middle attacks. "+
-			"Current ENVIRONMENT=%s", env)
+			"Current ENVIRONMENT=%s", security.SanitizeLogField(env))
 	}
 
 	config := &tls.Config{
@@ -893,8 +894,9 @@ func CreateInsecureTLSConfig() (*TLSConfig, error) {
 		return nil, fmt.Errorf("SECURITY: Cannot create insecure TLS config in production environment (ENVIRONMENT=%s)", env)
 	}
 
+	// #nosec G706 -- env is sanitised via security.SanitizeLogField before formatting.
 	log.Printf("WARNING: Creating insecure TLS config with certificate verification disabled. "+
-		"This should NEVER be used in production. Current ENVIRONMENT=%s", env)
+		"This should NEVER be used in production. Current ENVIRONMENT=%s", security.SanitizeLogField(env))
 	return &TLSConfig{
 		Enabled:            true,
 		InsecureSkipVerify: true,

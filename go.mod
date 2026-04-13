@@ -2,6 +2,8 @@ module github.com/aixgo-dev/aixgo
 
 go 1.26
 
+toolchain go1.26.2
+
 require (
 	cloud.google.com/go/firestore v1.21.0
 	github.com/alicebob/miniredis/v2 v2.37.0

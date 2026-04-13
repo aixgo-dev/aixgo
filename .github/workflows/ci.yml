@@ -11,7 +11,9 @@ on:
       - 'web/**'
 
 env:
-  GO_VERSION: '1.26'
+  # Minimum Go patch release — matches the `toolchain` directive in go.mod
+  # and picks up stdlib CVE fixes that our govulncheck CI guard will flag.
+  GO_VERSION: '1.26.2'
 
 permissions:
   contents: read
@@ -41,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.26']
+        go-version: ['1.26.2']
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
@@ -124,6 +126,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
 
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+        cache-dependency-path: go.sum
+
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
@@ -156,3 +165,53 @@ jobs:
       if: steps.upload-gosec-sarif.outcome == 'failure'
       run: |
         echo "::warning::Gosec SARIF upload failed. Security findings are still available in the workflow logs above."
+
+    # govulncheck guards against dependency vulnerabilities across the main
+    # module and every example module. This was added after GHSA-xxxx (see
+    # issue #145) to ensure a regression in google.golang.org/grpc or any
+    # other vulnerable dep cannot silently land. The job fails if any
+    # module reports a known vulnerability.
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run govulncheck (main module)
+      run: govulncheck ./...
+
+    - name: Run govulncheck (example modules)
+      run: |
+        set -e
+        failed=0
+        for mod in examples/*/go.mod; do
+          dir=$(dirname "$mod")
+          echo "::group::govulncheck $dir"
+          if ! (cd "$dir" && govulncheck ./...); then
+            failed=1
+          fi
+          echo "::endgroup::"
+        done
+        exit $failed
+
+    # kube-linter guards the security posture of the Kubernetes manifests.
+    # We lint the rendered BASE kustomization here (not the overlays) because
+    # the base is where the hardening actually lives: runAsNonRoot,
+    # readOnlyRootFilesystem, allowPrivilegeEscalation=false,
+    # capabilities.drop: [ALL], seccompProfile=RuntimeDefault. The staging
+    # and production overlays currently have a pre-existing kustomize
+    # generator bug tracked separately; once the overlays render cleanly
+    # this step should be expanded to lint the full rendered overlays so
+    # operator-facing manifest drift is also caught.
+    #
+    # This was added after issues #129 and #130 to prevent a regression in
+    # the securityContext or NET_RAW capability drop from silently landing.
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v4
+
+    - name: Install kube-linter
+      run: go install golang.stackrox.io/kube-linter/cmd/kube-linter@latest
+
+    - name: Lint base Kubernetes manifests
+      run: |
+        set -e
+        echo "::group::kube-linter deploy/k8s/base"
+        kubectl kustomize deploy/k8s/base | kube-linter --config .kube-linter.yaml lint -
+        echo "::endgroup::"

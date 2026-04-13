@@ -13,9 +13,11 @@ resources:
 - mcp-server-deployment.yaml
 - ingress.yaml
 
-commonLabels:
-  app.kubernetes.io/name: aixgo
-  app.kubernetes.io/managed-by: kustomize
+labels:
+- pairs:
+    app.kubernetes.io/name: aixgo
+    app.kubernetes.io/managed-by: kustomize
+  includeSelectors: true
 
 images:
 - name: REGION-docker.pkg.dev/PROJECT_ID/aixgo/orchestrator

@@ -98,9 +98,10 @@ func NewBedrockProvider(region string) (*BedrockProvider, error) {
 	// Create Bedrock client for model listing
 	bedrockClient := bedrock.NewFromConfig(cfg)
 
-	// Only log in debug mode to avoid leaking region info
+	// Only log in debug mode to avoid leaking region info.
+	// #nosec G706 -- region is sanitised via security.SanitizeLogField before formatting.
 	if os.Getenv("AIXGO_DEBUG") == "true" {
-		log.Printf("[Bedrock] Initialized client (region=%s)", region)
+		log.Printf("[Bedrock] Initialized client (region=%s)", security.SanitizeLogField(region))
 	}
 
 	return &BedrockProvider{
