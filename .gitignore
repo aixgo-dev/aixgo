@@ -48,6 +48,10 @@ examples/session-react/session-react
 examples/session-basic/session-basic
 examples/resilient-aggregation/resilient-aggregation
 examples/personal-assistant/personal-assistant
+examples/cost-optimization/cost-optimization
+examples/multi-phase-workflow/multi-phase-workflow
+examples/pydantic-style-validation/pydantic-style-validation
+examples/validation-patterns/validation-patterns
 
 # Legacy binary names (root level)
 /aggregator-workflow
