@@ -1,5 +1,8 @@
-# Multi-stage build for minimal, secure image
-FROM golang:1.26-alpine AS builder
+# Multi-stage build for minimal, secure image.
+# Base images are digest-pinned to prevent supply-chain surprises from
+# floating tags (Aikido finding #123). Update the digest alongside the
+# tag whenever the base image is intentionally bumped.
+FROM golang:1.26-alpine@sha256:f85330846cde1e57ca9ec309382da3b8e6ae3ab943d2739500e08c86393a21b1 AS builder
 
 WORKDIR /app
 
@@ -22,8 +25,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -a -installsuffix cgo \
     -o aixgo ./cmd/aixgo
 
-# Final stage - minimal and secure
-FROM alpine:3.19
+# Final stage - minimal and secure. Digest-pinned (Aikido #123).
+FROM alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
 
 # Install runtime dependencies only
 RUN apk add --no-cache ca-certificates tzdata && \
