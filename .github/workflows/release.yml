@@ -78,12 +78,35 @@ jobs:
     permissions:
       contents: read  # download release artifacts
     steps:
+      # SECURITY (Aikido #183): verify the release archive against the
+      # SHA-256 checksum GoReleaser publishes alongside the archives
+      # before extracting or executing anything, so a tampered artifact
+      # can never be run as part of the verify step.
       - name: Download and verify (Unix)
         if: runner.os != 'Windows'
         run: |
+          set -euo pipefail
           TAG="${GITHUB_REF#refs/tags/}"
           VERSION="${TAG#v}"
-          curl -sL "https://github.com/aixgo-dev/aixgo/releases/download/${TAG}/aixgo_${VERSION}_${{ matrix.archive }}" | tar xz
+          ARCHIVE="aixgo_${VERSION}_${{ matrix.archive }}"
+          BASE="https://github.com/aixgo-dev/aixgo/releases/download/${TAG}"
+
+          # Fetch archive + checksums file (checksums.txt is produced by
+          # GoReleaser and covers every archive in the release).
+          curl -fsSL -o "${ARCHIVE}" "${BASE}/${ARCHIVE}"
+          curl -fsSL -o checksums.txt "${BASE}/checksums.txt"
+
+          # Verify ONLY the archive we just downloaded. `sha256sum --ignore-missing`
+          # lets us reuse the full checksums.txt without failing on
+          # platform-specific entries we didn't download.
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum --ignore-missing -c checksums.txt
+          else
+            # macOS: shasum -a 256 doesn't support --ignore-missing, so filter first.
+            grep " ${ARCHIVE}\$" checksums.txt | shasum -a 256 -c -
+          fi
+
+          tar xzf "${ARCHIVE}"
           chmod +x ${{ matrix.binary }}
           # Verify binary executes and shows usage (exits non-zero without config, but that's expected)
           ./${{ matrix.binary }} -h 2>&1 | grep -q "Usage" && echo "Binary verified successfully"
@@ -92,11 +115,24 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $tag = "${{ github.ref_name }}"
           $version = $tag.TrimStart('v')
-          $url = "https://github.com/aixgo-dev/aixgo/releases/download/${tag}/aixgo_${version}_${{ matrix.archive }}"
-          Invoke-WebRequest -Uri $url -OutFile release.zip
-          Expand-Archive -Path release.zip -DestinationPath .
+          $archive = "aixgo_${version}_${{ matrix.archive }}"
+          $base = "https://github.com/aixgo-dev/aixgo/releases/download/${tag}"
+
+          # SECURITY (Aikido #183): verify SHA-256 checksum before extraction.
+          Invoke-WebRequest -Uri "$base/$archive" -OutFile $archive
+          Invoke-WebRequest -Uri "$base/checksums.txt" -OutFile checksums.txt
+
+          $expectedLine = (Get-Content checksums.txt | Where-Object { $_ -match "\s$([regex]::Escape($archive))$" })
+          if (-not $expectedLine) { throw "no checksum entry for $archive in checksums.txt" }
+          $expected = ($expectedLine -split '\s+')[0].ToLower()
+          $actual = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLower()
+          if ($expected -ne $actual) { throw "checksum mismatch for $archive: expected $expected, got $actual" }
+          Write-Host "Checksum verified for $archive"
+
+          Expand-Archive -Path $archive -DestinationPath .
           # Verify binary executes and shows usage
           $output = & ".\${{ matrix.binary }}" -h 2>&1 | Out-String
           if ($output -match "Usage") { Write-Host "Binary verified successfully" } else { exit 1 }

@@ -39,7 +39,11 @@ spec:
         emptyDir: {}
       containers:
       - name: mcp-server
-        image: REGION-docker.pkg.dev/PROJECT_ID/aixgo/mcp-server:latest
+        # SECURITY: Do NOT deploy using :latest. Replace IMAGE_TAG with a
+        # specific version (e.g. v0.5.0) or an immutable digest
+        # (e.g. @sha256:abcdef...) during `kubectl apply` / kustomize build.
+        # Pinning prevents supply-chain drift / surprise upgrades.
+        image: REGION-docker.pkg.dev/PROJECT_ID/aixgo/mcp-server:IMAGE_TAG
         # Container-level security context
         securityContext:
           allowPrivilegeEscalation: false
