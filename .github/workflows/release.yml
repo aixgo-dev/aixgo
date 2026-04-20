@@ -129,7 +129,7 @@ jobs:
           if (-not $expectedLine) { throw "no checksum entry for $archive in checksums.txt" }
           $expected = ($expectedLine -split '\s+')[0].ToLower()
           $actual = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLower()
-          if ($expected -ne $actual) { throw "checksum mismatch for $archive: expected $expected, got $actual" }
+          if ($expected -ne $actual) { throw "checksum mismatch for ${archive}: expected ${expected}, got ${actual}" }
           Write-Host "Checksum verified for $archive"
 
           Expand-Archive -Path $archive -DestinationPath .
