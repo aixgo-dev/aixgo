@@ -1,7 +1,7 @@
 # Aixgo Features Reference
 
-**Version**: 0.6.0
 **Last Updated**: 2026-03-08
+**Current release**: see [GitHub Releases](https://github.com/aixgo-dev/aixgo/releases/latest) — canonical version is the git tag; feature-introduction versions (`v0.3.0+` etc.) below are historical markers
 
 ---
 
