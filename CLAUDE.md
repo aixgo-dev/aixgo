@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Project Guide
 
-**Version**: 0.5.0
-**Last Updated**: 2026-02-14
+**Version**: 0.6.0
+**Last Updated**: 2026-04-21
 **Target**: AI assistants (Claude Code, GitHub Copilot, Cursor, etc.)
 
 Quick reference for AI assistants working with Aixgo - a production-grade AI agent framework for Go.
@@ -50,7 +50,7 @@ Aixgo is a **production-grade AI agent framework for Go** enabling secure, scala
 
 ### Current Status
 
-- **Version**: 0.5.0
+- **Version**: 0.6.0
 - **Maturity**: Production-ready for core features
 - **Go Version**: 1.26+
 - **License**: MIT

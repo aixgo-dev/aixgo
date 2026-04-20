@@ -241,16 +241,15 @@ aixgate/
 │   │   ├── matcher.go          # Glob + rule evaluation
 │   │   ├── matcher_test.go
 │   │   └── rego.go             # Optional OPA integration (v2)
-│   ├── fs/                     # FUSE filesystem
-│   │   ├── overlay.go          # Core overlay logic (cgofuse)
+│   ├── fs/                     # FUSE filesystem (Linux only)
+│   │   ├── overlay.go          # Core overlay logic (hanwen/go-fuse, pure Go)
 │   │   ├── redact.go           # Stub/redaction generation
 │   │   ├── canonical.go        # Path canonicalization
-│   │   ├── darwin.go           # macOS-specific FUSE setup
 │   │   └── linux.go            # Linux-specific FUSE setup
-│   ├── jail/                   # Process isolation
-│   │   ├── jail.go             # Cross-platform interface
-│   │   ├── linux.go            # namespaces, landlock
-│   │   └── darwin.go           # sandbox-exec profile generation
+│   ├── jail/                   # Process isolation (pure-Go, no cgo)
+│   │   ├── jail.go             # Cross-platform Jailer interface
+│   │   ├── linux.go            # go-fuse overlay + go-landlock + go-seccomp-bpf
+│   │   └── darwin.go           # sandbox-exec profile generation + exec.Command
 │   ├── audit/                  # Structured logging
 │   │   ├── writer.go           # JSONL writer with rotation
 │   │   ├── query.go            # Query + tail
@@ -288,18 +287,22 @@ aixgate/
 
 ### 6.3 Enforcement boundary
 
+Aixgate is pure Go. No cgo, no C toolchain, no macFUSE kext. Enforcement is delivered per platform by composing pure-Go libraries (on Linux) and host-provided binaries invoked via `exec.Command` (on macOS), behind a single `Jailer` interface.
+
 #### Linux
 
 - A mount namespace (`unshare(CLONE_NEWNS)`) is created for the agent process.
-- A FUSE filesystem is mounted inside the namespace at the agent's perceived root, backed by `cgofuse`.
-- Landlock is applied where available (Linux 5.13+) as a belt-and-braces restriction even if the FUSE layer is somehow bypassed.
+- A FUSE filesystem is mounted inside the namespace at the agent's perceived root, backed by [`hanwen/go-fuse`](https://github.com/hanwen/go-fuse) (pure Go, no cgo).
+- Landlock is applied via [`landlock-lsm/go-landlock`](https://github.com/landlock-lsm/go-landlock) (Linux 5.13+, pure Go) as a belt-and-braces restriction even if the FUSE layer is somehow bypassed.
+- `seccomp-bpf` filters installed via [`elastic/go-seccomp-bpf`](https://github.com/elastic/go-seccomp-bpf) (pure Go) block `ptrace`, `mount`, `bpf`, and other escape vectors.
 - A restricted `PATH` and a filtered environment are injected.
 
 #### macOS
 
-- macFUSE provides the FUSE filesystem layer.
-- `sandbox-exec` with a Aixgate-generated `.sb` profile enforces system-level restrictions: which binaries may be exec'd, which directories may be traversed, and denies network access optionally.
-- The Aixgate binary is signed and notarized to avoid Gatekeeper friction.
+- `sandbox-exec` is the primary enforcement mechanism: Aixgate generates a `.sb` profile from the policy (`(allow file-read* (subpath "/foo"))` / `(deny file-read* (subpath "/foo/secrets"))`), writes it to a temp file, and launches the agent via `exec.Command("sandbox-exec", "-f", profile, "--", cmd, args...)`. This is kernel-level TrustedBSD MACF enforcement with genuinely fine-grained path policy.
+- `sandbox-exec` is deprecated by Apple but ships in every macOS release through Sequoia (2026) and is used by Apple's own components (WebKit, xcrun). We accept the deprecation risk and document FUSE-T + `hanwen/go-fuse` as a fallback path if Apple ever removes it.
+- Audit events are captured by tailing `log stream --predicate 'subsystem == "com.apple.sandbox"'` and translated into the Aixgate JSONL format.
+- The Aixgate binary is signed and notarized to avoid Gatekeeper friction, but requires no kernel extension approval.
 
 ### 6.4 Policy evaluation flow
 
@@ -494,7 +497,7 @@ aixgate audit tail --follow --profile claude-code
 
 ### 9.1 Artifacts
 
-- Signed macOS universal binary (arm64 + x86_64), distributed as a `.pkg` for macFUSE dependency management.
+- Signed macOS universal binary (arm64 + x86_64), distributed as a plain `.tar.gz`. No `.pkg` needed — no kernel extension to install.
 - Linux static binary for x86_64 and arm64, distributed as `.tar.gz` and `.deb`.
 - Homebrew tap: `brew install aixgo/tap/aixgate`.
 - Shell installer: `curl -sSL https://aixgo.dev/aixgate/install.sh | sh`.
@@ -503,10 +506,10 @@ aixgate audit tail --follow --profile claude-code
 
 | Dependency | Purpose |
 |---|---|
-| macFUSE (macOS) | Filesystem-in-userspace driver. Requires one-time kernel extension approval. |
-| FUSE (Linux) | Available by default on most distributions. Package: `fuse3`. |
-| cgofuse | Go bindings for FUSE used internally; vendored as a Go module dependency. |
-| **No external runtime** | Aixgate does not require Docker, VMs, or a background daemon in v1. |
+| **Pure Go, no cgo** | Aixgate is pure Go. No C toolchain required to build. No cgo symbols in the binary. |
+| `sandbox-exec` (macOS) | Host-provided binary invoked via `exec.Command`. Ships with every macOS version; no install needed. |
+| FUSE (Linux) | Kernel module available by default on most distributions; userland support via `fuse3` package. Loaded lazily on first `aixgate run`. |
+| **No external runtime** | Aixgate does not require Docker, VMs, macFUSE, or a background daemon. |
 
 ### 9.3 Licensing
 
@@ -604,7 +607,7 @@ This layering gives aixgo.dev a credible answer to the single most common securi
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| macFUSE install friction drives users away on day one. | High | Invest in first-run UX: `aixgate doctor`, clear error messages, signed `.pkg` installer. Accept this as the main UX cost and budget for it. |
+| macOS `sandbox-exec` is Apple-deprecated (has been for years); future macOS could remove it. | High | Binary still ships in every macOS release through 2026 and is used by Apple's own tooling. Document a FUSE-T + `hanwen/go-fuse` fallback path; build the `Jailer` interface so the implementation can swap without touching callers. `aixgate doctor` detects and warns if `sandbox-exec` is missing. |
 | Agents fork subprocesses that escape the sandbox. | High | Rely on mount namespaces (Linux) and `sandbox-exec` child inheritance (macOS) rather than FUSE-only enforcement. Add landlock where available. |
 | Symlink and path traversal bugs in the overlay leak data. | High | Canonicalize before every policy check. Comprehensive test suite including adversarial traversal cases. Third-party security review before v1.0. |
 | Policy complexity leads to footgun allowlists. | Medium | `aixgate policy check` warns on overly broad rules. Ship safe defaults. Document common patterns. |
@@ -638,10 +641,13 @@ This layering gives aixgo.dev a credible answer to the single most common securi
 |---|---|---|
 | CLI | [`spf13/cobra`](https://github.com/spf13/cobra) | Consistent with aixgo's existing CLI patterns. |
 | Config | [`spf13/viper`](https://github.com/spf13/viper) + [`goccy/go-yaml`](https://github.com/goccy/go-yaml) | YAML parsing with line-number errors. |
-| FUSE | [`winfsp/cgofuse`](https://github.com/winfsp/cgofuse) | Cross-platform FUSE bindings. Works on macOS via macFUSE, Linux via libfuse3. |
+| FUSE (Linux) | [`hanwen/go-fuse`](https://github.com/hanwen/go-fuse) | Pure-Go FUSE library, no cgo. Actively maintained; nodefs/pathfs layers. |
+| Landlock (Linux) | [`landlock-lsm/go-landlock`](https://github.com/landlock-lsm/go-landlock) | Pure-Go Landlock bindings. Linux 5.13+, ABI v4+ for network. Defense-in-depth. |
+| Seccomp (Linux) | [`elastic/go-seccomp-bpf`](https://github.com/elastic/go-seccomp-bpf) | Pure-Go seccomp-bpf filter. Blocks `ptrace`, `mount`, `bpf`. NOT `seccomp/libseccomp-golang` (cgo). |
+| Sandbox (macOS) | `sandbox-exec` via `os/exec` (stdlib) | Host-provided binary. Generate SBPL profile, invoke with `exec.Command`. |
 | Globs | [`bmatcuk/doublestar`](https://github.com/bmatcuk/doublestar) | Supports `**` and brace expansion. |
 | Logging | `log/slog` (stdlib) | Structured logs by default. |
-| Audit | `log/slog` JSONHandler + `lumberjack` for rotation | |
+| Audit | `log/slog` JSONHandler + [`natefinch/lumberjack`](https://github.com/natefinch/lumberjack) for rotation | |
 | ULIDs | [`oklog/ulid`](https://github.com/oklog/ulid) | Session IDs. |
 | Testing | stdlib `testing` + [`stretchr/testify`](https://github.com/stretchr/testify) | Match aixgo conventions. |
 
@@ -652,7 +658,8 @@ This layering gives aixgo.dev a credible answer to the single most common securi
 3. **Path canonicalization happens exactly once per request**, at the top of the policy check. Never trust a path that has not been canonicalized.
 4. **Audit log writes are fire-and-forget** from the FUSE hot path. Use a buffered channel; block on it only if the buffer is full, and prefer to drop with a counter metric rather than stall the agent.
 5. **Platform-specific code lives in files suffixed `_darwin.go` / `_linux.go`.** Shared logic lives in the unsuffixed file. Use Go build tags only where necessary.
-6. **Avoid cgo outside `internal/fs`.** cgofuse is the only acceptable cgo dependency. Everything else must be pure Go.
+6. **No cgo anywhere.** All dependencies must be pure Go. On Linux, FUSE goes through `hanwen/go-fuse`; on macOS, sandboxing goes through `sandbox-exec` invoked via `os/exec`. This keeps binaries small, cross-compilation trivial, and eliminates the C-toolchain requirement for contributors.
+7. **Platform mechanisms are asymmetric.** Linux uses FUSE as the primary enforcement (per-op policy eval + rich audit); macOS uses `sandbox-exec` as the primary (kernel-enforced SBPL policy + OS log audit). Both sit behind a `Jailer` interface so the rest of the codebase is platform-agnostic.
 
 ### 14.3 Testing strategy
 
@@ -695,18 +702,20 @@ A concrete, scoped proof-of-concept that a contributor (human or Claude Code) ca
 
 ### 15.1 Scope
 
-1. Single Go binary named `aixgate`.
+1. Single Go binary named `aixgate`, built pure Go (no cgo).
 2. One command: `aixgate run -- CMD [ARGS...]`.
-3. Hardcoded policy: hide every file matching `**/.env`, `**/.env.*`, `~/.ssh/id_*`, `~/.aws/credentials` by returning `ENOENT`. Everything else passes through.
-4. macOS + Linux support (whichever the contributor is on is fine for the PoC; the other can be stubbed).
+3. Hardcoded policy: hide every file matching `**/.env`, `**/.env.*`, `~/.ssh/id_*`, `~/.aws/credentials` by returning `ENOENT` (Linux, via FUSE) or denying `file-read*` in the generated SBPL profile (macOS, via `sandbox-exec`). Everything else passes through.
+4. macOS + Linux support. One platform is enough for the PoC; the other may be stubbed behind the `Jailer` interface.
 5. No config, no audit log, no profiles, no tests beyond a minimal smoke check.
 
 ### 15.2 Milestones
 
-1. **Mount a pass-through FUSE overlay.** `aixgate run -- ls ~` works and shows the real home directory via the FUSE mount. Proves the basic plumbing.
-2. **Add the deny rules.** `aixgate run -- cat ~/.ssh/id_rsa` returns "No such file or directory." `aixgate run -- cat ~/.aws/credentials` same. `aixgate run -- ls ~/.ssh` does not show `id_*` files.
-3. **Verify against a real agent.** Launch Claude Code inside `aixgate run` in a directory containing a `.env`. Confirm the agent reports it cannot find the file, and does not surface the contents in any form.
-4. **Verify subprocess containment.** `aixgate run -- bash -c "cat .env"` also fails, proving that forked children inherit the sandbox.
+1. **Stand up the `Jailer` interface and a pass-through implementation for the contributor's platform.**
+   - On **Linux**: mount a pass-through FUSE overlay via `hanwen/go-fuse`. `aixgate run -- ls ~` works and shows the real home directory through the FUSE mount.
+   - On **macOS**: generate an SBPL profile that allows everything, write it to a temp file, and exec the agent via `sandbox-exec -f profile.sb -- CMD`. `aixgate run -- ls ~` works and shows the real home directory under the sandbox.
+2. **Add the deny rules.** `aixgate run -- cat ~/.ssh/id_rsa` returns "No such file or directory" on Linux (FUSE `ENOENT`) and an access-denied on macOS (sandbox deny). `aixgate run -- cat ~/.aws/credentials` same. `aixgate run -- ls ~/.ssh` does not show `id_*` files on Linux; on macOS the files are visible in `ls` but unreadable (SBPL can't hide existence, only deny access — document this platform asymmetry).
+3. **Verify against a real agent.** Launch Claude Code inside `aixgate run` in a directory containing a `.env`. Confirm the agent reports it cannot find or read the file, and does not surface the contents in any form.
+4. **Verify subprocess containment.** `aixgate run -- bash -c "cat .env"` also fails, proving that forked children inherit the sandbox on both platforms (mount namespace on Linux; SBPL is per-process-tree on macOS).
 
 ### 15.3 Definition of done for v0.1
 
@@ -747,18 +756,21 @@ Everything else in this PRD. Resist the urge to build the policy engine, audit l
 
 ### 16.3 References and further reading
 
-- [macFUSE documentation](https://osxfuse.github.io/)
 - [Linux FUSE documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
-- [Landlock LSM](https://landlock.io/)
-- [cgofuse](https://github.com/winfsp/cgofuse)
+- [hanwen/go-fuse](https://github.com/hanwen/go-fuse) — pure-Go FUSE library
+- [Landlock LSM](https://landlock.io/) and [landlock-lsm/go-landlock](https://github.com/landlock-lsm/go-landlock)
+- [elastic/go-seccomp-bpf](https://github.com/elastic/go-seccomp-bpf) — pure-Go seccomp-bpf
 - [OWASP LLM Top 10 — Prompt Injection](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 - [Apple sandbox profile language reference](https://reverse.put.as/wp-content/uploads/2011/09/Apple-Sandbox-Guide-v1.0.pdf) (unofficial)
+- [ADR 0001: Aixgate lives in the aixgo monorepo](./adr/0001-aixgate-monorepo.md)
 
 ### 16.4 Document history
 
 | Version | Date | Author | Notes |
 |---|---|---|---|
 | 0.1 | April 2026 | Charles Green | Initial draft. |
+| 0.2 | April 2026 | Charles Green | Rebrand Warden → Aixgate. |
+| 0.3 | April 2026 | Charles Green | Replace cgofuse with pure-Go jailer stack (hanwen/go-fuse + go-landlock + go-seccomp-bpf on Linux, sandbox-exec on macOS). Confirm aixgate lives in the aixgo monorepo — see ADR 0001. |
 
 ---
 
