@@ -479,16 +479,23 @@ Feature matrices and roadmap are driven by YAML data files:
 ### Configuration
 
 - `config/_default/hugo.toml` - Main Hugo config (baseURL, language, SEO)
-- `firebase.json` - Firebase Hosting config
-- `.firebaserc` - Firebase project ID
+- `static/_headers` - Cloudflare Pages cache-control rules
 
 ### Deployment
 
-Automatically deployed via Google Cloud Build on push to main:
-1. Builds Hugo site with `--minify`
-2. Deploys to Firebase Hosting
+Hosted on **Cloudflare Pages**. Automatic deployment on push to `main`:
 
-Manual: `cd web && make build && firebase deploy --only hosting`
+1. Cloudflare Pages detects the push, builds with `cd web && hugo --minify`, output dir `web/public`
+2. Deploys to the production custom domain (`aixgo.dev`)
+3. Pull-request branches get preview deployments at `<branch>.aixgo.pages.dev`
+
+Required environment variables (set in the Cloudflare Pages project, not in this repo):
+
+- `HUGO_VERSION` — Hugo version pin (matches local `make build`)
+- `HUGO_POSTHOG_KEY` — PostHog Project API Key (`phc_...`); analytics are gated on this being set
+- `HUGO_POSTHOG_HOST` — optional, defaults to `https://us.i.posthog.com`
+
+Manual local build: `cd web && make build` (output in `web/public/`).
 
 ### Key Conventions
 
