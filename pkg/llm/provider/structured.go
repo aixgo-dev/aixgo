@@ -411,7 +411,7 @@ func SchemaFromStruct(t reflect.Type) *Schema {
 
 func generateSchemaFromType(t reflect.Type) *Schema {
 	// Handle pointers
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
