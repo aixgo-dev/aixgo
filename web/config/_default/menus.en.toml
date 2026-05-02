@@ -1,24 +1,9 @@
 # -- Main Menu --
 
 [[main]]
-  name = "Home"
-  url = "/"
-  weight = 5
-
-[[main]]
   name = "Docs"
   url = "/docs"
   weight = 7
-
-[[main]]
-  name = "Features"
-  pageRef = "features"
-  weight = 10
-
-[[main]]
-  name = "Why Aixgo"
-  pageRef = "why-aixgo"
-  weight = 15
 
 [[main]]
   name = "Blog"
@@ -41,6 +26,11 @@
   name = "Features"
   pageRef = "features"
   weight = 5
+
+[[footer]]
+  name = "Why Aixgo"
+  pageRef = "why-aixgo"
+  weight = 7
 
 [[footer]]
   name = "GitHub"

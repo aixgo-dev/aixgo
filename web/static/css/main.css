@@ -169,25 +169,31 @@ header {
   opacity: 1;
 }
 
-/* Navigation GitHub Button */
-.nav-github-btn {
+/* Navigation GitHub Icon (desktop: icon-only ghost; mobile: labeled full-width) */
+.nav-github-icon {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border);
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
   border-radius: 6px;
   transition: all 0.2s;
-  font-weight: 500 !important;
+  color: var(--color-text);
 }
 
-.nav-github-btn:hover {
+.nav-github-icon:hover {
   border-color: var(--color-cyan);
   background-color: rgba(34, 211, 238, 0.05);
+  color: var(--color-cyan);
 }
 
-.nav-github-btn svg {
+.nav-github-icon svg {
   flex-shrink: 0;
+}
+
+.nav-github-icon .nav-label {
+  display: none;
 }
 
 /* Get Started CTA Button */
@@ -1350,16 +1356,22 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 1rem;
   }
 
-  /* Mobile GitHub Button */
-  .nav-github-btn {
+  /* Mobile GitHub: show label, full-width like other items */
+  .nav-github-icon {
     display: flex !important;
     justify-content: center;
     align-items: center;
     width: 100% !important;
+    height: auto !important;
     padding: 0.875rem 1rem !important;
     margin: 0 !important;
     box-sizing: border-box;
     border: 1px solid var(--color-border);
+    gap: 0.5rem;
+  }
+
+  .nav-github-icon .nav-label {
+    display: inline;
   }
 
   /* Mobile Get Started CTA */
