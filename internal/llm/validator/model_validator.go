@@ -61,7 +61,7 @@ func WrapValidatorFunc(fn func(*ValidationContext, any, ValidatorFunc) (any, err
 func ValidateFieldMatch(field1, field2 string) func(any) error {
 	return func(v any) error {
 		val := reflect.ValueOf(v)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
 		}
 
@@ -88,7 +88,7 @@ func ValidateFieldMatch(field1, field2 string) func(any) error {
 func ValidateDateRange(startField, endField string, message string) func(any) error {
 	return func(v any) error {
 		val := reflect.ValueOf(v)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
 		}
 
@@ -128,7 +128,7 @@ func ValidateDateRange(startField, endField string, message string) func(any) er
 func ValidateConditionalRequired(conditionField string, conditionValue any, requiredField string) func(any) error {
 	return func(v any) error {
 		val := reflect.ValueOf(v)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
 		}
 
@@ -159,7 +159,7 @@ func ValidateConditionalRequired(conditionField string, conditionValue any, requ
 func ValidateAtLeastOne(fields ...string) func(any) error {
 	return func(v any) error {
 		val := reflect.ValueOf(v)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
 		}
 
@@ -182,7 +182,7 @@ func ValidateAtLeastOne(fields ...string) func(any) error {
 func ValidateMutuallyExclusive(fields ...string) func(any) error {
 	return func(v any) error {
 		val := reflect.ValueOf(v)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
 		}
 

@@ -93,7 +93,7 @@ func generateSchema[T any]() Schema {
 	typ := reflect.TypeOf(t)
 
 	// Handle pointer types
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 
@@ -151,7 +151,7 @@ func parseJSONFieldName(tag string, defaultName string) string {
 // goTypeToJSONType converts Go types to JSON schema types
 func goTypeToJSONType(t reflect.Type) string {
 	// Handle pointer types
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 

@@ -210,7 +210,7 @@ func generateSchemaFromType(v any) (Schema, error) {
 	t := reflect.TypeOf(v)
 
 	// Handle pointer types
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -267,7 +267,7 @@ func generateSchemaFromType(v any) (Schema, error) {
 // typeToSchemaField converts a reflect.Type to a SchemaField
 func typeToSchemaField(t reflect.Type) SchemaField {
 	// Handle pointer types
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
