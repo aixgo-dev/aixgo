@@ -1,0 +1,47 @@
+# Aixgo
+
+> Aixgo is a production-grade AI agent framework for Go. It enables secure, scalable multi-agent systems with no Python dependencies, single-binary deployment under 20MB, sub-100ms cold starts, and true parallel concurrency (no GIL).
+
+Aixgo targets backend Go engineers, DevOps teams, and data engineers who need to ship AI agents in production without the operational overhead of Python frameworks like LangChain or LlamaIndex. The framework provides 13 orchestration patterns (Supervisor, Sequential, Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier, Aggregation, Planning, MapReduce), 6 agent types (ReAct, Classifier, Aggregator, Planner, Producer, Logger), 8+ LLM providers (OpenAI, Anthropic, Gemini, xAI, Vertex AI, Amazon Bedrock, HuggingFace, plus inference services), Pydantic AI-style validation retry for structured output, and Model Context Protocol (MCP) tool calling.
+
+## Documentation
+
+- [Quick Start](https://aixgo.dev/guides/quick-start): Install, configure, and run a first agent in under five minutes
+- [Core Concepts](https://aixgo.dev/guides/core-concepts): Agents, runtime, supervisor, message flow, and configuration
+- [Agent Types](https://aixgo.dev/guides/agent-types): ReAct, Classifier, Aggregator, Planner, Producer, Logger and when to use each
+- [Multi-Agent Orchestration](https://aixgo.dev/guides/multi-agent-orchestration): Building agent systems with the supervisor and orchestration patterns
+- [Pattern Composition](https://aixgo.dev/guides/pattern-composition): Combining the 13 orchestration patterns for complex workflows
+- [Validation with Retry](https://aixgo.dev/guides/validation-with-retry): Pydantic-style structured output validation with automatic retry for 40-70% reliability gains
+- [Sessions](https://aixgo.dev/guides/sessions): Conversation state and session persistence across agent invocations
+- [Type Safety](https://aixgo.dev/guides/type-safety): Compile-time guarantees, generics usage, and avoiding runtime errors
+- [Provider Integration](https://aixgo.dev/guides/provider-integration): Adding and configuring LLM providers
+- [Provider Comparison](https://aixgo.dev/guides/provider-comparison): Trade-offs between OpenAI, Anthropic, Gemini, xAI, Bedrock, and Vertex AI
+- [AWS Bedrock](https://aixgo.dev/guides/aws-bedrock): Using Anthropic, Amazon, Meta, Mistral, Cohere, and AI21 models via Bedrock
+- [Embeddings](https://aixgo.dev/guides/embeddings): Embedding generation with OpenAI and HuggingFace
+- [Vector Databases](https://aixgo.dev/guides/vector-databases): Firestore and in-memory vector stores for RAG
+- [Observability](https://aixgo.dev/guides/observability): OpenTelemetry tracing, metrics, and cost tracking
+- [Production Deployment](https://aixgo.dev/guides/production-deployment): Docker, Kubernetes, Cloud Run patterns
+- [Single vs Distributed](https://aixgo.dev/guides/single-vs-distributed): Choosing between local channel runtime and gRPC distributed runtime
+- [Cost Optimization](https://aixgo.dev/guides/cost-optimization): Router pattern, model tiering, caching, and budget controls
+- [Extending Aixgo](https://aixgo.dev/guides/extending-aixgo): Custom agents, providers, and orchestration patterns
+- [Using Public Interfaces](https://aixgo.dev/guides/using-public-interfaces): Stable Go API surface and module boundaries
+- [Docker from Scratch](https://aixgo.dev/guides/docker-from-scratch): Minimal containers for production aixgo deployments
+- [Chat Assistant Tutorial](https://aixgo.dev/guides/chat-assistant): End-to-end build of a multi-agent chat assistant
+
+## Why Aixgo
+
+- [Why Aixgo](https://aixgo.dev/why-aixgo): Positioning vs Python frameworks, design tradeoffs, target use cases
+- [Features](https://aixgo.dev/features): Complete feature catalog with status indicators
+- [Proverbs](https://aixgo.dev/proverbs): Design principles and idioms for the framework
+
+## Source and reference
+
+- [GitHub Repository](https://github.com/aixgo-dev/aixgo): Source, issues, releases, contributing guide
+- [Go Package Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo): Generated Go API documentation
+- [Releases](https://github.com/aixgo-dev/aixgo/releases): Version history and changelogs
+- [Discussions](https://github.com/orgs/aixgo-dev/discussions): Community Q&A and design conversations
+
+## Optional
+
+- [Blog](https://aixgo.dev/blog): Release announcements and engineering posts
+- [Roadmap](https://github.com/orgs/aixgo-dev/projects/1): Public roadmap and milestone tracking
