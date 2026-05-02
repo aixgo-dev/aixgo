@@ -4,7 +4,11 @@
 <meta name="description" content="{{ if .Description }}{{ .Description }}{{ else }}{{ .Site.Params.description }}{{ end }}">
 
 <!-- Favicon -->
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/aixgo-logo.png">
+
+<!-- SEO: canonical, OpenGraph, Twitter, JSON-LD -->
+{{ partial "seo.html" . }}
 
 <!-- CSS -->
 <link rel="stylesheet" href="/css/main.css">
