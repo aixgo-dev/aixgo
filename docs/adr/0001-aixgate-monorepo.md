@@ -1,6 +1,6 @@
 # ADR 0001: Aixgate lives in the aixgo monorepo
 
-**Status:** Accepted
+**Status:** Superseded by [ADR 0002](0002-aixgate-separate-repo.md) on 2026-05-03
 **Date:** 2026-04-21
 **Deciders:** Charles Green
 
