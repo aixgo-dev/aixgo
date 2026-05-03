@@ -1,170 +1,69 @@
 # aixgo
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/aixgo-dev/aixgo)](https://go.dev/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+Production-grade AI agent framework for Go. Structured-output validation with automatic retry, type-safe orchestration, eight LLM providers, sub-20MB binary. No Python. No GIL. No 1GB containers.
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/aixgo-dev/aixgo.svg)](https://pkg.go.dev/github.com/aixgo-dev/aixgo)
 [![Go Report Card](https://goreportcard.com/badge/github.com/aixgo-dev/aixgo)](https://goreportcard.com/report/github.com/aixgo-dev/aixgo)
+[![CI](https://github.com/aixgo-dev/aixgo/actions/workflows/ci.yml/badge.svg)](https://github.com/aixgo-dev/aixgo/actions/workflows/ci.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/aixgo-dev/aixgo)](https://go.dev/)
+[![Latest Release](https://img.shields.io/github/v/release/aixgo-dev/aixgo?sort=semver)](https://github.com/aixgo-dev/aixgo/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/aixgo-dev/aixgo?style=social)](https://github.com/aixgo-dev/aixgo/stargazers)
 
-Production-grade AI agent framework for Go. Build secure, scalable multi-agent systems without Python
-dependencies.
+> ★ **Star this repo** to follow releases.
 
-**[Documentation](https://aixgo.dev)** | **[Quick Start](#quick-start)** | **[Features](docs/FEATURES.md)** |
-**[Examples](examples/)** | **[Contributing](docs/CONTRIBUTING.md)**
+---
 
-## Key Features
+## Why aixgo
 
-- **6 Agent Types** - ReAct, Classifier, Aggregator, Planner, Producer, Logger
-- **13 Orchestration Patterns** - All production-proven patterns implemented
-- **6+ LLM Providers** - OpenAI, Anthropic, Gemini, xAI, Vertex AI, HuggingFace, plus local inference
-- **Session Persistence** - Built-in conversation memory with JSONL and Redis storage
-- **Enterprise Security** - 4 auth modes, RBAC, rate limiting, SSRF protection, hardening
-- **Full Observability** - OpenTelemetry, Prometheus, Langfuse, cost tracking
-> See [docs/FEATURES.md](docs/FEATURES.md) for the complete feature catalog with code references.
+Aixgo is a production-grade agent framework written in pure Go. It gives you structured output validation with automatic retry, six agent types, thirteen orchestration patterns, and eight LLM providers — all in a single sub-20MB binary that starts in under 100ms.
 
-## Quick Start
+If you ship Go services and you're tired of dragging Python and a 1GB container along for an agent, this is for you.
 
-### Installation
+| Metric | aixgo | Python frameworks |
+|---|---|---|
+| **Binary size** | <20MB | 1GB+ containers |
+| **Cold start** | <100ms | 10–45s |
+| **Concurrency** | True parallelism (no GIL) | GIL-limited |
+| **Type safety** | Compile-time | Runtime errors |
+| **Validation retry** | Built-in (structured-output) | Library-dependent |
+| **Distribution** | Single binary | Container + interpreter |
 
-Choose the installation method based on your use case:
+---
 
-#### As a Library
-
-For adding Aixgo to your Go project:
+## Quick start
 
 ```bash
 go get github.com/aixgo-dev/aixgo
 ```
 
-This downloads only the Go framework source code (~2MB), not the website or documentation.
-
-#### CLI Binary
-
-The `aixgo` CLI provides multiple capabilities:
-
-- **Agent orchestration** - Run multi-agent systems from YAML configs
-- **Interactive coding assistant** - Multi-model chat with file/git operations
-- **Session management** - Save and resume conversations
-- **Model information** - View available models and pricing
-
-**Option 1: Install via `go install`** (requires Go 1.26+):
-
-```bash
-go install github.com/aixgo-dev/aixgo/cmd/aixgo@latest
-```
-
-**Option 2: Download pre-built binaries**:
-
-Download platform-specific binaries from [GitHub Releases](https://github.com/aixgo-dev/aixgo/releases):
-
-```bash
-# Linux/macOS
-curl -L https://github.com/aixgo-dev/aixgo/releases/latest/download/aixgo_Linux_x86_64.tar.gz | tar xz
-sudo mv aixgo /usr/local/bin/
-```
-
-Available for Linux, macOS, and Windows (amd64, arm64).
-
-**Shell Completion**
-
-Generate completion scripts for your shell:
-
-```bash
-# Bash (Linux)
-aixgo completion bash | sudo tee /etc/bash_completion.d/aixgo
-
-# Bash (macOS with Homebrew)
-aixgo completion bash > $(brew --prefix)/etc/bash_completion.d/aixgo
-
-# Zsh
-aixgo completion zsh > "${fpath[1]}/_aixgo"
-
-# Fish
-aixgo completion fish > ~/.config/fish/completions/aixgo.fish
-
-# PowerShell
-aixgo completion powershell | Out-String | Invoke-Expression
-```
-
-Completion includes dynamic suggestions for `--model` (live model list), `--session` (saved session IDs), and `--config` (YAML files).
-
-#### Full Repository (Contributors)
-
-For contributing or exploring examples:
-
-```bash
-git clone https://github.com/aixgo-dev/aixgo.git
-cd aixgo
-go build ./...
-```
-
-This includes the full repository with website source (`web/`), examples, and documentation.
-
-#### What You Get
-
-| User Type | Command | What's Included | Size |
-|-----------|---------|----------------|------|
-| **Library user** | `go get github.com/aixgo-dev/aixgo` | Go source code only | ~2MB |
-| **CLI user** | `go install` or binary download | Single executable binary | <20MB |
-| **Contributor** | `git clone` | Full repo including web/, examples/, docs/ | ~20MB |
-
-### Setup
-
-Before running your agents, you need to configure API keys for LLM providers. Create a `.env` file in your
-project root (or set environment variables):
-
-```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Edit .env and add your API keys
-# Required: At least one of these API keys
-export OPENAI_API_KEY=sk-...        # For GPT models
-export XAI_API_KEY=xai-...          # For Grok models
-export ANTHROPIC_API_KEY=sk-ant-... # For Claude models (optional)
-export HUGGINGFACE_API_KEY=hf_...  # For HuggingFace models (optional)
-```
-
-The framework will automatically detect the appropriate API key based on your model name:
-
-- `grok-*` or `xai-*` models use `XAI_API_KEY`
-- `gpt-*` models use `OPENAI_API_KEY`
-- `claude-*` models use `ANTHROPIC_API_KEY`
-- HuggingFace models (e.g., `meta-llama/*`) use `HUGGINGFACE_API_KEY`
-
-### Your First Agent
-
-Create a simple multi-agent system in under 5 minutes:
-
-**1. Create a configuration file** (`config/agents.yaml`):
+Define your agents in YAML:
 
 ```yaml
+# config/agents.yaml
 supervisor:
   name: coordinator
   model: gpt-4-turbo
-  max_rounds: 10
 
 agents:
-  - name: data-producer
-    role: producer
-    interval: 1s
-    outputs:
-      - target: analyzer
-
   - name: analyzer
     role: react
     model: gpt-4-turbo
-    prompt: |
-      You are a data analyst. Analyze incoming data and provide insights.
-    inputs:
-      - source: data-producer
-    outputs:
-      - target: logger
+    prompt: "You are a data analyst. Analyze incoming data and return insights."
+    inputs: [producer]
+    outputs: [logger]
+
+  - name: producer
+    role: producer
+    interval: 1s
+    outputs: [analyzer]
 
   - name: logger
     role: logger
-    inputs:
-      - source: analyzer
+    inputs: [analyzer]
 ```
 
-**2. Create your main.go**:
+Run it from Go:
 
 ```go
 package main
@@ -181,88 +80,134 @@ func main() {
 }
 ```
 
-**3. Run your agent system**:
-
 ```bash
+export OPENAI_API_KEY=sk-...
 go run main.go
 ```
 
-That's it! You now have a running multi-agent system with producer, analyzer, and logger agents orchestrated by a supervisor.
+That's a multi-agent system with producer → analyzer → logger orchestrated by a supervisor, in fewer than 30 lines.
+
+---
+
+## Features at a glance
+
+- **6 agent types** — ReAct, Classifier, Aggregator, Planner, Producer, Logger
+- **13 orchestration patterns** — Supervisor, Sequential, Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier, Aggregation, Planning, MapReduce
+- **8+ LLM providers** — OpenAI, Anthropic, Gemini, xAI, Vertex AI, Amazon Bedrock, HuggingFace, plus inference services (Ollama, vLLM)
+- **Validation retry** — Structured output validation with automatic retry (40–70% improved reliability)
+- **MCP support** — Model Context Protocol for tool calling (local, gRPC, multi-server)
+- **Session persistence** — Built-in conversation memory, JSONL or Redis backends
+- **Enterprise security** — 4 auth modes, RBAC, rate limiting, SSRF protection, hardening
+- **Full observability** — OpenTelemetry, Prometheus, Langfuse, cost tracking
+
+See [docs/FEATURES.md](docs/FEATURES.md) for the complete catalog with code references.
+
+---
+
+## Install
+
+| User type | Command | What's included | Size |
+|---|---|---|---|
+| **Library user** | `go get github.com/aixgo-dev/aixgo` | Go source code only | ~2MB |
+| **CLI user** | `go install github.com/aixgo-dev/aixgo/cmd/aixgo@latest` | Single executable binary | <20MB |
+| **Pre-built binary** | [GitHub Releases](https://github.com/aixgo-dev/aixgo/releases/latest) | tar.gz / zip per platform | <20MB |
+| **Contributor** | `git clone https://github.com/aixgo-dev/aixgo.git` | Full repo with examples and docs | ~10MB |
+
+The CLI is available for Linux, macOS, and Windows (amd64 and arm64). After install, generate shell completion:
+
+```bash
+aixgo completion bash | sudo tee /etc/bash_completion.d/aixgo   # Linux
+aixgo completion zsh > "${fpath[1]}/_aixgo"                     # Zsh
+aixgo completion fish > ~/.config/fish/completions/aixgo.fish   # Fish
+```
+
+### Configure API keys
+
+```bash
+cp .env.example .env
+# Required: at least one of these
+export OPENAI_API_KEY=sk-...        # GPT models
+export ANTHROPIC_API_KEY=sk-ant-... # Claude models
+export XAI_API_KEY=xai-...          # Grok models
+export HUGGINGFACE_API_KEY=hf_...   # HuggingFace models
+```
+
+The framework auto-detects the right key from the `model` name (`gpt-*` → OpenAI, `claude-*` → Anthropic, `grok-*` → xAI, etc.).
+
+---
+
+## Featured examples
+
+Five examples worth reading first. All runnable; full set is in [examples/](examples/).
+
+| Example | What it demonstrates |
+|---|---|
+| [validation-with-retry](examples/pydantic-style-validation/) | Structured output with automatic retry — the headline feature |
+| [parallel-research](examples/parallel-research/) | Fan-out/fan-in over multiple LLMs with cost tracking |
+| [rag-documentation](examples/rag-documentation/) | RAG over Markdown docs, end to end |
+| [router-cost-optimization](examples/router-cost-optimization/) | Provider routing for 25–50% cost savings |
+| [session-react](examples/session-react/) | ReAct agent with persistent multi-turn sessions |
+
+---
 
 ## Architecture
 
-Aixgo provides a flexible, layered architecture:
+Five layers, all pluggable:
 
-- **Agent Layer** - 6 specialized agent types
-- **Orchestration Layer** - 13 production-proven patterns
-- **Runtime Layer** - Local (Go channels) or Distributed (gRPC)
-- **Integration Layer** - 6+ LLM providers, MCP tool calling, vector stores
-- **Observability Layer** - OpenTelemetry, Prometheus, cost tracking
+- **Agent layer** — six specialised agent types, register your own via `agent.Register`.
+- **Orchestration layer** — thirteen patterns implemented in `internal/supervisor/patterns/`.
+- **Runtime layer** — local (Go channels) or distributed (gRPC). Single binary in either case.
+- **Integration layer** — eight LLM providers, MCP tool calling, vector stores, embeddings.
+- **Observability layer** — OpenTelemetry, Prometheus, Langfuse, cost tracking.
 
-> 🔗 **Deep Dive**: For detailed architecture and pattern documentation, see [docs/PATTERNS.md](docs/PATTERNS.md).
+For deep architecture and pattern docs see [docs/PATTERNS.md](docs/PATTERNS.md).
+
+---
 
 ## Documentation
 
-**Comprehensive guides and examples available at [aixgo.dev](https://aixgo.dev)**
+- [aixgo.dev](https://aixgo.dev) — Comprehensive guides, blog, and reference.
+- [pkg.go.dev](https://pkg.go.dev/github.com/aixgo-dev/aixgo) — Generated API reference.
+- [docs/FEATURES.md](docs/FEATURES.md) — Authoritative feature catalog.
+- [docs/PATTERNS.md](docs/PATTERNS.md) — Thirteen orchestration patterns with examples.
+- [docs/SECURITY_BEST_PRACTICES.md](docs/SECURITY_BEST_PRACTICES.md) — Security guide.
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Cloud Run, Kubernetes, Docker.
+- [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) — OpenTelemetry and cost tracking.
+- [docs/SESSIONS.md](docs/SESSIONS.md) — Conversation memory and session persistence.
 
-### Resources
-
-- **[Website](https://aixgo.dev)** - Comprehensive guides and documentation
-- **[docs/](docs/)** - Technical reference documentation
-- **[examples/](examples/)** - Production-ready code examples
-- **[web/](web/)** - Website source code
-
-### Core Documentation
-
-- **[FEATURES.md](docs/FEATURES.md)** - Complete feature catalog with code references
-- **[PATTERNS.md](docs/PATTERNS.md)** - 13 orchestration patterns with examples
-- **[SECURITY_BEST_PRACTICES.md](docs/SECURITY_BEST_PRACTICES.md)** - Security best practices
-- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Cloud Run, Kubernetes, Docker
-- **[OBSERVABILITY.md](docs/OBSERVABILITY.md)** - OpenTelemetry and cost tracking
-- **[API Reference](https://pkg.go.dev/github.com/aixgo-dev/aixgo)** - GoDoc documentation
-
-### Examples
-
-Browse **15+ production-ready examples** in [examples/](examples/):
-
-- Agent types: ReAct, Classifier, Aggregator, Planner
-- LLM providers: OpenAI, Anthropic, Gemini, xAI, HuggingFace
-- Orchestration: MapReduce, parallel, sequential, reflection
-- Security: Authentication, authorization, TLS
-- Complete use cases: End-to-end applications
+---
 
 ## Development
 
 ```bash
-# Build
 git clone https://github.com/aixgo-dev/aixgo.git
 cd aixgo
-go build ./...
-
-# Test
-go test ./...
-go test -race ./...
-
-# Coverage
-go test -cover ./...
+make test     # tests with race detector
+make lint     # golangci-lint
+make build    # build the aixgo CLI binary
 ```
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for contribution guidelines.
-
-## Contributing
-
-We welcome contributions! See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
-
-## Community
-
-- **[GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions)** - Ask questions, share ideas
-- **[Issues](https://github.com/aixgo-dev/aixgo/issues)** - Report bugs, request features
-- **[Roadmap](https://github.com/orgs/aixgo-dev/projects/1)** - Track feature development
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the full contributor guide. Good first issues are tagged on [GitHub Issues](https://github.com/aixgo-dev/aixgo/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22).
 
 ---
 
-**Production-grade AI agents in pure Go.**
+## Community
+
+- [GitHub Discussions](https://github.com/aixgo-dev/aixgo/discussions) — Ask questions, share ideas.
+- [GitHub Issues](https://github.com/aixgo-dev/aixgo/issues) — Report bugs, request features.
+- [Roadmap](https://github.com/orgs/aixgo-dev/projects/1) — Track feature development.
+
+---
+
+## See also
+
+- [aixgate](https://github.com/aixgo-dev/aixgate) — Deny-by-default sandbox for AI coding agents.
+- [aixgo.dev](https://aixgo.dev) — Documentation, guides, and examples.
+
+---
+
+## License
+
+[MIT](LICENSE).
+
+> aixgo.dev builds agents. Aixgate keeps them in their lane.

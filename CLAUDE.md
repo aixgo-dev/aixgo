@@ -38,7 +38,7 @@ Aixgo is a **production-grade AI agent framework for Go** enabling secure, scala
 - **13 orchestration patterns** - Supervisor, Sequential, Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier, Aggregation, Planning, MapReduce
 - **6 agent types** - ReAct, Classifier, Aggregator, Planner, Producer, Logger
 - **8+ LLM providers** - OpenAI, Anthropic, Gemini, xAI, Vertex AI, Amazon Bedrock, HuggingFace, + inference services (Ollama, vLLM)
-- **Validation retry** - Pydantic AI-style structured output validation with automatic retry (40-70% improved reliability)
+- **Validation retry** - Structured output validation with automatic retry (40-70% improved reliability)
 - **MCP support** - Model Context Protocol for tool calling (local, gRPC, multi-server)
 
 ### Target Users
@@ -126,7 +126,7 @@ Observability & Security (OpenTelemetry, Auth, Rate Limiting)
 **Internal**:
 - `internal/agent/` - Factory, types, interfaces
 - `internal/llm/provider/` - OpenAI, Anthropic, Gemini, xAI, Vertex, HuggingFace
-- `internal/llm/validator/` - Pydantic-style validation retry
+- `internal/llm/validator/` - Structured output validation retry
 - `internal/supervisor/` - Orchestration core
 - `internal/supervisor/patterns/` - Parallel, MapReduce, etc.
 - `internal/observability/` - OpenTelemetry
