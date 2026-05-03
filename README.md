@@ -1,6 +1,6 @@
 # aixgo
 
-**Pydantic for Go agents.** Production-grade AI agent framework for Go. Validation retry, type-safe orchestration, eight LLM providers, sub-20MB binary. No Python. No GIL. No 1GB containers.
+Production-grade AI agent framework for Go. Structured-output validation with automatic retry, type-safe orchestration, eight LLM providers, sub-20MB binary. No Python. No GIL. No 1GB containers.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/aixgo-dev/aixgo.svg)](https://pkg.go.dev/github.com/aixgo-dev/aixgo)
 [![Go Report Card](https://goreportcard.com/badge/github.com/aixgo-dev/aixgo)](https://goreportcard.com/report/github.com/aixgo-dev/aixgo)
@@ -16,7 +16,7 @@
 
 ## Why aixgo
 
-Aixgo is a production-grade agent framework written in pure Go. It gives you Pydantic-AI-style structured output validation with automatic retry, six agent types, thirteen orchestration patterns, and eight LLM providers — all in a single sub-20MB binary that starts in under 100ms.
+Aixgo is a production-grade agent framework written in pure Go. It gives you structured output validation with automatic retry, six agent types, thirteen orchestration patterns, and eight LLM providers — all in a single sub-20MB binary that starts in under 100ms.
 
 If you ship Go services and you're tired of dragging Python and a 1GB container along for an agent, this is for you.
 
@@ -26,7 +26,7 @@ If you ship Go services and you're tired of dragging Python and a 1GB container 
 | **Cold start** | <100ms | 10–45s |
 | **Concurrency** | True parallelism (no GIL) | GIL-limited |
 | **Type safety** | Compile-time | Runtime errors |
-| **Validation retry** | Built-in (Pydantic-AI style) | Library-dependent |
+| **Validation retry** | Built-in (structured-output) | Library-dependent |
 | **Distribution** | Single binary | Container + interpreter |
 
 ---
@@ -94,7 +94,7 @@ That's a multi-agent system with producer → analyzer → logger orchestrated b
 - **6 agent types** — ReAct, Classifier, Aggregator, Planner, Producer, Logger
 - **13 orchestration patterns** — Supervisor, Sequential, Parallel, Router, Swarm, Hierarchical, RAG, Reflection, Ensemble, Classifier, Aggregation, Planning, MapReduce
 - **8+ LLM providers** — OpenAI, Anthropic, Gemini, xAI, Vertex AI, Amazon Bedrock, HuggingFace, plus inference services (Ollama, vLLM)
-- **Validation retry** — Pydantic-AI-style structured output validation with automatic retry (40–70% improved reliability)
+- **Validation retry** — Structured output validation with automatic retry (40–70% improved reliability)
 - **MCP support** — Model Context Protocol for tool calling (local, gRPC, multi-server)
 - **Session persistence** — Built-in conversation memory, JSONL or Redis backends
 - **Enterprise security** — 4 auth modes, RBAC, rate limiting, SSRF protection, hardening
@@ -142,7 +142,7 @@ Five examples worth reading first. All runnable; full set is in [examples/](exam
 
 | Example | What it demonstrates |
 |---|---|
-| [pydantic-style-validation](examples/pydantic-style-validation/) | Structured output with automatic retry — the headline feature |
+| [validation-with-retry](examples/pydantic-style-validation/) | Structured output with automatic retry — the headline feature |
 | [parallel-research](examples/parallel-research/) | Fan-out/fan-in over multiple LLMs with cost tracking |
 | [rag-documentation](examples/rag-documentation/) | RAG over Markdown docs, end to end |
 | [router-cost-optimization](examples/router-cost-optimization/) | Provider routing for 25–50% cost savings |
