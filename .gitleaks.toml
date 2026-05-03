@@ -10,7 +10,6 @@ description = "Allowlist for example/test secrets and documentation"
 paths = [
     '''.*_test\.go$''',
     '''.*testutil\.go$''',
-    '''web/content/examples/.*''',
     '''docs/.*\.md$''',
     '''examples/.*''',
     '''config/.*\.yaml$''',

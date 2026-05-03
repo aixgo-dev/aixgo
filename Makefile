@@ -65,22 +65,4 @@ install: ## Install the aixgo binary
 
 check: fmt vet lint test ## Run all checks (fmt, vet, lint, test)
 
-# =============================================================================
-# Web targets (delegated to web/Makefile)
-# =============================================================================
-
-.PHONY: web-dev web-build web-clean web-lint
-
-web-dev: ## Start Hugo development server
-	$(MAKE) -C web dev
-
-web-build: ## Build Hugo site for production
-	$(MAKE) -C web build
-
-web-clean: ## Clean web build artifacts
-	$(MAKE) -C web clean
-
-web-lint: ## Lint web content
-	$(MAKE) -C web lint
-
 .DEFAULT_GOAL := help

@@ -12,7 +12,7 @@ Quick reference for AI assistants working with Aixgo - a production-grade AI age
 - [Architecture](#architecture)
 - [Code Conventions](#code-conventions)
 - [Key Concepts](#key-concepts)
-- [Website](#website-web)
+- [Website](#website)
 - [Common Tasks](#common-tasks)
 - [Quick Reference](#quick-reference)
 
@@ -443,66 +443,9 @@ export ENVIRONMENT=production
 
 ---
 
-## Website (`web/`)
+## Website
 
-Hugo-based static website for [aixgo.dev](https://aixgo.dev).
-
-### Development
-
-```bash
-cd web
-make dev    # Start dev server at localhost:1313
-make build  # Build for production
-make lint   # Lint markdown content
-```
-
-### Data-Driven Content
-
-Feature matrices and roadmap are driven by YAML data files:
-- `data/features.yaml` - Feature matrix with status indicators (complete/in_progress/roadmap)
-- `data/milestones.yaml` - Development milestones for homepage
-
-### Content Structure
-
-- `content/guides/` - 18+ technical guides (quick-start, agent-types, cost-optimization, etc.)
-- `content/blog/` - Release announcements and blog posts
-- `content/examples/` - YAML configuration examples
-
-### Key Templates
-
-- `layouts/index.html` - Homepage template
-- `layouts/shortcodes/` - Reusable components:
-  - `feature-releases.html` - Feature table renderer
-  - `status-badge.html` - Status indicators (checkmark/construction/roadmap)
-  - `alpha-notice.html` - Alpha warning banner
-
-### Configuration
-
-- `config/_default/hugo.toml` - Main Hugo config (baseURL, language, SEO)
-- `static/_headers` - Cloudflare Pages cache-control rules
-
-### Deployment
-
-Hosted on **Cloudflare Pages**. Automatic deployment on push to `main`:
-
-1. Cloudflare Pages detects the push, builds with `cd web && hugo --minify`, output dir `web/public`
-2. Deploys to the production custom domain (`aixgo.dev`)
-3. Pull-request branches get preview deployments at `<branch>.aixgo.pages.dev`
-
-Required environment variables (set in the Cloudflare Pages project, not in this repo):
-
-- `HUGO_VERSION` — Hugo version pin (matches local `make build`)
-- `HUGO_POSTHOG_KEY` — PostHog Project API Key (`phc_...`); analytics are gated on this being set
-- `HUGO_POSTHOG_HOST` — optional, defaults to `https://us.i.posthog.com`
-
-Manual local build: `cd web && make build` (output in `web/public/`).
-
-### Key Conventions
-
-- **Data files first**: Always update `features.yaml` and `milestones.yaml` rather than hardcoding content
-- **Ordered lists**: Use `1.` numbering throughout (markdownlint rule)
-- **File naming**: kebab-case (e.g., `provider-integration.md`)
-- **Code blocks**: Always specify language for syntax highlighting
+The aixgo.dev website source lives in its own repo: <https://github.com/aixgo-dev/web>. Cloudflare Pages auto-deploys on push to `main`. The site is no longer part of this monorepo.
 
 ---
 
