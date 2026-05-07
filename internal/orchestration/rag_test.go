@@ -2,6 +2,7 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -156,8 +157,10 @@ func TestRAGPattern(t *testing.T) {
 func TestAugmentInput(t *testing.T) {
 	tests := []struct {
 		name      string
+		opts      []RAGOption
 		query     *agent.Message
 		documents *agent.Message
+		wantErr   bool
 		wantType  string
 		checkFunc func(t *testing.T, result *agent.Message)
 	}{
@@ -267,11 +270,74 @@ func TestAugmentInput(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "json strategy emits parseable JSON",
+			opts: []RAGOption{WithAugmentationStrategy(AugmentJSON)},
+			query: &agent.Message{
+				Message: &pb.Message{Payload: "What is AI?"},
+			},
+			documents: &agent.Message{
+				Message: &pb.Message{Payload: "AI is artificial intelligence"},
+			},
+			wantType: "rag_augmented",
+			checkFunc: func(t *testing.T, result *agent.Message) {
+				var got struct {
+					Context string `json:"context"`
+					Query   string `json:"query"`
+				}
+				if err := json.Unmarshal([]byte(result.Payload), &got); err != nil {
+					t.Fatalf("payload is not valid JSON: %v\npayload: %s", err, result.Payload)
+				}
+				if got.Query != "What is AI?" {
+					t.Errorf("query field = %q, want %q", got.Query, "What is AI?")
+				}
+				if got.Context != "AI is artificial intelligence" {
+					t.Errorf("context field = %q, want %q", got.Context, "AI is artificial intelligence")
+				}
+			},
+		},
+		{
+			name: "template strategy renders user template",
+			opts: []RAGOption{
+				WithAugmentationTemplate("Use the following context to answer:\n{{.Context}}\n\nQuestion: {{.Query}}\nAnswer:"),
+			},
+			query: &agent.Message{
+				Message: &pb.Message{Payload: "What is AI?"},
+			},
+			documents: &agent.Message{
+				Message: &pb.Message{Payload: "AI is artificial intelligence"},
+			},
+			wantType: "rag_augmented",
+			checkFunc: func(t *testing.T, result *agent.Message) {
+				want := "Use the following context to answer:\nAI is artificial intelligence\n\nQuestion: What is AI?\nAnswer:"
+				if result.Payload != want {
+					t.Errorf("payload mismatch\n  got: %q\n want: %q", result.Payload, want)
+				}
+			},
+		},
+		{
+			name: "template strategy without template configured returns error",
+			opts: []RAGOption{WithAugmentationStrategy(AugmentTemplate)},
+			query: &agent.Message{
+				Message: &pb.Message{Payload: "q"},
+			},
+			documents: &agent.Message{
+				Message: &pb.Message{Payload: "d"},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := augmentInput(tt.query, tt.documents)
+			r := NewRAG("test", NewMockRuntime(), "retriever", "generator", tt.opts...)
+			result, err := r.augmentInput(tt.query, tt.documents)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("augmentInput() err = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
 			if tt.wantType != "" && result != nil && result.Type != tt.wantType {
 				t.Errorf("Type = %s, want %s", result.Type, tt.wantType)
 			}

@@ -671,6 +671,32 @@ rag := orchestration.NewRAG(
 result, _ := rag.Execute(ctx, userQuestion)
 ```
 
+**Augmentation Strategies**:
+
+The retrieved documents are combined with the original query before being
+passed to the generator. Three built-in strategies are available — pick the
+one that matches your generator agent's expected input format:
+
+| Strategy | Output | When to use |
+|----------|--------|-------------|
+| `AugmentPrepend` (default) | `Context:\n<docs>\n\nQuery:\n<query>` | Plain-text generators / chat models |
+| `AugmentJSON` | `{"context": "...", "query": "..."}` | Tool-calling agents that parse structured input |
+| `AugmentTemplate` | User-supplied `text/template` with `{{.Context}}` and `{{.Query}}` | Custom prompt templates with system-specific scaffolding |
+
+```go
+// JSON augmentation for a structured generator
+rag := orchestration.NewRAG("qa", runtime, "retriever", "generator",
+    orchestration.WithAugmentationStrategy(orchestration.AugmentJSON),
+)
+
+// Custom template
+rag := orchestration.NewRAG("qa", runtime, "retriever", "generator",
+    orchestration.WithAugmentationTemplate(
+        "Use the following context to answer:\n{{.Context}}\n\nQ: {{.Query}}\nA:",
+    ),
+)
+```
+
 **Metrics Tracked**:
 - Retrieval precision/recall
 - Context usage (% of retrieved context used in answer)

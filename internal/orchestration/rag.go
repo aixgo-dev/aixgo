@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/aixgo-dev/aixgo/internal/agent"
@@ -13,6 +14,23 @@ import (
 	pb "github.com/aixgo-dev/aixgo/proto"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+)
+
+// AugmentationStrategy controls how the query and retrieved documents are
+// combined before being passed to the generator agent.
+type AugmentationStrategy int
+
+const (
+	// AugmentPrepend prepends retrieved context to the query (default).
+	// Renders as: "Context:\n<documents>\n\nQuery:\n<query>"
+	AugmentPrepend AugmentationStrategy = iota
+	// AugmentJSON encodes the augmented input as a JSON object so the
+	// generator can address each field independently:
+	// {"context": "<documents>", "query": "<query>"}
+	AugmentJSON
+	// AugmentTemplate renders a user-supplied text/template with the
+	// fields .Context and .Query. Use WithAugmentationTemplate to set it.
+	AugmentTemplate
 )
 
 // RAG implements Retrieval-Augmented Generation pattern.
@@ -26,15 +44,17 @@ import (
 // - Context-aware generation
 type RAG struct {
 	*BaseOrchestrator
-	retriever        string              // Agent that retrieves relevant documents
-	generator        string              // Agent that generates the answer
-	topK             int                 // Number of documents to retrieve
-	rerank           bool                // Whether to rerank retrieved documents
-	reranker         string              // Optional reranker agent
-	conversationHist []ConversationTurn  // For conversational RAG
-	historyAgent     string              // Agent for managing history
-	queryExpander    string              // For multi-query RAG
-	keywordRetriever string              // For hybrid RAG
+	retriever        string             // Agent that retrieves relevant documents
+	generator        string             // Agent that generates the answer
+	topK             int                // Number of documents to retrieve
+	rerank           bool               // Whether to rerank retrieved documents
+	reranker         string             // Optional reranker agent
+	conversationHist []ConversationTurn // For conversational RAG
+	historyAgent     string             // Agent for managing history
+	queryExpander    string             // For multi-query RAG
+	keywordRetriever string             // For hybrid RAG
+	augmentStrategy  AugmentationStrategy
+	augmentTemplate  *template.Template // Compiled template for AugmentTemplate
 }
 
 // ConversationTurn represents a single turn in conversation history
@@ -59,6 +79,35 @@ func WithReranker(reranker string) RAGOption {
 	return func(r *RAG) {
 		r.rerank = true
 		r.reranker = reranker
+	}
+}
+
+// WithAugmentationStrategy selects how the query and retrieved documents are
+// combined before being passed to the generator. AugmentPrepend (the default)
+// produces a "Context:\n…\n\nQuery:\n…" string; AugmentJSON wraps the two
+// fields as a JSON object; AugmentTemplate renders a text/template (set via
+// WithAugmentationTemplate, which also flips the strategy to AugmentTemplate).
+func WithAugmentationStrategy(s AugmentationStrategy) RAGOption {
+	return func(r *RAG) {
+		r.augmentStrategy = s
+	}
+}
+
+// WithAugmentationTemplate supplies a text/template used to format augmented
+// input. The template may reference {{.Context}} and {{.Query}} fields.
+// Setting a template implicitly switches the strategy to AugmentTemplate.
+// Returns the option as-is on parse failure; the error surfaces at first
+// Execute call so configuration mistakes aren't lost.
+func WithAugmentationTemplate(tmpl string) RAGOption {
+	return func(r *RAG) {
+		// Parse failures will be surfaced at Execute time via augmentInput.
+		parsed, err := template.New("rag_augment").Parse(tmpl)
+		if err != nil {
+			r.augmentTemplate = nil
+		} else {
+			r.augmentTemplate = parsed
+		}
+		r.augmentStrategy = AugmentTemplate
 	}
 }
 
@@ -153,7 +202,11 @@ func (r *RAG) Execute(ctx context.Context, input *agent.Message) (*agent.Message
 	}
 
 	// Step 3: Generate answer with retrieved context
-	augmentedInput := augmentInput(input, documents)
+	augmentedInput, err := r.augmentInput(input, documents)
+	if err != nil {
+		span.RecordError(err)
+		return nil, fmt.Errorf("augmentation failed: %w", err)
+	}
 
 	generateStart := time.Now()
 	result, err := r.runtime.Call(ctx, r.generator, augmentedInput)
@@ -395,20 +448,54 @@ func (r *RAG) hybridRetrieve(ctx context.Context, input *agent.Message) (*agent.
 	}, nil
 }
 
-// augmentInput combines the original query with retrieved documents
-func augmentInput(query, documents *agent.Message) *agent.Message {
+// augmentInput combines the original query with retrieved documents using the
+// orchestrator's configured AugmentationStrategy. When no documents were
+// retrieved (nil or empty payload), the original query is returned unchanged
+// so that the generator can still respond — falling through to "ungrounded"
+// generation is preferable to failing the whole pipeline on a sparse retriever.
+func (r *RAG) augmentInput(query, documents *agent.Message) (*agent.Message, error) {
 	if query == nil || query.Message == nil {
-		return query
+		return query, nil
 	}
 
 	if documents == nil || documents.Message == nil || documents.Payload == "" {
 		// No documents retrieved, return original query
-		return query
+		return query, nil
 	}
 
-	// Create augmented message with both query and retrieved context
-	// Format: "Context:\n{documents}\n\nQuery:\n{query}"
-	augmentedPayload := fmt.Sprintf("Context:\n%s\n\nQuery:\n%s", documents.Payload, query.Payload)
+	var augmentedPayload string
+	switch r.augmentStrategy {
+	case AugmentJSON:
+		buf, err := json.Marshal(struct {
+			Context string `json:"context"`
+			Query   string `json:"query"`
+		}{
+			Context: documents.Payload,
+			Query:   query.Payload,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("encode json augmentation: %w", err)
+		}
+		augmentedPayload = string(buf)
+	case AugmentTemplate:
+		if r.augmentTemplate == nil {
+			return nil, fmt.Errorf("augmentation strategy is template but no template was configured (use WithAugmentationTemplate)")
+		}
+		var buf strings.Builder
+		err := r.augmentTemplate.Execute(&buf, struct {
+			Context string
+			Query   string
+		}{
+			Context: documents.Payload,
+			Query:   query.Payload,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("render augmentation template: %w", err)
+		}
+		augmentedPayload = buf.String()
+	default: // AugmentPrepend
+		augmentedPayload = fmt.Sprintf("Context:\n%s\n\nQuery:\n%s", documents.Payload, query.Payload)
+	}
 
 	// Preserve metadata from both messages
 	metadata := make(map[string]any)
@@ -427,7 +514,7 @@ func augmentInput(query, documents *agent.Message) *agent.Message {
 			Timestamp: query.Timestamp,
 			Metadata:  metadata,
 		},
-	}
+	}, nil
 }
 
 // RAG variants
