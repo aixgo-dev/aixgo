@@ -138,7 +138,7 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy results to GitHub Security
-      uses: github/codeql-action/upload-sarif@e46ed2cbd01164d986452f91f178727624ae40d7 # v4
+      uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4
       with:
         sarif_file: 'trivy-results.sarif'
 
@@ -151,7 +151,7 @@ jobs:
     # Gosec still runs completely and findings are visible in workflow logs.
     - name: Upload Gosec results to GitHub Security
       id: upload-gosec-sarif
-      uses: github/codeql-action/upload-sarif@e46ed2cbd01164d986452f91f178727624ae40d7 # v4
+      uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4
       continue-on-error: true
       with:
         sarif_file: 'gosec-results.sarif'
