@@ -6,10 +6,10 @@ toolchain go1.26.2
 
 require (
 	cloud.google.com/go/firestore v1.22.0
-	github.com/alicebob/miniredis/v2 v2.37.0
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/aws/aws-sdk-go-v2 v1.41.7
 	github.com/aws/aws-sdk-go-v2/config v1.32.17
-	github.com/aws/aws-sdk-go-v2/service/bedrock v1.59.2
+	github.com/aws/aws-sdk-go-v2/service/bedrock v1.60.0
 	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.50.6
 	github.com/google/uuid v1.6.0
 	github.com/peterh/liner v1.2.2
@@ -27,9 +27,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0
 	golang.org/x/sync v0.20.0
 	golang.org/x/time v0.15.0
-	google.golang.org/api v0.277.0
-	google.golang.org/genai v1.55.0
-	google.golang.org/grpc v1.81.0
+	google.golang.org/api v0.279.0
+	google.golang.org/genai v1.57.0
+	google.golang.org/grpc v1.81.1
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
 )
