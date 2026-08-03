@@ -29,7 +29,7 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9
+      uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
       with:
         version: latest
         args: --timeout=5m
@@ -93,10 +93,10 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+      uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
     - name: Build Aixgo image
-      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+      uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
       with:
         context: .
         file: ./docker/aixgo.Dockerfile
@@ -106,7 +106,7 @@ jobs:
         cache-to: type=gha,mode=max
 
     - name: Build Ollama image
-      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+      uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
       with:
         context: .
         file: ./docker/ollama.Dockerfile
@@ -143,7 +143,7 @@ jobs:
         sarif_file: 'trivy-results.sarif'
 
     - name: Run Gosec Security Scanner
-      uses: securego/gosec@4a3bd8af174872c778439083ded7adbf3747e770 # v2.26.1
+      uses: securego/gosec@9e75c0576c9878035d4221392108d458abe10fc3 # v2.28.0
       with:
         args: '-no-fail -exclude-dir=proto -fmt sarif -out gosec-results.sarif ./...'
 
