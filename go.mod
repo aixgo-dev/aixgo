@@ -2,6 +2,8 @@ module github.com/aixgo-dev/aixgo
 
 go 1.26
 
+// The single Go pin: CI reads this file via go-version-file, so bumping
+// the patch here bumps it everywhere.
 toolchain go1.26.5
 
 require (
