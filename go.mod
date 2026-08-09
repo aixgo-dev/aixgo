@@ -2,7 +2,7 @@ module github.com/aixgo-dev/aixgo
 
 go 1.26
 
-toolchain go1.26.2
+toolchain go1.26.3
 
 require (
 	cloud.google.com/go/firestore v1.24.0

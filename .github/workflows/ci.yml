@@ -9,7 +9,7 @@ on:
 env:
   # Minimum Go patch release — matches the `toolchain` directive in go.mod
   # and picks up stdlib CVE fixes that our govulncheck CI guard will flag.
-  GO_VERSION: '1.26.2'
+  GO_VERSION: '1.26.3'
 
 permissions:
   contents: read
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.26.2']
+        go-version: ['1.26.3']
     steps:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
