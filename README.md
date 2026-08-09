@@ -1,6 +1,6 @@
 # aixgo
 
-Production-grade AI agent framework for Go. Structured-output validation with automatic retry, type-safe orchestration, eight LLM providers, sub-20MB binary. No Python. No GIL. No 1GB containers.
+Vendor-neutral, config-driven multi-agent orchestration for Go. Define agent topologies in YAML, run them as a single sub-20MB binary, and swap between eight LLM providers without touching code.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/aixgo-dev/aixgo.svg)](https://pkg.go.dev/github.com/aixgo-dev/aixgo)
 [![Go Report Card](https://goreportcard.com/badge/github.com/aixgo-dev/aixgo)](https://goreportcard.com/report/github.com/aixgo-dev/aixgo)
@@ -16,18 +16,23 @@ Production-grade AI agent framework for Go. Structured-output validation with au
 
 ## Why aixgo
 
-Aixgo is a production-grade agent framework written in pure Go. It gives you structured output validation with automatic retry, six agent types, thirteen orchestration patterns, and eight LLM providers — all in a single sub-20MB binary that starts in under 100ms.
+Agents in Go stopped being a novelty. Google's ADK treats Go as first-class, Microsoft has a Go agent framework in public preview, and there is an official Go MCP SDK. The case for Go itself is settled: small static binaries, cold starts under 100ms, real parallelism. Every serious Go framework gives you that now.
 
-If you ship Go services and you're tired of dragging Python and a 1GB container along for an agent, this is for you.
+aixgo occupies the ground those frameworks leave open.
 
-| Metric | aixgo | Python frameworks |
-|---|---|---|
-| **Binary size** | <20MB | 1GB+ containers |
-| **Cold start** | <100ms | 10–45s |
-| **Concurrency** | True parallelism (no GIL) | GIL-limited |
-| **Type safety** | Compile-time | Runtime errors |
-| **Validation retry** | Built-in (structured-output) | Library-dependent |
-| **Distribution** | Single binary | Container + interpreter |
+**Vendor neutrality.** ADK is built around Vertex and Gemini. Microsoft's framework is built around Azure and Foundry. OpenAI and Anthropic ship their agent SDKs for Python and TypeScript only. aixgo puts eight LLM providers behind one interface and picks the provider from the model name, so moving an agent from `gpt-4-turbo` to a Claude or Grok model is a one-line YAML change.
+
+**Declarative orchestration.** Other Go frameworks are SDKs: the topology lives in code. In aixgo, agent topology is configuration. You define agents, their wiring, and the orchestration pattern in YAML, review it in a pull request, and ship it the way you ship any other config. Teams that live in Kubernetes manifests and Terraform plans tend to feel at home.
+
+**Built for the people on call.** Auth, rate limiting, SSRF protection, input sanitization, health checks, OpenTelemetry, and cost tracking ship in the box. The design assumption is that someone has to run this in production, not just demo it.
+
+| | aixgo | Cloud-vendor Go SDKs | Python frameworks |
+|---|---|---|---|
+| **Providers** | 8+, one interface | Their cloud first | Varies by library |
+| **Topology** | Declarative YAML | Code | Code |
+| **Distribution** | Single <20MB binary | Binary + cloud services | 1GB+ container |
+| **Security & observability** | Built in | Bring your own | Bring your own |
+| **Cold start** | <100ms | Varies | 10–45s |
 
 ---
 
