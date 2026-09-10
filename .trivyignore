@@ -1,0 +1,9 @@
+# GO-2026-5932: golang.org/x/crypto/openpgp is flagged as an unmaintained,
+# unsafe-by-design package. This repo never imports openpgp directly
+# (grep -rn openpgp --include=*.go . returns nothing) — golang.org/x/crypto
+# is only present as a transitive dependency of grpc/otel. The advisory has
+# no fixed version (it's a "don't use this package" notice, not a version
+# bump), so Trivy re-flags it on every x/crypto version change with no way
+# to resolve it via dependency bumps. Re-evaluate if openpgp usage is ever
+# introduced.
+GO-2026-5932
