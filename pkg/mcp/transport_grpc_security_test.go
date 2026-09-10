@@ -391,9 +391,6 @@ func TestTLSConfig_CompleteSecureConfiguration(t *testing.T) {
 		InsecureSkipVerify: false,
 		ClientAuth:         tls.RequireAndVerifyClientCert,
 
-		// Server preferences
-		PreferServerCipherSuites: true,
-
 		// Session management
 		ClientSessionCache: tls.NewLRUClientSessionCache(128),
 

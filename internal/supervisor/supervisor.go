@@ -214,7 +214,7 @@ Which agent should handle this task? Respond with just the agent name.`, input, 
 			{Role: openai.ChatMessageRoleSystem, Content: "You are a routing assistant. Select the best agent for the task. Respond with only the agent name."},
 			{Role: openai.ChatMessageRoleUser, Content: prompt},
 		},
-		MaxTokens: 50,
+		MaxCompletionTokens: 50,
 	})
 	if err != nil {
 		log.Printf("[SUPERVISOR] Error selecting agent: %v, using first agent", err)
